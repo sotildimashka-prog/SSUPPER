@@ -1,0 +1,10 @@
+# Bu faylni .env nomi bilan nusxalab, haqiqiy qiymatlarni kiriting.
+# Railway'da esa "Variables" bo'limiga xuddi shu nomlar bilan qo'shing.
+
+BOT_TOKEN=8910822725:AAHiUq4cZnX6BACEHlLgSKFcL8lDMvIJs_A
+ADMIN_ID=8914193938
+DB_PATH=database.db
+
+# Ixtiyoriy: Free Fire ID tekshirish uchun API (agar mavjud bo'lsa)
+FF_API_URL=
+FF_API_KEY=

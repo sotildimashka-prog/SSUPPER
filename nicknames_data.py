@@ -1,0 +1,48 @@
+# -*- coding: utf-8 -*-
+"""Premium gamerski nickname ro'yxatlari (Telegram code formatida)."""
+
+MALE_NICKNAMES = [
+    "『XON』",
+    "꧁Shadow꧂",
+    "亗LEGEND亗",
+    "ᴅᴇᴠɪʟ",
+    "SULTAN",
+    "ALPHA",
+    "REAPER",
+    "NEXUS",
+    "HUNTER『FF』",
+    "PHANTOM",
+    "DARK⚡KING",
+    "VIPER",
+    "NO MERCY",
+    "RANGER",
+    "VENOM",
+    "TITAN",
+    "RONIN",
+    "BLAZE",
+    "INFINITY",
+    "KING👑",
+]
+
+FEMALE_NICKNAMES = [
+    "『Queen』",
+    "꧁Luna꧂",
+    "Angel😇",
+    "Bella",
+    "Rose🌹",
+    "Cherry",
+    "Moon🌙",
+    "Mia",
+    "Sweet💋",
+    "Crystal",
+    "Butterfly🦋",
+    "Princess👸",
+    "Snow❄",
+    "Star⭐",
+    "Venus",
+    "Daisy",
+    "Kitty🐱",
+    "Ruby💎",
+    "Dream",
+    "Aurora",
+]
