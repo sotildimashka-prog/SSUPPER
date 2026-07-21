@@ -14,15 +14,22 @@ from handlers.subscription import get_unsubscribed_channels
 
 WELCOME_TEXT = (
     "👋 <b>Assalomu aleykum!</b>\n\n"
-    f"{BOT_NAME} botiga xush kelibsiz!\n\n"
-    "Botdan to'liq foydalanish uchun quyidagi kanallarga obuna bo'ling, "
-    "so'ngra <b>✅ Obuna bo'ldim</b> tugmasini bosing 👇"
+    f"{BOT_NAME} botiga xush kelibsiz! 🎮\n\n"
+    "Botdan to'liq foydalanish uchun avval quyidagi kanallarga obuna bo'ling, "
+    "so'ngra pastdagi <b>✅ Obuna bo'ldim</b> tugmasini bosing 👇"
 )
 
-ALREADY_SUBSCRIBED_TEXT = (
-    "✅ <b>Obuna tasdiqlandi!</b>\n\n"
-    "Endi botning barcha imkoniyatlaridan foydalanishingiz mumkin. "
-    "Quyidagi menyudan kerakli bo'limni tanlang 👇"
+NOT_SUBSCRIBED_TEXT = (
+    "❌ <b>Siz hali barcha kanallarga obuna bo'lmagansiz!</b>\n\n"
+    "Iltimos, yuqoridagi barcha kanallarga obuna bo'ling, so'ngra qaytadan "
+    "<b>✅ Obuna bo'ldim</b> tugmasini bosing."
+)
+
+WELCOME_BACK_TEXT = (
+    "🎉 <b>Ajoyib! Obuna tasdiqlandi!</b>\n\n"
+    f"✨ {BOT_NAME} ga xush kelibsiz, endi botning barcha imkoniyatlaridan "
+    "to'liq foydalanishingiz mumkin! 🔥\n\n"
+    "👇 Quyidagi menyudan kerakli bo'limni tanlang:"
 )
 
 
@@ -58,7 +65,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     is_admin = user.id == ADMIN_ID
     await update.message.reply_text(
-        ALREADY_SUBSCRIBED_TEXT,
+        WELCOME_BACK_TEXT,
         parse_mode="HTML",
         reply_markup=main_menu_keyboard(is_admin),
     )
@@ -71,17 +78,19 @@ async def check_subscription_callback(update: Update, context: ContextTypes.DEFA
 
     unsubscribed = await get_unsubscribed_channels(user.id, context)
     if unsubscribed:
-        names = "\n".join(f"• {ch['name']}" for ch in unsubscribed)
         await query.answer(
             "❌ Siz hali barcha kanallarga obuna bo'lmagansiz!", show_alert=True
         )
         return
 
     is_admin = user.id == ADMIN_ID
-    await query.message.delete()
+    try:
+        await query.message.delete()
+    except TelegramError:
+        pass
     await context.bot.send_message(
         chat_id=user.id,
-        text=ALREADY_SUBSCRIBED_TEXT,
+        text=WELCOME_BACK_TEXT,
         parse_mode="HTML",
         reply_markup=main_menu_keyboard(is_admin),
     )
