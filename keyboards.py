@@ -24,6 +24,7 @@ BTN_FFID = "🎮 Mening FF ID'im"
 BTN_PROXY = "🌐 Proxy server"
 BTN_STATS = "📊 Statistika"
 BTN_BROADCAST = "📢 Xabar yuborish"
+BTN_POST = "📝 Post"
 
 
 def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
@@ -35,6 +36,7 @@ def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
     ]
     if is_admin:
         rows.append([KeyboardButton(BTN_STATS), KeyboardButton(BTN_BROADCAST)])
+        rows.append([KeyboardButton(BTN_POST)])
     return ReplyKeyboardMarkup(rows, resize_keyboard=True, is_persistent=True)
 
 
@@ -42,9 +44,14 @@ def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
 
 def subscription_keyboard() -> InlineKeyboardMarkup:
     rows = []
-    for ch in REQUIRED_CHANNELS:
+    channels = REQUIRED_CHANNELS
+    for i in range(0, len(channels), 2):
+        chunk = channels[i:i + 2]
         rows.append(
-            [InlineKeyboardButton(f"📢 {ch['name']}", url=f"https://t.me/{ch['username']}")]
+            [
+                InlineKeyboardButton(f"📡 {ch['name']}", url=f"https://t.me/{ch['username']}")
+                for ch in chunk
+            ]
         )
     rows.append([InlineKeyboardButton("✅ Obuna bo'ldim", callback_data="check_sub")])
     return InlineKeyboardMarkup(rows)
