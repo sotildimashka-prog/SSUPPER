@@ -5,8 +5,8 @@ import httpx
 from telegram import Update, ReplyKeyboardRemove
 from telegram.ext import ContextTypes, ConversationHandler
 
-from config import FF_API_URL, FF_API_KEY
-from keyboards import main_menu_keyboard, BTN_FFID
+from config import FF_API_URL, FF_REGION
+from keyboards import main_menu_keyboard
 
 WAITING_FF_ID = 1
 
@@ -45,42 +45,46 @@ async def receive_ff_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return WAITING_FF_ID
 
-    if not FF_API_URL:
-        await update.message.reply_text(
-            "⚙️ Free Fire ID tekshirish xizmati hozircha ulanmagan.\n\n"
-            "Admin FF_API_URL va FF_API_KEY sozlamalarini config.py yoki "
-            "environment o'zgaruvchilarida to'ldirishi kerak. Buni qanday "
-            "qilish README.md faylida tushuntirilgan.",
-            reply_markup=main_menu_keyboard(is_admin),
-        )
-        return ConversationHandler.END
-
-    await update.message.reply_text("⏳ Ma'lumotlar qidirilmoqda...")
+    await update.message.reply_text("⏳ Ma'lumotlar qidirilmoqda, biroz kuting...")
 
     try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            headers = {"Authorization": f"Bearer {FF_API_KEY}"} if FF_API_KEY else {}
-            resp = await client.get(f"{FF_API_URL}?uid={ff_id}", headers=headers)
+        async with httpx.AsyncClient(timeout=45) as client:
+            resp = await client.get(
+                FF_API_URL, params={"region": FF_REGION, "uid": ff_id}
+            )
             data = resp.json()
     except Exception:
         await update.message.reply_text(
-            "❌ Ma'lumotlarni olishda xatolik yuz berdi. Keyinroq qayta urinib ko'ring.",
+            "❌ Ma'lumotlarni olishda xatolik yuz berdi. Server band bo'lishi "
+            "mumkin, birozdan keyin qayta urinib ko'ring.",
             reply_markup=main_menu_keyboard(is_admin),
         )
         return ConversationHandler.END
 
+    if "error" in data or "basicInfo" not in data:
+        await update.message.reply_text(
+            "⚠️ Bunday UID topilmadi yoki noto'g'ri kiritildi. Iltimos, "
+            "UID raqamini tekshirib qaytadan urinib ko'ring.",
+            reply_markup=main_menu_keyboard(is_admin),
+        )
+        return ConversationHandler.END
+
+    basic = data.get("basicInfo", {})
+    clan = data.get("clanBasicInfo", {})
+    credit = data.get("creditScoreInfo", {})
+
     text = (
         "🎮 <b>Free Fire profil ma'lumotlari</b>\n\n"
-        f"👤 Nickname: {data.get('nickname', '—')}\n"
-        f"🆔 UID: {data.get('uid', ff_id)}\n"
-        f"🌍 Region: {data.get('region', '—')}\n"
-        f"📶 Level: {data.get('level', '—')}\n"
-        f"❤️ Likes: {data.get('likes', '—')}\n"
-        f"🏆 Rank: {data.get('rank', '—')}\n"
-        f"🎯 CS Rank: {data.get('cs_rank', '—')}\n"
-        f"🛡 Guild: {data.get('guild_name', '—')}\n"
-        f"🆔 Guild ID: {data.get('guild_id', '—')}\n"
-        f"⭐ Honor Score: {data.get('honor_score', '—')}"
+        f"👤 Nickname: {basic.get('nickname', '—')}\n"
+        f"🆔 UID: {basic.get('accountId', ff_id)}\n"
+        f"🌍 Region: {basic.get('region', FF_REGION)}\n"
+        f"📶 Level: {basic.get('level', '—')}\n"
+        f"❤️ Likes: {basic.get('liked', '—')}\n"
+        f"🏆 Rank: {basic.get('rank', '—')}\n"
+        f"🎯 CS Rank: {basic.get('csRank', '—')}\n"
+        f"🛡 Guild: {clan.get('clanName', '—')}\n"
+        f"🆔 Guild ID: {clan.get('clanId', '—')}\n"
+        f"⭐ Honor Score: {credit.get('creditScore', '—')}"
     )
     await update.message.reply_text(
         text, parse_mode="HTML", reply_markup=main_menu_keyboard(is_admin)
