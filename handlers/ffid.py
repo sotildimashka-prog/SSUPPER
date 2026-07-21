@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """🎮 Mening FF ID'im - foydalanuvchi Free Fire ID yuborganda ma'lumot ko'rsatish."""
 
+import asyncio
 import httpx
 from telegram import Update, ReplyKeyboardRemove
 from telegram.ext import ContextTypes, ConversationHandler
@@ -32,6 +33,22 @@ async def cancel_ffid(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 
+async def _fetch_ff_data(ff_id: str):
+    """API'ga so'rov yuboradi. Server uxlab qolgan bo'lsa, 2 marta qayta urinadi."""
+    last_error = None
+    for attempt in range(2):
+        try:
+            async with httpx.AsyncClient(timeout=75) as client:
+                resp = await client.get(
+                    FF_API_URL, params={"region": FF_REGION, "uid": ff_id}
+                )
+                return resp.json()
+        except Exception as e:
+            last_error = e
+            await asyncio.sleep(3)
+    raise last_error
+
+
 async def receive_ff_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
     from config import ADMIN_ID
 
@@ -45,23 +62,22 @@ async def receive_ff_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return WAITING_FF_ID
 
-    await update.message.reply_text("⏳ Ma'lumotlar qidirilmoqda, biroz kuting...")
+    await update.message.reply_text(
+        "⏳ Ma'lumotlar qidirilmoqda...\n"
+        "Server ba'zan uyg'onishi uchun 30-60 soniya vaqt olishi mumkin, iltimos kuting."
+    )
 
     try:
-        async with httpx.AsyncClient(timeout=45) as client:
-            resp = await client.get(
-                FF_API_URL, params={"region": FF_REGION, "uid": ff_id}
-            )
-            data = resp.json()
+        data = await _fetch_ff_data(ff_id)
     except Exception:
         await update.message.reply_text(
-            "❌ Ma'lumotlarni olishda xatolik yuz berdi. Server band bo'lishi "
-            "mumkin, birozdan keyin qayta urinib ko'ring.",
+            "❌ Server hozircha javob bermayapti. Birozdan so'ng qaytadan "
+            "urinib ko'ring (bepul server tez-tez band bo'lib turadi).",
             reply_markup=main_menu_keyboard(is_admin),
         )
         return ConversationHandler.END
 
-    if "error" in data or "basicInfo" not in data:
+    if not isinstance(data, dict) or "error" in data or "basicInfo" not in data:
         await update.message.reply_text(
             "⚠️ Bunday UID topilmadi yoki noto'g'ri kiritildi. Iltimos, "
             "UID raqamini tekshirib qaytadan urinib ko'ring.",
