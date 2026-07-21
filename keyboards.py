@@ -14,17 +14,17 @@ from data.guides_data import GUIDES
 
 # ---------- Asosiy menyu (ReplyKeyboard) ----------
 
-BTN_HELP = "🆘 Yordam"
-BTN_SETTINGS = "⚙️ Nastroykalar"
-BTN_NICKS = "🆔 Niklar"
-BTN_GUIDES = "📚 Qo'llanmalar"
-BTN_PREMIUM = "💎 Premium bo'lim"
-BTN_CHEAT = "🔧 Cheat va panellar"
-BTN_FFID = "🎮 Mening FF ID'im"
-BTN_PROXY = "🌐 Proxy server"
-BTN_STATS = "📊 Statistika"
-BTN_BROADCAST = "📢 Xabar yuborish"
-BTN_POST = "📝 Post"
+BTN_HELP = "💬 Yordam"
+BTN_SETTINGS = "🎯 Nastroykalar"
+BTN_NICKS = "🏷️ Niklar"
+BTN_GUIDES = "📖 Qo'llanmalar"
+BTN_PREMIUM = "👑 Premium bo'lim"
+BTN_CHEAT = "🛠️ Cheat va panellar"
+BTN_FFID = "🕹️ Mening FF ID'im"
+BTN_PROXY = "🛰️ Proxy server"
+BTN_STATS = "📈 Statistika"
+BTN_BROADCAST = "📣 Xabar yuborish"
+BTN_POST = "🖋️ Post"
 
 
 def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
