@@ -31,6 +31,7 @@ from keyboards import (
     BTN_PROXY,
     BTN_STATS,
     BTN_BROADCAST,
+    BTN_POST,
 )
 
 from handlers.start import start_command, check_subscription_callback
@@ -58,6 +59,13 @@ from handlers.admin import (
     send_broadcast,
     cancel_broadcast,
     WAITING_BROADCAST,
+    start_post,
+    receive_post_text,
+    receive_post_button,
+    skip_post_button,
+    cancel_post,
+    WAITING_POST_TEXT,
+    WAITING_POST_BUTTON,
 )
 
 logging.basicConfig(
@@ -118,6 +126,26 @@ def build_application() -> Application:
         fallbacks=[CommandHandler("bekor", cancel_broadcast)],
     )
     app.add_handler(broadcast_conv)
+
+    # ---------- Post conversation (faqat admin) ----------
+    post_conv = ConversationHandler(
+        entry_points=[MessageHandler(_exact(BTN_POST), start_post)],
+        states={
+            WAITING_POST_TEXT: [
+                CommandHandler("bekor", cancel_post),
+                MessageHandler(
+                    (filters.TEXT | filters.PHOTO) & ~filters.COMMAND, receive_post_text
+                ),
+            ],
+            WAITING_POST_BUTTON: [
+                CommandHandler("bekor", cancel_post),
+                CommandHandler("otkazib_yuborish", skip_post_button),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_post_button),
+            ],
+        },
+        fallbacks=[CommandHandler("bekor", cancel_post)],
+    )
+    app.add_handler(post_conv)
 
     # ---------- Reply tugmalar ----------
     app.add_handler(MessageHandler(_exact(BTN_HELP), on_help_button))
