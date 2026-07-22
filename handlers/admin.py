@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""📊 Statistika, 📢 Xabar yuborish va 📝 Post - faqat admin uchun."""
+"""📊 Statistika, 📣 Xabar yuborish, 🖋️ Post va ✏️ Tugmalarni tahrirlash - faqat admin uchun."""
 
 import asyncio
 
@@ -14,11 +14,19 @@ from telegram.error import TelegramError
 
 import database as db
 from config import ADMIN_ID
-from keyboards import main_menu_keyboard
+from keyboards import main_menu_keyboard, edit_texts_keyboard
 
 WAITING_BROADCAST = 2
 WAITING_POST_TEXT = 3
 WAITING_POST_BUTTON = 4
+WAITING_EDIT_TEXT = 5
+
+TEXT_LABELS = {
+    "help_text": "💬 Yordam matni",
+    "premium_text": "👑 Premium matni",
+    "cheat_text": "🛠️ Cheat matni",
+    "proxy_text": "🛰️ Proxy matni",
+}
 
 
 def _admin_only(update: Update) -> bool:
@@ -39,13 +47,13 @@ async def on_stats_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(text, parse_mode="HTML")
 
 
-# ---------- 📢 Oddiy Xabar yuborish (Broadcast) ----------
+# ---------- 📣 Oddiy Xabar yuborish (Broadcast) ----------
 
 async def start_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not _admin_only(update):
         return ConversationHandler.END
     await update.message.reply_text(
-        "📢 Barcha foydalanuvchilarga yuboriladigan xabar matnini kiriting.\n"
+        "📣 Barcha foydalanuvchilarga yuboriladigan xabar matnini kiriting.\n"
         "Bekor qilish uchun /bekor.",
         reply_markup=ReplyKeyboardRemove(),
     )
@@ -90,13 +98,13 @@ async def send_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 
-# ---------- 📝 Post (tugmali xabar) ----------
+# ---------- 🖋️ Post (tugmali xabar) ----------
 
 async def start_post(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not _admin_only(update):
         return ConversationHandler.END
     await update.message.reply_text(
-        "📝 <b>Yangi post yaratish</b>\n\n"
+        "🖋️ <b>Yangi post yaratish</b>\n\n"
         "Post matnini yuboring (rasm bilan ham bo'lishi mumkin, rasmga izoh "
         "sifatida matn yozing).\n\n"
         "Bekor qilish uchun /bekor.",
@@ -197,5 +205,67 @@ async def _broadcast_post(update: Update, context: ContextTypes.DEFAULT_TYPE, bu
     await update.message.reply_text(
         f"✅ Post yuborildi!\n\n📨 Muvaffaqiyatli: {sent}\n❌ Xatolik: {failed}",
         reply_markup=main_menu_keyboard(True),
+    )
+    return ConversationHandler.END
+
+
+# ---------- ✏️ Tugmalarni tahrirlash ----------
+
+async def start_edit_texts(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not _admin_only(update):
+        return
+    await update.message.reply_text(
+        "✏️ <b>Qaysi matnni tahrirlaysiz?</b>",
+        parse_mode="HTML",
+        reply_markup=edit_texts_keyboard(),
+    )
+
+
+async def choose_text_to_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    if not _admin_only(update):
+        await query.answer("Bu funksiya faqat admin uchun.", show_alert=True)
+        return ConversationHandler.END
+    await query.answer()
+
+    key = query.data.split(":", 1)[1]
+    context.user_data["editing_key"] = key
+    label = TEXT_LABELS.get(key, key)
+
+    current = db.get_setting(key, "(hozircha standart matn ishlatilmoqda)")
+    await query.edit_message_text(
+        f"✏️ <b>{label}</b> uchun joriy matn:\n\n{current}\n\n"
+        "Yangi matnni yuboring (HTML teglar: &lt;b&gt;, &lt;i&gt; ishlatishingiz mumkin).\n"
+        "Bekor qilish uchun /bekor.",
+        parse_mode="HTML",
+    )
+    return WAITING_EDIT_TEXT
+
+
+async def receive_new_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    key = context.user_data.get("editing_key")
+    if not key:
+        await update.message.reply_text(
+            "⚠️ Xatolik yuz berdi. Qaytadan boshlang.",
+            reply_markup=main_menu_keyboard(True),
+        )
+        return ConversationHandler.END
+
+    new_text = update.message.text_html or update.message.text or ""
+    db.set_setting(key, new_text)
+    context.user_data.pop("editing_key", None)
+
+    label = TEXT_LABELS.get(key, key)
+    await update.message.reply_text(
+        f"✅ {label} muvaffaqiyatli yangilandi!",
+        reply_markup=main_menu_keyboard(True),
+    )
+    return ConversationHandler.END
+
+
+async def cancel_edit_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data.pop("editing_key", None)
+    await update.message.reply_text(
+        "❌ Bekor qilindi.", reply_markup=main_menu_keyboard(True)
     )
     return ConversationHandler.END
