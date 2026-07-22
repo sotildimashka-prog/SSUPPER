@@ -21,13 +21,13 @@ ABOUT_TEXT = (
     "🛠 Doimiy yangilanib boriladi va yangi imkoniyatlar qo'shiladi."
 )
 
-HELP_TEXT = (
+DEFAULT_HELP_TEXT = (
     "🆘 <b>Yordam</b>\n\n"
     "Agar botdan foydalanishda biror muammoga duch kelsangiz yoki savolingiz "
     f"bo'lsa, quyidagi manzilga murojaat qiling:\n\n👤 {HELP_CONTACT}"
 )
 
-PREMIUM_TEXT = (
+DEFAULT_PREMIUM_TEXT = (
     "🔥 <b>Premium xizmatlar</b>\n\n"
     "✅ VIP nastroykalar\n"
     "✅ Premium HUD\n"
@@ -41,8 +41,8 @@ PREMIUM_TEXT = (
     f"👤 Bog'lanish uchun: {PREMIUM_CONTACT}"
 )
 
-CHEAT_TEXT = "🔧 <b>Cheat va panellar</b>\n\nTez orada qo'shiladi."
-PROXY_TEXT = "🌐 <b>Proxy server</b>\n\nHozircha bo'sh."
+DEFAULT_CHEAT_TEXT = "🔧 <b>Cheat va panellar</b>\n\nTez orada qo'shiladi."
+DEFAULT_PROXY_TEXT = "🌐 <b>Proxy server</b>\n\nHozircha bo'sh."
 
 
 def _is_admin(user_id: int) -> bool:
@@ -66,18 +66,21 @@ async def profil_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     row = db.get_user(user.id)
     joined = row["joined_at"][:10] if row else "—"
+    balance = db.get_balance(user.id)
     text = (
         "🆔 <b>Profil ma'lumotlari</b>\n\n"
         f"👤 Ism: {user.first_name or '-'}\n"
         f"🔗 Username: @{user.username if user.username else '—'}\n"
         f"🆔 Telegram ID: <code>{user.id}</code>\n"
-        f"📅 Ro'yxatdan o'tgan sana: {joined}"
+        f"📅 Ro'yxatdan o'tgan sana: {joined}\n"
+        f"💰 Balans: {balance:,} so'm".replace(",", ".")
     )
     await update.message.reply_text(text, parse_mode="HTML")
 
 
 async def yordam_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(HELP_TEXT, parse_mode="HTML")
+    text = db.get_setting("help_text", DEFAULT_HELP_TEXT)
+    await update.message.reply_text(text, parse_mode="HTML")
 
 
 async def yangiliklar_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -89,24 +92,28 @@ async def yangiliklar_command(update: Update, context: ContextTypes.DEFAULT_TYPE
 # ---------- ReplyKeyboard tugma bosilganda ishlaydigan handlerlar ----------
 
 async def on_help_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(HELP_TEXT, parse_mode="HTML")
+    text = db.get_setting("help_text", DEFAULT_HELP_TEXT)
+    await update.message.reply_text(text, parse_mode="HTML")
 
 
 async def on_premium_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(PREMIUM_TEXT, parse_mode="HTML")
+    text = db.get_setting("premium_text", DEFAULT_PREMIUM_TEXT)
+    await update.message.reply_text(text, parse_mode="HTML")
 
 
 async def on_cheat_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(CHEAT_TEXT, parse_mode="HTML")
+    text = db.get_setting("cheat_text", DEFAULT_CHEAT_TEXT)
+    await update.message.reply_text(text, parse_mode="HTML")
 
 
 async def on_proxy_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(PROXY_TEXT, parse_mode="HTML")
+    text = db.get_setting("proxy_text", DEFAULT_PROXY_TEXT)
+    await update.message.reply_text(text, parse_mode="HTML")
 
 
 async def on_settings_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "⚙️ <b>Nastroykalar</b>\n\nTelefon brendini tanlang 👇",
+        "🎯 <b>Nastroykalar</b>\n\nTelefon brendini tanlang 👇",
         parse_mode="HTML",
         reply_markup=brands_keyboard(),
     )
@@ -114,7 +121,7 @@ async def on_settings_button(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 async def on_nicks_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "🆔 <b>Niklar</b>\n\nKategoriyani tanlang 👇",
+        "🏷️ <b>Niklar</b>\n\nKategoriyani tanlang 👇",
         parse_mode="HTML",
         reply_markup=nicknames_keyboard(),
     )
@@ -122,7 +129,7 @@ async def on_nicks_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def on_guides_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "📚 <b>Qo'llanmalar</b>\n\nMavzuni tanlang 👇",
+        "📖 <b>Qo'llanmalar</b>\n\nMavzuni tanlang 👇",
         parse_mode="HTML",
         reply_markup=guides_keyboard(),
     )
