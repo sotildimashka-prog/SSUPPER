@@ -31,6 +31,16 @@ HELP_CONTACT = "@ffhelpnastroyka"
 # Premium bo'lim uchun aloqa
 PREMIUM_CONTACT = "@auwsn"
 
+# --- Admin bilan to'g'ridan-to'g'ri bog'lanish uchun username ---
+# E'TIBOR: shu yerga o'zingizning haqiqiy Telegram username'ingizni yozing
+# (masalan "auwsn"), aks holda "Admin orqali olish" tugmasi ishlamaydi.
+ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "auwsn")
+
+# --- To'lov kartasi ma'lumotlari (Hisobim -> Humo/Uzcard orqali to'ldirish) ---
+CARD_NUMBER = os.getenv("CARD_NUMBER", "9860 0366 3090 0060")
+CARD_HOLDER_NAME = os.getenv("CARD_HOLDER_NAME", "Bilolxonova Tursunoy")
+CARD_PHONE = os.getenv("CARD_PHONE", "+998 94 595 92 06")
+
 # --- Ma'lumotlar bazasi ---
 DB_PATH = os.getenv("DB_PATH", "database.db")
 
