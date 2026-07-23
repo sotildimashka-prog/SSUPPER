@@ -1,168 +1,114 @@
 # -*- coding: utf-8 -*-
-"""🎛️ Alohida nastroyka - foydalanuvchi telefon modelini batafsil yozib yuboradi,
-so'rov adminga inline tugma bilan boradi, admin javobni yuborsa foydalanuvchiga
-to'g'ridan-to'g'ri yetkaziladi."""
+"""/haqida, /menu, /profil, /yordam, /yangiliklar buyruqlari va oddiy tugma javoblari."""
 
-from telegram import (
-    Update,
-    ReplyKeyboardRemove,
-    InlineKeyboardMarkup,
-    InlineKeyboardButton,
+from telegram import Update
+from telegram.ext import ContextTypes
+
+import database as db
+from config import ADMIN_ID, BOT_NAME, HELP_CONTACT, NEWS_CHANNEL_URL
+from keyboards import (
+    main_menu_keyboard,
+    brands_keyboard,
+    nicknames_keyboard,
+    guides_keyboard,
 )
-from telegram.ext import ContextTypes, ConversationHandler
-from telegram.error import TelegramError
 
-from config import ADMIN_ID
-from keyboards import main_menu_keyboard
+ABOUT_TEXT = (
+    f"ℹ️ <b>{BOT_NAME} haqida</b>\n\n"
+    "Ushbu bot Free Fire o'yinchilariga eng maqbul sensitivity nastroykalarini, "
+    "premium nicknamelarni, foydali qo'llanmalarni va o'yin statistikasini "
+    "topishda yordam beradi.\n\n"
+    "🛠 Doimiy yangilanib boriladi va yangi imkoniyatlar qo'shiladi."
+)
 
-WAITING_CUSTOM_REQUEST = 20
-WAITING_CUSTOM_ADMIN_REPLY = 21
+DEFAULT_HELP_TEXT = (
+    "🆘 <b>Yordam</b>\n\n"
+    "Agar botdan foydalanishda biror muammoga duch kelsangiz yoki savolingiz "
+    f"bo'lsa, quyidagi manzilga murojaat qiling:\n\n👤 {HELP_CONTACT}"
+)
+
+DEFAULT_TOURNAMENT_TEXT = (
+    "🎉 <b>Katta Turnirlar</b>\n\n"
+    "Tez orada yangi turnirlar haqida ma'lumot shu yerda joylanadi. "
+    "Yangiliklardan xabardor bo'lish uchun kuzatib boring! 🏆"
+)
 
 
-def _admin_reply_keyboard(user_id: int) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        [[InlineKeyboardButton("✍️ Nastroyka yuborish", callback_data=f"customreply:{user_id}")]]
-    )
+def _is_admin(user_id: int) -> bool:
+    return user_id == ADMIN_ID
 
 
-async def start_custom_setting(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def haqida_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(ABOUT_TEXT, parse_mode="HTML")
+
+
+async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    is_admin = _is_admin(update.effective_user.id)
     await update.message.reply_text(
-        "🎛️✨ <b>Alohida nastroyka</b>\n\n"
-        "Telefon modelingizni <b>to'liq va aniq</b> yozib yuboring "
-        "(brend, model, agar bilsangiz RAM/protsessor kabi tafsilotlar bilan).\n\n"
-        "Masalan: <i>Samsung Galaxy A54, 8GB RAM, Exynos 1380</i>\n\n"
-        "Bekor qilish uchun /bekor.",
+        "🏠 <b>Bosh menyu</b>\n\nKerakli bo'limni tanlang 👇",
         parse_mode="HTML",
-        reply_markup=ReplyKeyboardRemove(),
-    )
-    return WAITING_CUSTOM_REQUEST
-
-
-async def cancel_custom_setting(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    is_admin = update.effective_user.id == ADMIN_ID
-    await update.message.reply_text(
-        "❌ Bekor qilindi.", reply_markup=main_menu_keyboard(is_admin)
-    )
-    return ConversationHandler.END
-
-
-async def receive_custom_setting(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-    is_admin = user.id == ADMIN_ID
-    model_text = (update.message.text or "").strip()
-
-    if not model_text:
-        await update.message.reply_text(
-            "⚠️ Iltimos, telefon modelingizni matn ko'rinishida yuboring."
-        )
-        return WAITING_CUSTOM_REQUEST
-
-    await update.message.reply_text(
-        "✅ So'rovingiz qabul qilindi!\n\n"
-        "Admin tez orada telefoningiz uchun individual nastroykani tayyorlab, "
-        "shu yerga yuboradi. Iltimos, kuting.",
         reply_markup=main_menu_keyboard(is_admin),
     )
 
-    admin_text = (
-        "🎛️ <b>Yangi alohida nastroyka so'rovi</b>\n\n"
-        f"👤 Foydalanuvchi: {user.first_name or '-'} (@{user.username or '—'})\n"
-        f"🆔 Telegram ID: <code>{user.id}</code>\n\n"
-        f"📱 Telefon modeli:\n{model_text}\n\n"
-        "Ushbu foydalanuvchiga individual nastroyka yuborish uchun pastdagi "
-        "tugmani bosing 👇"
+
+async def profil_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    row = db.get_user(user.id)
+    joined = row["joined_at"][:10] if row else "—"
+    balance = db.get_balance(user.id)
+    text = (
+        "🆔 <b>Profil ma'lumotlari</b>\n\n"
+        f"👤 Ism: {user.first_name or '-'}\n"
+        f"🔗 Username: @{user.username if user.username else '—'}\n"
+        f"🆔 Telegram ID: <code>{user.id}</code>\n"
+        f"📅 Ro'yxatdan o'tgan sana: {joined}\n"
+        f"💰 Balans: {balance:,} so'm".replace(",", ".")
     )
-    try:
-        await context.bot.send_message(
-            chat_id=ADMIN_ID,
-            text=admin_text,
-            parse_mode="HTML",
-            reply_markup=_admin_reply_keyboard(user.id),
-        )
-    except TelegramError:
-        pass
-
-    return ConversationHandler.END
+    await update.message.reply_text(text, parse_mode="HTML")
 
 
-# ---------- Admin javobi (matn, rasm yoki video bo'lishi mumkin) ----------
-
-async def start_custom_admin_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    if query.from_user.id != ADMIN_ID:
-        await query.answer("Bu funksiya faqat admin uchun.", show_alert=True)
-        return ConversationHandler.END
-    await query.answer()
-
-    target_user_id = int(query.data.split(":", 1)[1])
-    context.user_data["custom_target_uid"] = target_user_id
-
-    await query.message.reply_text(
-        "✍️ Ushbu foydalanuvchi uchun nastroykani yuboring "
-        "(matn, rasm yoki video bo'lishi mumkin).\n\nBekor qilish uchun /bekor."
-    )
-    return WAITING_CUSTOM_ADMIN_REPLY
+async def yordam_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = db.get_setting("help_text", DEFAULT_HELP_TEXT)
+    await update.message.reply_text(text, parse_mode="HTML")
 
 
-async def cancel_custom_admin_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data.pop("custom_target_uid", None)
+async def yangiliklar_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "❌ Bekor qilindi.", reply_markup=main_menu_keyboard(True)
+        f"📢 Yangiliklar kanalimizga o'tish uchun bosing:\n{NEWS_CHANNEL_URL}"
     )
-    return ConversationHandler.END
 
 
-async def receive_custom_admin_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    target_user_id = context.user_data.get("custom_target_uid")
-    if not target_user_id:
-        await update.message.reply_text(
-            "⚠️ Xatolik yuz berdi. Qaytadan boshlang.",
-            reply_markup=main_menu_keyboard(True),
-        )
-        return ConversationHandler.END
+# ---------- ReplyKeyboard tugma bosilganda ishlaydigan handlerlar ----------
 
-    msg = update.message
-    caption_prefix = "🎯 <b>Sizning individual nastroykangiz tayyor!</b>\n\n"
+async def on_help_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = db.get_setting("help_text", DEFAULT_HELP_TEXT)
+    await update.message.reply_text(text, parse_mode="HTML")
 
-    try:
-        if msg.photo:
-            caption = caption_prefix + (msg.caption or "")
-            await context.bot.send_photo(
-                chat_id=target_user_id,
-                photo=msg.photo[-1].file_id,
-                caption=caption,
-                parse_mode="HTML",
-            )
-        elif msg.video:
-            caption = caption_prefix + (msg.caption or "")
-            await context.bot.send_video(
-                chat_id=target_user_id,
-                video=msg.video.file_id,
-                caption=caption,
-                parse_mode="HTML",
-            )
-        elif msg.document:
-            caption = caption_prefix + (msg.caption or "")
-            await context.bot.send_document(
-                chat_id=target_user_id,
-                document=msg.document.file_id,
-                caption=caption,
-                parse_mode="HTML",
-            )
-        else:
-            text = caption_prefix + (msg.text_html or msg.text or "")
-            await context.bot.send_message(
-                chat_id=target_user_id, text=text, parse_mode="HTML"
-            )
-        await update.message.reply_text(
-            "✅ Foydalanuvchiga muvaffaqiyatli yuborildi!",
-            reply_markup=main_menu_keyboard(True),
-        )
-    except TelegramError:
-        await update.message.reply_text(
-            "❌ Yuborishda xatolik yuz berdi (foydalanuvchi botni bloklagan bo'lishi mumkin).",
-            reply_markup=main_menu_keyboard(True),
-        )
 
-    context.user_data.pop("custom_target_uid", None)
-    return ConversationHandler.END
+async def on_tournaments_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = db.get_setting("tournament_text", DEFAULT_TOURNAMENT_TEXT)
+    await update.message.reply_text(text, parse_mode="HTML")
+
+
+async def on_settings_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "🎯 <b>Nastroykalar</b>\n\nTelefon brendini tanlang 👇",
+        parse_mode="HTML",
+        reply_markup=brands_keyboard(),
+    )
+
+
+async def on_nicks_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "🏷️ <b>Niklar</b>\n\nKategoriyani tanlang 👇",
+        parse_mode="HTML",
+        reply_markup=nicknames_keyboard(),
+    )
+
+
+async def on_guides_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "📖 <b>Qo'llanmalar</b>\n\nMavzuni tanlang 👇",
+        parse_mode="HTML",
+        reply_markup=guides_keyboard(),
+    )
