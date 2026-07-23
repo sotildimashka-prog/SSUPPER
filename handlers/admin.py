@@ -22,8 +22,8 @@ WAITING_POST_BUTTON = 4
 WAITING_EDIT_TEXT = 5
 
 TEXT_LABELS = {
-    "help_text": "💬 Yordam matni",
-    "premium_text": "👑 Premium matni",
+    "help_text": "📬 Savollar (FAQ) matni",
+    "tournament_text": "🎉 Turnirlar matni",
     "cheat_text": "🛠️ Cheat matni",
     "proxy_text": "🛰️ Proxy matni",
 }
@@ -236,15 +236,13 @@ async def choose_text_to_edit(update: Update, context: ContextTypes.DEFAULT_TYPE
     await query.edit_message_text(
         f"✏️ <b>{label}</b> uchun joriy matn:\n\n{current}\n\n"
         "Yangi matnni yuboring (HTML teglar: &lt;b&gt;, &lt;i&gt; ishlatishingiz mumkin).\n"
-        "Xohlasangiz, matn o'rniga <b>rasm, video yoki fayl</b> ham yuborishingiz mumkin "
-        "(izoh sifatida matn yozib qo'shing) — u shu bo'lim ochilganda ko'rsatiladi.\n"
         "Bekor qilish uchun /bekor.",
         parse_mode="HTML",
     )
     return WAITING_EDIT_TEXT
 
 
-async def receive_new_content(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def receive_new_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     key = context.user_data.get("editing_key")
     if not key:
         await update.message.reply_text(
@@ -253,25 +251,11 @@ async def receive_new_content(update: Update, context: ContextTypes.DEFAULT_TYPE
         )
         return ConversationHandler.END
 
-    msg = update.message
-    label = TEXT_LABELS.get(key, key)
-
-    if msg.photo:
-        db.set_setting(key, msg.caption_html or msg.caption or "")
-        db.set_setting(f"{key}_media", f"photo|{msg.photo[-1].file_id}")
-    elif msg.video:
-        db.set_setting(key, msg.caption_html or msg.caption or "")
-        db.set_setting(f"{key}_media", f"video|{msg.video.file_id}")
-    elif msg.document:
-        db.set_setting(key, msg.caption_html or msg.caption or "")
-        db.set_setting(f"{key}_media", f"document|{msg.document.file_id}")
-    else:
-        new_text = msg.text_html or msg.text or ""
-        db.set_setting(key, new_text)
-        db.set_setting(f"{key}_media", "")  # oldingi biriktirilgan faylni tozalaymiz
-
+    new_text = update.message.text_html or update.message.text or ""
+    db.set_setting(key, new_text)
     context.user_data.pop("editing_key", None)
 
+    label = TEXT_LABELS.get(key, key)
     await update.message.reply_text(
         f"✅ {label} muvaffaqiyatli yangilandi!",
         reply_markup=main_menu_keyboard(True),
