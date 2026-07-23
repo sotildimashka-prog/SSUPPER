@@ -17,10 +17,15 @@ from keyboards import (
 )
 from handlers.subscription import get_unsubscribed_channels
 
-FIRST_GREETING_TEXT = (
-    "👋 <b>Assalomu aleykum!</b>\n\n"
-    f"{BOT_NAME} botiga xush kelibsiz! 🎮✨"
-)
+def first_greeting_text(first_name: str) -> str:
+    name = first_name or ""
+    return (
+        f"Assalomu aleykum {name} 👋\n\n"
+        "📋 O'zingizga kerakli tugmani bosish orqali menuni chiqarishingiz mumkin.\n\n"
+        "🤖 Men free fire o'yini uchun mukammal hizmat ko'rsatadigan botman.\n\n"
+        "❓ Savollaringiz bormi? Hammasi joyida! \"Savol va Takliflar❓\" tugmasini "
+        "bosing va biz imkon qadar tezroq javob berishga harakat qilamiz."
+    )
 
 SUBSCRIBE_TEXT = (
     "Botdan to'liq foydalanish uchun avval quyidagi kanallarga obuna bo'ling, "
@@ -73,7 +78,9 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await notify_admin_new_user(context, user)
 
     # 1) Birinchi salomlashuv
-    await update.message.reply_text(FIRST_GREETING_TEXT, parse_mode="HTML")
+    await update.message.reply_text(
+        first_greeting_text(user.first_name), parse_mode="HTML"
+    )
 
     # 2) Majburiy obuna tekshiruvi
     unsubscribed = await get_unsubscribed_channels(user.id, context)
