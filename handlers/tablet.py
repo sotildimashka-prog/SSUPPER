@@ -10,7 +10,7 @@ from data.tablet_data import format_tablet_settings_text, TABLETS
 
 async def on_tablet_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "📲 <b>Planshet nastroykalari</b>\n\nPlanshet brendini tanlang 👇",
+        "📲⚙️ <b>Planshet uchun nastroyka</b>\n\nPlanshet brendini tanlang 👇",
         parse_mode="HTML",
         reply_markup=tablet_brands_keyboard(),
     )
@@ -32,7 +32,7 @@ async def on_back_to_tablet_brands(update: Update, context: ContextTypes.DEFAULT
     query = update.callback_query
     await query.answer()
     await query.edit_message_text(
-        "📲 Planshet nastroykalari\n\nPlanshet brendini tanlang 👇",
+        "📲⚙️ Planshet uchun nastroyka\n\nPlanshet brendini tanlang 👇",
         reply_markup=tablet_brands_keyboard(),
     )
 
