@@ -53,7 +53,12 @@ DB_PATH = os.getenv("DB_PATH", "database.db")
 FF_API_URL = os.getenv("FF_API_URL", "https://free-ff-api-src-5plp.onrender.com/api/v1/account")
 FF_REGION = os.getenv("FF_REGION", "CIS")
 
-# --- "Foydali web sayt" tugmasi ochadigan havola ---
-WEBSITE_URL = os.getenv("WEBSITE_URL", "https://freefireuz.netlify.app")
-
 BOT_NAME = "🎮 O'yin Sirlari"
+
+# --- 📲 Shaxsiy nastroyka (pullik nastroyka narxlari, so'mda) ---
+CUSTOM_SETTING_PRICES = {"80": 25000, "97": 65000}
+
+# Shaxsiy nastroyka menyusi ochilganda yuboriladigan stiker (ixtiyoriy).
+# Bo'sh qoldirilsa stiker yuborilmaydi - haqiqiy stiker file_id qo'yish uchun
+# botga istalgan stikerni yuboring va logdan/@userinfobot orqali file_id oling.
+CUSTOM_SETTING_STICKER_ID = os.getenv("CUSTOM_SETTING_STICKER_ID", "")
