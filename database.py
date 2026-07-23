@@ -96,6 +96,14 @@ def init_db():
             )
             """
         )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS daily_bonus (
+                user_id INTEGER PRIMARY KEY,
+                last_claim TEXT
+            )
+            """
+        )
 
 
 def add_user_if_new(user_id: int, first_name: str, username: str) -> bool:
@@ -283,4 +291,24 @@ def update_diamond_order_status(order_id: int, status: str):
     with get_conn() as conn:
         conn.execute(
             "UPDATE diamond_orders SET status = ? WHERE id = ?", (status, order_id)
+        )
+
+
+# ---------------- Kunlik bonus (Hisobim -> Bonus) ----------------
+
+def get_last_bonus_claim(user_id: int):
+    with get_conn() as conn:
+        cur = conn.execute(
+            "SELECT last_claim FROM daily_bonus WHERE user_id = ?", (user_id,)
+        )
+        row = cur.fetchone()
+        return row["last_claim"] if row else None
+
+
+def set_bonus_claim(user_id: int, day: str):
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT INTO daily_bonus (user_id, last_claim) VALUES (?, ?) "
+            "ON CONFLICT(user_id) DO UPDATE SET last_claim = excluded.last_claim",
+            (user_id, day),
         )
