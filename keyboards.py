@@ -16,12 +16,12 @@ from data.diamonds_data import PACKAGES, SUBSCRIPTIONS, button_label
 
 # ---------- Asosiy menyu (ReplyKeyboard) ----------
 
-BTN_SETTINGS = "🎯 Nastroykalar"
-BTN_NICKS = "🏷️ Niklar"
-BTN_TABLET = "📲 Planshet nastroykalari"
-BTN_CHEAT = "🛠️ Cheat va panellar"
-BTN_FFID = "🕹️ Mening FF ID'im"
-BTN_PROXY = "🛰️ Proxy server"
+BTN_SETTINGS = "📱⚙️ Telefon uchun nastroyka"
+BTN_NICKS = "🏷️💎 Niklar"
+BTN_TABLET = "📲⚙️ Planshet uchun nastroyka"
+BTN_HACK = "💣🔥 Free Fire Hack"
+BTN_CUSTOM_SETTING = "🎛️✨ Alohida nastroyka"
+BTN_WEBSITE = "🌐✨ Foydali web sayt"
 BTN_DIAMONDS = "💎 Almaz sotib olish"
 BTN_ACCOUNT = "💰 Hisobim"
 BTN_HELP = "💬 Yordam"
@@ -35,10 +35,10 @@ BTN_EDIT_TEXTS = "✏️ Tugmalarni tahrirlash"
 
 def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
     rows = [
-        [KeyboardButton(BTN_SETTINGS), KeyboardButton(BTN_NICKS)],
-        [KeyboardButton(BTN_TABLET), KeyboardButton(BTN_CHEAT)],
-        [KeyboardButton(BTN_FFID), KeyboardButton(BTN_PROXY)],
+        [KeyboardButton(BTN_SETTINGS), KeyboardButton(BTN_TABLET)],
+        [KeyboardButton(BTN_NICKS), KeyboardButton(BTN_HACK)],
         [KeyboardButton(BTN_DIAMONDS), KeyboardButton(BTN_ACCOUNT)],
+        [KeyboardButton(BTN_CUSTOM_SETTING), KeyboardButton(BTN_WEBSITE)],
         [KeyboardButton(BTN_HELP), KeyboardButton(BTN_GUIDES)],
         [KeyboardButton(BTN_PREMIUM)],
     ]
@@ -147,6 +147,32 @@ def tablet_model_back_keyboard(brand: str) -> InlineKeyboardMarkup:
     )
 
 
+# ---------- 💣 Free Fire Hack (Proxy / Cheat / FF ID birlashtirilgan) ----------
+
+def hack_menu_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton("🛰️ Proxy server", callback_data="hack:proxy")],
+            [InlineKeyboardButton("🛠️ Cheat va panellar", callback_data="hack:cheat")],
+            [InlineKeyboardButton("🕹️ Mening FF ID'im", callback_data="hack:ffid")],
+        ]
+    )
+
+
+def hack_back_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[InlineKeyboardButton("⬅️ Orqaga", callback_data="hack:back")]]
+    )
+
+
+# ---------- 🌐 Foydali web sayt ----------
+
+def website_keyboard(url: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[InlineKeyboardButton("🌐 Saytga o'tish", url=url)]]
+    )
+
+
 # ---------- Niklar ----------
 
 def nicknames_keyboard() -> InlineKeyboardMarkup:
@@ -239,7 +265,8 @@ def account_keyboard() -> InlineKeyboardMarkup:
             [
                 InlineKeyboardButton("👤 Admin orqali to'ldirish", callback_data="acc:admin"),
                 InlineKeyboardButton("💳 Humo/Uzcard orqali to'ldirish", callback_data="acc:card"),
-            ]
+            ],
+            [InlineKeyboardButton("🎁 Kunlik bonus", callback_data="acc:bonus")],
         ]
     )
 
