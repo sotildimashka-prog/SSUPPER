@@ -18,7 +18,7 @@ from data.diamonds_data import PACKAGES, SUBSCRIPTIONS, button_label
 
 BTN_SETTINGS = "📱⚙️ Telefon uchun nastroyka"
 BTN_NICKS = "🏷️💎 Niklar"
-BTN_TABLET = "📲⚙️ Planshet uchun nastroyka"
+BTN_TABLET = "📲✨ Planshet nastroyka"
 BTN_HACK = "💣🔥 Free Fire Hack"
 BTN_CUSTOM_SETTING = "🎛️✨ Alohida nastroyka"
 BTN_WEBSITE = "🌐✨ Foydali web sayt"
