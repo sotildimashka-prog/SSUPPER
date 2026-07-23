@@ -13,14 +13,37 @@ WAITING_FF_ID = 1
 
 
 async def start_ffid(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
+    text = (
         "🎮 <b>Mening FF ID'im</b>\n\n"
         "Iltimos, Free Fire UID (ID) raqamingizni yuboring.\n"
-        "Bekor qilish uchun /bekor buyrug'ini yuboring.",
-        parse_mode="HTML",
-        reply_markup=ReplyKeyboardRemove(),
+        "Bekor qilish uchun /bekor buyrug'ini yuboring."
     )
+    if update.callback_query:
+        query = update.callback_query
+        await query.answer()
+        from keyboards import hack_back_keyboard
+
+        await query.message.reply_text(
+            text, parse_mode="HTML", reply_markup=hack_back_keyboard()
+        )
+    else:
+        await update.message.reply_text(
+            text, parse_mode="HTML", reply_markup=ReplyKeyboardRemove()
+        )
     return WAITING_FF_ID
+
+
+async def cancel_ffid_to_hack(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """FF ID kutish holatida 'Orqaga' bosilsa, Free Fire Hack menyusiga qaytaradi."""
+    from handlers.hack import HACK_MENU_TEXT
+    from keyboards import hack_menu_keyboard
+
+    query = update.callback_query
+    await query.answer()
+    await query.message.reply_text(
+        HACK_MENU_TEXT, parse_mode="HTML", reply_markup=hack_menu_keyboard()
+    )
+    return ConversationHandler.END
 
 
 async def cancel_ffid(update: Update, context: ContextTypes.DEFAULT_TYPE):
