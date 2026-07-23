@@ -115,3 +115,14 @@ uchun; production muhitda albatta `BOT_TOKEN` environment
 o'zgaruvchisidan foydalaning va tokenni GitHub'ga push qilishdan oldin
 [@BotFather](https://t.me/BotFather) orqali yangilang (agar u allaqachon
 ochiq joyda ulashilgan bo'lsa).
+
+## 🆕 Yangi qo'shilgan imkoniyatlar (v2 yangilanish)
+
+- **Tugma nomlari aniqlashtirildi**: "📱⚙️ Telefon uchun nastroyka" va "📲⚙️ Planshet uchun nastroyka" endi bir-biriga o'xshamaydi.
+- **💣🔥 Free Fire Hack**: Proxy server, Cheat va panellar, Mening FF ID'im — bittasi ostida, inline tugmalar va "⬅️ Orqaga" bilan.
+- **✏️ Tugmalarni tahrirlash** endi rasm/video/fayl ham qabul qiladi (avval faqat matn edi). Admin istalgan matnni tahrirlashda, matn o'rniga rasm/video yuborsa, shu media keyingi safar ko'rsatiladi.
+- **🎛️✨ Alohida nastroyka**: foydalanuvchi telefon modelini batafsil yozadi → admin ID bilan birga xabar oladi → admin "✍️ Nastroyka yuborish" tugmasini bosib, javobni (matn/rasm/video) to'g'ridan-to'g'ri o'sha foydalanuvchiga yuboradi.
+- **💰 Hisobim → 🎁 Kunlik bonus**: har kuni bosilganda 10 so'm hisobga qo'shiladi (kuniga 1 marta).
+- **🌐✨ Foydali web sayt**: bosilganda https://freefireuz.netlify.app saytiga olib boradigan tugma chiqadi.
+
+Barcha yangi bo'limlarda "⬅️ Orqaga" tugmasi mavjud.
