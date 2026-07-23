@@ -8,12 +8,16 @@ o'zgaruvchisi sifatida saqlash tavsiya etiladi (xavfsizlik uchun).
 import os
 
 # --- Bot tokeni ---
+# Railway'da Variables bo'limiga BOT_TOKEN nomi bilan qo'shish tavsiya etiladi.
+# Agar environment o'zgaruvchisi topilmasa, quyidagi standart token ishlatiladi.
 BOT_TOKEN = os.getenv("BOT_TOKEN", "8910822725:AAHiUq4cZnX6BACEHlLgSKFcL8lDMvIJs_A")
 
 # --- Admin ---
 ADMIN_ID = int(os.getenv("ADMIN_ID", "8914193938"))
 
 # --- Majburiy obuna kanallari ---
+# username formatida (bot shu kanallarda ADMIN bo'lishi shart, aks holda
+# obuna tekshiruvi ishlamaydi)
 REQUIRED_CHANNELS = [
     {"name": "Free Fire Panel Chat", "username": "freefirepanelchit"},
     {"name": "Free Fire Chat UZ", "username": "FREEFIRECHAT_UZBEKI"},
@@ -48,5 +52,8 @@ DB_PATH = os.getenv("DB_PATH", "database.db")
 # free-ff-api (community, bepul, kalitsiz) xizmatidan foydalanadi.
 FF_API_URL = os.getenv("FF_API_URL", "https://free-ff-api-src-5plp.onrender.com/api/v1/account")
 FF_REGION = os.getenv("FF_REGION", "CIS")
+
+# --- "Foydali web sayt" tugmasi ochadigan havola ---
+WEBSITE_URL = os.getenv("WEBSITE_URL", "https://freefireuz.netlify.app")
 
 BOT_NAME = "🎮 O'yin Sirlari"
