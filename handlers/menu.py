@@ -5,13 +5,15 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 import database as db
-from config import ADMIN_ID, BOT_NAME, HELP_CONTACT, PREMIUM_CONTACT, NEWS_CHANNEL_URL
+from config import ADMIN_ID, BOT_NAME, HELP_CONTACT, PREMIUM_CONTACT, NEWS_CHANNEL_URL, WEBSITE_URL
 from keyboards import (
     main_menu_keyboard,
     brands_keyboard,
     nicknames_keyboard,
     guides_keyboard,
+    website_keyboard,
 )
+from handlers.content import send_stored_content
 
 ABOUT_TEXT = (
     f"ℹ️ <b>{BOT_NAME} haqida</b>\n\n"
@@ -40,9 +42,6 @@ DEFAULT_PREMIUM_TEXT = (
     "🥇 Gold — 50 000 so'm\n\n"
     f"👤 Bog'lanish uchun: {PREMIUM_CONTACT}"
 )
-
-DEFAULT_CHEAT_TEXT = "🔧 <b>Cheat va panellar</b>\n\nTez orada qo'shiladi."
-DEFAULT_PROXY_TEXT = "🌐 <b>Proxy server</b>\n\nHozircha bo'sh."
 
 
 def _is_admin(user_id: int) -> bool:
@@ -92,28 +91,24 @@ async def yangiliklar_command(update: Update, context: ContextTypes.DEFAULT_TYPE
 # ---------- ReplyKeyboard tugma bosilganda ishlaydigan handlerlar ----------
 
 async def on_help_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = db.get_setting("help_text", DEFAULT_HELP_TEXT)
-    await update.message.reply_text(text, parse_mode="HTML")
+    await send_stored_content(update.message, "help_text", DEFAULT_HELP_TEXT)
 
 
 async def on_premium_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = db.get_setting("premium_text", DEFAULT_PREMIUM_TEXT)
-    await update.message.reply_text(text, parse_mode="HTML")
+    await send_stored_content(update.message, "premium_text", DEFAULT_PREMIUM_TEXT)
 
 
-async def on_cheat_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = db.get_setting("cheat_text", DEFAULT_CHEAT_TEXT)
-    await update.message.reply_text(text, parse_mode="HTML")
-
-
-async def on_proxy_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = db.get_setting("proxy_text", DEFAULT_PROXY_TEXT)
-    await update.message.reply_text(text, parse_mode="HTML")
+async def on_website_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "🌐✨ <b>Foydali web sayt</b>\n\nQuyidagi tugma orqali saytimizga o'ting 👇",
+        parse_mode="HTML",
+        reply_markup=website_keyboard(WEBSITE_URL),
+    )
 
 
 async def on_settings_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "🎯 <b>Nastroykalar</b>\n\nTelefon brendini tanlang 👇",
+        "📱⚙️ <b>Telefon uchun nastroyka</b>\n\nTelefon brendini tanlang 👇",
         parse_mode="HTML",
         reply_markup=brands_keyboard(),
     )
