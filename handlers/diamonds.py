@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """💎 Almaz sotib olish va 💰 Hisobim bo'limlari - to'liq xarid va to'lov oqimi."""
 
+from datetime import date
+
 from telegram import Update, ReplyKeyboardRemove
 from telegram.ext import ContextTypes, ConversationHandler
 from telegram.error import TelegramError
@@ -174,6 +176,7 @@ async def cancel_order(update: Update, context: ContextTypes.DEFAULT_TYPE):
     is_admin = _is_admin(update.effective_user.id)
     order_id = context.user_data.pop("pending_order_id", None)
     if order_id:
+        # Bekor qilinsa, hisobga pulni qaytaramiz
         order = db.get_diamond_order(order_id)
         if order:
             db.add_balance(update.effective_user.id, order["price"])
@@ -265,6 +268,35 @@ async def on_account_card(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "To'lov qilib bo'lgach, pastdagi <b>✅ To'lov qildim</b> tugmasini bosing."
     )
     await query.edit_message_text(text, parse_mode="HTML", reply_markup=paid_confirm_keyboard())
+
+
+DAILY_BONUS_AMOUNT = 10
+
+
+async def on_account_bonus(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    user_id = query.from_user.id
+    today = date.today().isoformat()
+    last_claim = db.get_last_bonus_claim(user_id)
+
+    if last_claim == today:
+        await query.answer(
+            "🎁 Siz bugungi bonusni allaqachon oldingiz. Ertaga qaytadan urinib ko'ring!",
+            show_alert=True,
+        )
+        return
+
+    db.add_balance(user_id, DAILY_BONUS_AMOUNT)
+    db.set_bonus_claim(user_id, today)
+    balance = db.get_balance(user_id)
+
+    await query.answer(f"🎉 Sizga {DAILY_BONUS_AMOUNT} so'm bonus berildi!", show_alert=True)
+    await query.message.reply_text(
+        f"🎁 <b>Kunlik bonus olindi!</b>\n\n"
+        f"💵 +{DAILY_BONUS_AMOUNT} so'm hisobingizga qo'shildi.\n"
+        f"💰 Joriy balans: <b>{balance:,} so'm</b>".replace(",", "."),
+        parse_mode="HTML",
+    )
 
 
 async def start_topup_paid(update: Update, context: ContextTypes.DEFAULT_TYPE):
