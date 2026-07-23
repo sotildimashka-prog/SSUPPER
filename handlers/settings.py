@@ -24,7 +24,7 @@ async def on_back_to_brands(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     await query.edit_message_text(
-        "⚙️ Nastroykalar\n\nTelefon brendini tanlang 👇",
+        "📱⚙️ Telefon uchun nastroyka\n\nTelefon brendini tanlang 👇",
         reply_markup=brands_keyboard(),
     )
 
