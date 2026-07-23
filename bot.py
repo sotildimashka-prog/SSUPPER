@@ -24,14 +24,14 @@ from keyboards import (
     BTN_SETTINGS,
     BTN_NICKS,
     BTN_TABLET,
+    BTN_FFID,
     BTN_HACK,
-    BTN_CUSTOM_SETTING,
-    BTN_WEBSITE,
     BTN_DIAMONDS,
     BTN_ACCOUNT,
     BTN_HELP,
-    BTN_GUIDES,
-    BTN_PREMIUM,
+    BTN_TOURNAMENTS,
+    BTN_CUSTOM,
+    BTN_FEEDBACK,
     BTN_STATS,
     BTN_BROADCAST,
     BTN_POST,
@@ -50,17 +50,9 @@ from handlers.menu import (
     yordam_command,
     yangiliklar_command,
     on_help_button,
-    on_premium_button,
-    on_website_button,
+    on_tournaments_button,
     on_settings_button,
     on_nicks_button,
-    on_guides_button,
-)
-from handlers.hack import (
-    on_hack_button,
-    on_hack_proxy,
-    on_hack_cheat,
-    on_hack_back,
 )
 from handlers.settings import on_brand_selected, on_back_to_brands, on_model_selected
 from handlers.tablet import (
@@ -70,23 +62,43 @@ from handlers.tablet import (
     on_tablet_model_selected,
 )
 from handlers.nicknames import on_nick_category, on_back_to_nicks
-from handlers.guides import on_guide_selected, on_back_to_guides
-from handlers.ffid import (
-    start_ffid,
-    receive_ff_id,
-    cancel_ffid,
-    cancel_ffid_to_hack,
-    WAITING_FF_ID,
+from handlers.ffid import start_ffid, receive_ff_id, cancel_ffid, WAITING_FF_ID
+from handlers.hack import (
+    on_hack_button,
+    on_hack_proxy,
+    on_hack_cheat,
+    on_hack_back,
 )
 from handlers.custom_setting import (
-    start_custom_setting,
+    on_custom_setting_button,
+    on_custom_back,
+    on_custom_paid,
+    on_custom_tier_selected,
+    on_custom_buy,
+    on_custom_agree,
+    receive_paid_model,
+    on_custom_free,
+    receive_free_model,
+    on_custom_savollar,
+    receive_custom_question,
     cancel_custom_setting,
-    receive_custom_setting,
-    WAITING_CUSTOM_REQUEST,
     start_custom_admin_reply,
     cancel_custom_admin_reply,
     receive_custom_admin_reply,
+    WAITING_FREE_MODEL,
+    WAITING_PAID_MODEL,
+    WAITING_CUSTOM_QUESTION,
     WAITING_CUSTOM_ADMIN_REPLY,
+)
+from handlers.feedback import (
+    on_feedback_button,
+    receive_feedback,
+    cancel_feedback,
+    start_feedback_admin_reply,
+    cancel_feedback_admin_reply,
+    receive_feedback_admin_reply,
+    WAITING_FEEDBACK,
+    WAITING_FEEDBACK_ADMIN_REPLY,
 )
 from handlers.diamonds import (
     on_diamonds_button,
@@ -102,7 +114,6 @@ from handlers.diamonds import (
     on_account_button,
     on_account_admin,
     on_account_card,
-    on_account_bonus,
     start_topup_paid,
     receive_topup_amount,
     receive_topup_receipt,
@@ -128,7 +139,7 @@ from handlers.admin import (
     WAITING_POST_BUTTON,
     start_edit_texts,
     choose_text_to_edit,
-    receive_new_content,
+    receive_new_text,
     cancel_edit_text,
     WAITING_EDIT_TEXT,
 )
@@ -176,13 +187,12 @@ def build_application() -> Application:
     app.add_handler(CallbackQueryHandler(check_subscription_callback, pattern="^check_sub$"))
     app.add_handler(CallbackQueryHandler(on_player_type_selected, pattern="^player:"))
 
-    # ---------- FF ID conversation (Free Fire Hack menyusi orqali) ----------
+    # ---------- FF ID conversation ----------
     ffid_conv = ConversationHandler(
-        entry_points=[CallbackQueryHandler(start_ffid, pattern="^hack:ffid$")],
+        entry_points=[MessageHandler(_exact(BTN_FFID), start_ffid)],
         states={
             WAITING_FF_ID: [
                 CommandHandler("bekor", cancel_ffid),
-                CallbackQueryHandler(cancel_ffid_to_hack, pattern="^hack:back$"),
                 MessageHandler(filters.TEXT & ~filters.COMMAND, receive_ff_id),
             ]
         },
@@ -223,53 +233,19 @@ def build_application() -> Application:
     )
     app.add_handler(post_conv)
 
-    # ---------- Matnlarni tahrirlash conversation (faqat admin, endi media ham qo'llab-quvvatlaydi) ----------
+    # ---------- Matnlarni tahrirlash conversation (faqat admin) ----------
     edit_texts_conv = ConversationHandler(
         entry_points=[MessageHandler(_exact(BTN_EDIT_TEXTS), start_edit_texts)],
         states={
             WAITING_EDIT_TEXT: [
                 CommandHandler("bekor", cancel_edit_text),
-                MessageHandler(
-                    (filters.TEXT | filters.PHOTO | filters.VIDEO | filters.Document.ALL)
-                    & ~filters.COMMAND,
-                    receive_new_content,
-                ),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_new_text),
             ],
         },
         fallbacks=[CommandHandler("bekor", cancel_edit_text)],
     )
     app.add_handler(CallbackQueryHandler(choose_text_to_edit, pattern="^edittext:"))
     app.add_handler(edit_texts_conv)
-
-    # ---------- Alohida nastroyka so'rovi (foydalanuvchi tomondan) ----------
-    custom_setting_conv = ConversationHandler(
-        entry_points=[MessageHandler(_exact(BTN_CUSTOM_SETTING), start_custom_setting)],
-        states={
-            WAITING_CUSTOM_REQUEST: [
-                CommandHandler("bekor", cancel_custom_setting),
-                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_custom_setting),
-            ],
-        },
-        fallbacks=[CommandHandler("bekor", cancel_custom_setting)],
-    )
-    app.add_handler(custom_setting_conv)
-
-    # ---------- Alohida nastroyka - admin javobi (matn/rasm/video) ----------
-    custom_admin_reply_conv = ConversationHandler(
-        entry_points=[CallbackQueryHandler(start_custom_admin_reply, pattern="^customreply:")],
-        states={
-            WAITING_CUSTOM_ADMIN_REPLY: [
-                CommandHandler("bekor", cancel_custom_admin_reply),
-                MessageHandler(
-                    (filters.TEXT | filters.PHOTO | filters.VIDEO | filters.Document.ALL)
-                    & ~filters.COMMAND,
-                    receive_custom_admin_reply,
-                ),
-            ],
-        },
-        fallbacks=[CommandHandler("bekor", cancel_custom_admin_reply)],
-    )
-    app.add_handler(custom_admin_reply_conv)
 
     # ---------- Almaz sotib olish (xarid) conversation ----------
     buy_conv = ConversationHandler(
@@ -306,13 +282,89 @@ def build_application() -> Application:
     app.add_handler(MessageHandler(_exact(BTN_SETTINGS), on_settings_button))
     app.add_handler(MessageHandler(_exact(BTN_NICKS), on_nicks_button))
     app.add_handler(MessageHandler(_exact(BTN_TABLET), on_tablet_button))
-    app.add_handler(MessageHandler(_exact(BTN_GUIDES), on_guides_button))
-    app.add_handler(MessageHandler(_exact(BTN_PREMIUM), on_premium_button))
+    app.add_handler(MessageHandler(_exact(BTN_TOURNAMENTS), on_tournaments_button))
     app.add_handler(MessageHandler(_exact(BTN_HACK), on_hack_button))
-    app.add_handler(MessageHandler(_exact(BTN_WEBSITE), on_website_button))
+    app.add_handler(MessageHandler(_exact(BTN_CUSTOM), on_custom_setting_button))
     app.add_handler(MessageHandler(_exact(BTN_STATS), on_stats_button))
     app.add_handler(MessageHandler(_exact(BTN_DIAMONDS), on_diamonds_button))
     app.add_handler(MessageHandler(_exact(BTN_ACCOUNT), on_account_button))
+
+    # ---------- Inline callbacklar: 🔫 Maxsus xizmat ----------
+    app.add_handler(CallbackQueryHandler(on_hack_proxy, pattern="^hack:proxy$"))
+    app.add_handler(CallbackQueryHandler(on_hack_cheat, pattern="^hack:cheat$"))
+    app.add_handler(CallbackQueryHandler(on_hack_back, pattern="^hack:back$"))
+
+    # ---------- Inline callbacklar: 📲 Shaxsiy nastroyka (holatsiz qismlari) ----------
+    app.add_handler(CallbackQueryHandler(on_custom_back, pattern="^custom:back$"))
+    app.add_handler(CallbackQueryHandler(on_custom_paid, pattern="^custom:paid$"))
+    app.add_handler(CallbackQueryHandler(on_custom_tier_selected, pattern="^custom:tier:"))
+    app.add_handler(CallbackQueryHandler(on_custom_buy, pattern="^custom:buy:"))
+
+    # ---------- ❓ Savol va Takliflar (asosiy menyu) conversation ----------
+    feedback_conv = ConversationHandler(
+        entry_points=[MessageHandler(_exact(BTN_FEEDBACK), on_feedback_button)],
+        states={
+            WAITING_FEEDBACK: [
+                CommandHandler("bekor", cancel_feedback),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_feedback),
+            ],
+        },
+        fallbacks=[CommandHandler("bekor", cancel_feedback)],
+    )
+    app.add_handler(feedback_conv)
+
+    feedback_admin_reply_conv = ConversationHandler(
+        entry_points=[CallbackQueryHandler(start_feedback_admin_reply, pattern="^inqreply:")],
+        states={
+            WAITING_FEEDBACK_ADMIN_REPLY: [
+                CommandHandler("bekor", cancel_feedback_admin_reply),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_feedback_admin_reply),
+            ],
+        },
+        fallbacks=[CommandHandler("bekor", cancel_feedback_admin_reply)],
+    )
+    app.add_handler(feedback_admin_reply_conv)
+
+    # ---------- 📲 Shaxsiy nastroyka: bepul/pullik/savollar oqimlari ----------
+    custom_conv = ConversationHandler(
+        entry_points=[
+            CallbackQueryHandler(on_custom_free, pattern="^custom:free$"),
+            CallbackQueryHandler(on_custom_agree, pattern="^custom:agree:"),
+            CallbackQueryHandler(on_custom_savollar, pattern="^custom:savollar$"),
+        ],
+        states={
+            WAITING_FREE_MODEL: [
+                CommandHandler("bekor", cancel_custom_setting),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_free_model),
+            ],
+            WAITING_PAID_MODEL: [
+                CommandHandler("bekor", cancel_custom_setting),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_paid_model),
+            ],
+            WAITING_CUSTOM_QUESTION: [
+                CommandHandler("bekor", cancel_custom_setting),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_custom_question),
+            ],
+        },
+        fallbacks=[CommandHandler("bekor", cancel_custom_setting)],
+    )
+    app.add_handler(custom_conv)
+
+    custom_admin_reply_conv = ConversationHandler(
+        entry_points=[CallbackQueryHandler(start_custom_admin_reply, pattern="^customreply:")],
+        states={
+            WAITING_CUSTOM_ADMIN_REPLY: [
+                CommandHandler("bekor", cancel_custom_admin_reply),
+                MessageHandler(
+                    (filters.TEXT | filters.PHOTO | filters.VIDEO | filters.Document.ALL)
+                    & ~filters.COMMAND,
+                    receive_custom_admin_reply,
+                ),
+            ],
+        },
+        fallbacks=[CommandHandler("bekor", cancel_custom_admin_reply)],
+    )
+    app.add_handler(custom_admin_reply_conv)
 
     # ---------- Inline callbacklar: Nastroykalar (telefon) ----------
     app.add_handler(CallbackQueryHandler(on_brand_selected, pattern="^brand:"))
@@ -328,10 +380,6 @@ def build_application() -> Application:
     app.add_handler(CallbackQueryHandler(on_nick_category, pattern="^nick:"))
     app.add_handler(CallbackQueryHandler(on_back_to_nicks, pattern="^back_to_nicks$"))
 
-    # ---------- Inline callbacklar: Qo'llanmalar ----------
-    app.add_handler(CallbackQueryHandler(on_guide_selected, pattern="^guide:"))
-    app.add_handler(CallbackQueryHandler(on_back_to_guides, pattern="^back_to_guides$"))
-
     # ---------- Inline callbacklar: Almaz sotib olish ----------
     app.add_handler(CallbackQueryHandler(on_diamonds_admin, pattern="^dia:admin$"))
     app.add_handler(CallbackQueryHandler(on_diamonds_bot, pattern="^dia:bot$"))
@@ -343,14 +391,8 @@ def build_application() -> Application:
     # ---------- Inline callbacklar: Hisobim ----------
     app.add_handler(CallbackQueryHandler(on_account_admin, pattern="^acc:admin$"))
     app.add_handler(CallbackQueryHandler(on_account_card, pattern="^acc:card$"))
-    app.add_handler(CallbackQueryHandler(on_account_bonus, pattern="^acc:bonus$"))
     app.add_handler(CallbackQueryHandler(topup_approved, pattern="^topup_ok:"))
     app.add_handler(CallbackQueryHandler(topup_rejected, pattern="^topup_no:"))
-
-    # ---------- Inline callbacklar: Free Fire Hack (proxy/cheat; ffid alohida conv orqali) ----------
-    app.add_handler(CallbackQueryHandler(on_hack_proxy, pattern="^hack:proxy$"))
-    app.add_handler(CallbackQueryHandler(on_hack_cheat, pattern="^hack:cheat$"))
-    app.add_handler(CallbackQueryHandler(on_hack_back, pattern="^hack:back$"))
 
     # ---------- Statistika uchun umumiy loglash (barcha xabarlar) ----------
     app.add_handler(MessageHandler(filters.ALL, log_all_messages), group=1)
