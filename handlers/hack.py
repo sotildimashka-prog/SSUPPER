@@ -11,7 +11,7 @@ from handlers.content import send_stored_content
 DEFAULT_CHEAT_TEXT = "🔧 <b>Cheat va panellar</b>\n\nTez orada qo'shiladi."
 DEFAULT_PROXY_TEXT = "🌐 <b>Proxy server</b>\n\nHozircha bo'sh."
 
-HACK_MENU_TEXT = "💣🔥 <b>Free Fire Hack</b>\n\nKerakli bo'limni tanlang 👇"
+HACK_MENU_TEXT = "🔫🔥 <b>Maxsus xizmat</b>\n\nKerakli bo'limni tanlang 👇"
 
 
 async def on_hack_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -39,6 +39,11 @@ async def on_hack_cheat(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def on_hack_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    await query.message.reply_text(
-        HACK_MENU_TEXT, parse_mode="HTML", reply_markup=hack_menu_keyboard()
-    )
+    try:
+        await query.edit_message_text(
+            HACK_MENU_TEXT, parse_mode="HTML", reply_markup=hack_menu_keyboard()
+        )
+    except Exception:
+        await query.message.reply_text(
+            HACK_MENU_TEXT, parse_mode="HTML", reply_markup=hack_menu_keyboard()
+        )
