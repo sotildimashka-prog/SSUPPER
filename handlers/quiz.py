@@ -6,10 +6,16 @@ from telegram.ext import ContextTypes
 
 import database as db
 from data.quiz_data import QUESTIONS
-from keyboards import quiz_options_keyboard
+from keyboards import quiz_options_keyboard, quiz_intro_keyboard
 
 DAILY_LIMIT = 3
 REWARD_PER_CORRECT = 2
+
+INTRO_TEXT = (
+    "💎 <b>Tekin almaz</b>\n\n"
+    f"Siz {DAILY_LIMIT} ta savolga javob berasiz. To'g'ri javob bersangiz — "
+    "almaz olasiz!\n\nBoshlaysizmi?"
+)
 
 
 def _pick_question_index(answered_today: int) -> int:
@@ -48,7 +54,22 @@ async def on_quiz_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    await _send_question(update.message, user_id, edit=False)
+    await update.message.reply_text(
+        INTRO_TEXT, parse_mode="HTML", reply_markup=quiz_intro_keyboard()
+    )
+
+
+async def on_quiz_begin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    user_id = query.from_user.id
+    answered = db.get_quiz_answered_today(user_id)
+
+    if answered >= DAILY_LIMIT:
+        await query.answer("Bugungi savollaringiz tugagan, ertaga urinib ko'ring.", show_alert=True)
+        return
+
+    await query.answer()
+    await _send_question(query.message, user_id, edit=True)
 
 
 async def on_quiz_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
