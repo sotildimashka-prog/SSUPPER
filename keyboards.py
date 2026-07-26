@@ -19,12 +19,12 @@ from data.diamonds_data import PACKAGES, SUBSCRIPTIONS, button_label
 BTN_SETTINGS = "⚙️ Telefon nastroyka"
 BTN_TABLET = "⚙️ Planshet nastroyka"
 BTN_NICKS = "🎮 Free Fire niklar"
-BTN_HACK = "🔫 Maxsus xizmat"
-BTN_CUSTOM = "📲 Shaxsiy nastroyka"
+BTN_HACK = "⚠️ Maxsus xizmat"
+BTN_CUSTOM = "⚠️ Shaxsiy nastroyka"
 BTN_WEBSITE = "🏆 Free Fire Turnirlar"
 BTN_NEWS = "📰 Free Fire yangiliklari"
 BTN_MUSIC = "🎵 Free Fire qo'shiq"
-BTN_QUIZ = "🧠 Savol va Javob"
+BTN_QUIZ = "💎 Tekin almaz"
 BTN_DIAMONDS = "💎 Almaz xarid qilish"
 BTN_ACCOUNT = "💰 Mening hisobim"
 BTN_HELP = "🎧 Yordam"
@@ -44,8 +44,7 @@ def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
         [KeyboardButton(BTN_CUSTOM), KeyboardButton(BTN_NEWS)],
         [KeyboardButton(BTN_MUSIC), KeyboardButton(BTN_QUIZ)],
         [KeyboardButton(BTN_DIAMONDS), KeyboardButton(BTN_ACCOUNT)],
-        [KeyboardButton(BTN_HELP), KeyboardButton(BTN_FAQ)],
-        [KeyboardButton(BTN_GUIDES)],
+        [KeyboardButton(BTN_FAQ), KeyboardButton(BTN_GUIDES)],
     ]
     if is_admin:
         rows.append([KeyboardButton(BTN_STATS), KeyboardButton(BTN_BROADCAST)])
@@ -386,6 +385,12 @@ def faq_admin_keyboard(user_id: int) -> InlineKeyboardMarkup:
 
 
 # ---------- 🧠 Savol va Javob (Quiz) ----------
+
+def quiz_intro_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[InlineKeyboardButton("▶️ Boshladik", callback_data="quiz_begin")]]
+    )
+
 
 def quiz_options_keyboard(question_index: int, options: list) -> InlineKeyboardMarkup:
     rows = []
