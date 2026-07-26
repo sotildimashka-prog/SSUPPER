@@ -40,6 +40,12 @@ PREMIUM_CONTACT = "@auwsn"
 # (masalan "auwsn"), aks holda "Admin orqali olish" tugmasi ishlamaydi.
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "auwsn")
 
+# --- Foydali web sayt ---
+WEBSITE_URL = os.getenv("WEBSITE_URL", "https://freefireuz.netlify.app")
+
+# --- Free Fire qo'shiq (musiqa) havolasi ---
+MUSIC_URL = os.getenv("MUSIC_URL", "https://youtu.be/_ZA5Tbd5HSE?si=LY8RqY8SZSJmEB3q")
+
 # --- To'lov kartasi ma'lumotlari (Hisobim -> Humo/Uzcard orqali to'ldirish) ---
 CARD_NUMBER = os.getenv("CARD_NUMBER", "9860 0366 3090 0060")
 CARD_HOLDER_NAME = os.getenv("CARD_HOLDER_NAME", "Bilolxonova Tursunoy")
@@ -54,11 +60,3 @@ FF_API_URL = os.getenv("FF_API_URL", "https://free-ff-api-src-5plp.onrender.com/
 FF_REGION = os.getenv("FF_REGION", "CIS")
 
 BOT_NAME = "🎮 O'yin Sirlari"
-
-# --- 📲 Shaxsiy nastroyka (pullik nastroyka narxlari, so'mda) ---
-CUSTOM_SETTING_PRICES = {"80": 25000, "97": 65000}
-
-# Shaxsiy nastroyka menyusi ochilganda yuboriladigan stiker (ixtiyoriy).
-# Bo'sh qoldirilsa stiker yuborilmaydi - haqiqiy stiker file_id qo'yish uchun
-# botga istalgan stikerni yuboring va logdan/@userinfobot orqali file_id oling.
-CUSTOM_SETTING_STICKER_ID = os.getenv("CUSTOM_SETTING_STICKER_ID", "")
