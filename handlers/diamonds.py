@@ -235,12 +235,18 @@ async def go_to_account_hint(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 # ==================== 💰 HISOBIM ====================
 
-async def on_account_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    balance = db.get_balance(update.effective_user.id)
-    await update.message.reply_text(
+def _account_text(user_id: int) -> str:
+    balance = db.get_balance(user_id)
+    return (
         f"💰 <b>Hisobim</b>\n\n"
-        f"💵 Joriy balans: <b>{balance:,} so'm</b>\n\n".replace(",", ".") +
-        "Hisobingizni qanday to'ldirmoqchisiz?",
+        f"💵 Joriy balans: <b>{balance:,} so'm</b>\n\n".replace(",", ".")
+        + "Hisobingizni qanday to'ldirmoqchisiz?"
+    )
+
+
+async def on_account_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        _account_text(update.effective_user.id),
         parse_mode="HTML",
         reply_markup=account_keyboard(),
     )
@@ -268,6 +274,16 @@ async def on_account_card(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "To'lov qilib bo'lgach, pastdagi <b>✅ To'lov qildim</b> tugmasini bosing."
     )
     await query.edit_message_text(text, parse_mode="HTML", reply_markup=paid_confirm_keyboard())
+
+
+async def on_account_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    await query.edit_message_text(
+        _account_text(query.from_user.id),
+        parse_mode="HTML",
+        reply_markup=account_keyboard(),
+    )
 
 
 DAILY_BONUS_AMOUNT = 10
