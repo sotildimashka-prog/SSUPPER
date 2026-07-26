@@ -18,24 +18,20 @@ from keyboards import (
 from handlers.subscription import get_unsubscribed_channels
 
 def first_greeting_text(first_name: str) -> str:
-    name = first_name or ""
+    name = first_name or "do'stim"
     return (
-        f"Assalomu aleykum {name} 👋\n\n"
-        "📋 O'zingizga kerakli tugmani bosish orqali menuni chiqarishingiz mumkin.\n\n"
-        "🤖 Men free fire o'yini uchun mukammal hizmat ko'rsatadigan botman.\n\n"
-        "❓ Savollaringiz bormi? Hammasi joyida! \"Savol va Takliflar❓\" tugmasini "
+        f"Assalomu aleykum, {name} 👋\n\n"
+        "📋 O'zingizga kerakli tugmani bosish orqali menyuni chiqarishingiz mumkin.\n"
+        "🤖 Men Free Fire o'yini uchun mukammal xizmat ko'rsatadigan botman.\n\n"
+        "❓ Savollaringiz bormi? Hammasi joyida! \"📬 Savollar (FAQ)\" tugmasini "
         "bosing va biz imkon qadar tezroq javob berishga harakat qilamiz."
     )
 
 SUBSCRIBE_TEXT = (
-    "Botdan to'liq foydalanish uchun avval quyidagi kanallarga obuna bo'ling, "
-    "so'ngra pastdagi <b>✅ Obuna bo'ldim</b> tugmasini bosing 👇"
-)
-
-WELCOME_BACK_TEXT = (
-    "🎉 <b>Ajoyib! Obuna tasdiqlandi!</b>\n\n"
-    f"✨ {BOT_NAME} ga xush kelibsiz, endi botning barcha imkoniyatlaridan "
-    "to'liq foydalanishingiz mumkin! 🔥"
+    "📢 <b>Botdan foydalanish uchun avval quyidagi kanallarga obuna bo'ling!</b>\n\n"
+    "Obuna bo'lmasangiz, bot hali ishlamaydi ⛔️\n"
+    "Barcha kanallarga obuna bo'lgach, pastdagi <b>✅ Obuna bo'ldim</b> "
+    "tugmasini bosing 👇"
 )
 
 PLAYER_TYPE_QUESTION = "🎮 <b>Siz PRO o'yinchimisiz yoki BOT o'yinchimisiz?</b> 👇"
@@ -78,9 +74,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await notify_admin_new_user(context, user)
 
     # 1) Birinchi salomlashuv
-    await update.message.reply_text(
-        first_greeting_text(user.first_name), parse_mode="HTML"
-    )
+    await update.message.reply_text(first_greeting_text(user.first_name), parse_mode="HTML")
 
     # 2) Majburiy obuna tekshiruvi
     unsubscribed = await get_unsubscribed_channels(user.id, context)
@@ -94,7 +88,6 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Agar allaqachon obuna bo'lgan bo'lsa - to'g'ridan-to'g'ri asosiy menyuga
     is_admin = user.id == ADMIN_ID
-    await update.message.reply_text(WELCOME_BACK_TEXT, parse_mode="HTML")
     await _send_player_type_question(update, context, update.effective_chat.id)
     await update.message.reply_text(
         "👇 Asosiy menyu tayyor:",
@@ -110,7 +103,8 @@ async def check_subscription_callback(update: Update, context: ContextTypes.DEFA
     unsubscribed = await get_unsubscribed_channels(user.id, context)
     if unsubscribed:
         await query.answer(
-            "❌ Siz hali barcha kanallarga obuna bo'lmagansiz!", show_alert=True
+            "⛔️ Bot hali ishlamaydi! Avval barcha kanallarga obuna bo'ling.",
+            show_alert=True,
         )
         return
 
@@ -120,13 +114,9 @@ async def check_subscription_callback(update: Update, context: ContextTypes.DEFA
     except TelegramError:
         pass
 
-    # 3) Obuna tasdiqlangandan keyingi ikkinchi salomlashuv
-    await context.bot.send_message(
-        chat_id=user.id, text=WELCOME_BACK_TEXT, parse_mode="HTML"
-    )
-    # 4) Pro/Bot o'yinchi savoli
+    # 3) Pro/Bot o'yinchi savoli
     await _send_player_type_question(query, context, user.id)
-    # 5) Asosiy menyu
+    # 4) Asosiy menyu
     await context.bot.send_message(
         chat_id=user.id,
         text="👇 Asosiy menyu tayyor:",
