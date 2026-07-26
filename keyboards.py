@@ -8,15 +8,13 @@ from telegram import (
     InlineKeyboardButton,
 )
 
+import re
+
 from config import REQUIRED_CHANNELS, ADMIN_ID, WEBSITE_URL
 from data.settings_data import PHONES
 from data.tablet_data import TABLETS
 from data.guides_data import GUIDES
 from data.diamonds_data import PACKAGES, SUBSCRIPTIONS, button_label
-
-
-import re
-
 from data.premium_emoji_ids import EMOJI_IDS
 
 _EMOJI_PREFIX_RE = re.compile(
@@ -39,7 +37,6 @@ def _apply_emoji_icon(text: str, kwargs: dict) -> str:
     return text
 
 
-# Barcha tugmalar uchun standart rang (ko'k) - Bot API 9.4+ talab qiladi.
 def _ikb(text, **kwargs):
     display_text = _apply_emoji_icon(text, kwargs)
     return InlineKeyboardButton(display_text, style="primary", **kwargs)
@@ -54,12 +51,12 @@ def _kb(text, **kwargs):
 BTN_SETTINGS = "⚙️ Telefon nastroyka"
 BTN_TABLET = "⚙️ Planshet nastroyka"
 BTN_NICKS = "🎮 Free Fire niklar"
-BTN_HACK = "🔫 Maxsus xizmat"
-BTN_CUSTOM = "📲 Shaxsiy nastroyka"
+BTN_HACK = "⚠️ Maxsus xizmat"
+BTN_CUSTOM = "⚠️ Shaxsiy nastroyka"
 BTN_WEBSITE = "🏆 Free Fire Turnirlar"
 BTN_NEWS = "📰 Free Fire yangiliklari"
 BTN_MUSIC = "🎵 Free Fire qo'shiq"
-BTN_QUIZ = "🧠 Savol va Javob"
+BTN_QUIZ = "💎 Tekin almaz"
 BTN_DIAMONDS = "💎 Almaz xarid qilish"
 BTN_ACCOUNT = "💰 Mening hisobim"
 BTN_HELP = "🎧 Yordam"
@@ -71,20 +68,23 @@ BTN_POST = "🖋️ Post"
 BTN_EDIT_TEXTS = "✏️ Tugmalarni tahrirlash"
 
 
+BTN_ADMIN_CREDIT = "🛠 Admin buyrug'i"
+
+
 def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
     rows = [
         [_kb(BTN_WEBSITE)],
         [_kb(BTN_SETTINGS), _kb(BTN_TABLET)],
-        [_kb(BTN_NICKS), _kb(BTN_HACK)],
-        [_kb(BTN_CUSTOM), _kb(BTN_NEWS)],
-        [_kb(BTN_MUSIC), _kb(BTN_QUIZ)],
-        [_kb(BTN_DIAMONDS), _kb(BTN_ACCOUNT)],
-        [_kb(BTN_HELP), _kb(BTN_FAQ)],
-        [_kb(BTN_GUIDES)],
+        [_kb(BTN_HACK), _kb(BTN_CUSTOM)],
+        [_kb(BTN_QUIZ), _kb(BTN_DIAMONDS)],
+        [_kb(BTN_NICKS), _kb(BTN_NEWS)],
+        [_kb(BTN_MUSIC), _kb(BTN_ACCOUNT)],
+        [_kb(BTN_FAQ), _kb(BTN_GUIDES)],
     ]
     if is_admin:
         rows.append([_kb(BTN_STATS), _kb(BTN_BROADCAST)])
         rows.append([_kb(BTN_POST), _kb(BTN_EDIT_TEXTS)])
+        rows.append([_kb(BTN_ADMIN_CREDIT)])
     return ReplyKeyboardMarkup(rows, resize_keyboard=True, is_persistent=True)
 
 
@@ -433,3 +433,16 @@ def quiz_options_keyboard(question_index: int, options: list) -> InlineKeyboardM
     for i, opt in enumerate(options):
         rows.append([_ikb(opt, callback_data=f"quiz:{question_index}:{i}")])
     return InlineKeyboardMarkup(rows)
+
+
+# ---------- 🛠 Admin buyrug'i (qo'lda pul/almaz berish) ----------
+
+def admin_credit_type_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                _ikb("💎 Almaz berish", callback_data="credittype:diamond"),
+                _ikb("💰 Pul berish", callback_data="credittype:money"),
+            ]
+        ]
+    )
