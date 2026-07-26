@@ -90,7 +90,7 @@ from handlers.faq import (
     WAITING_FAQ_QUESTION,
     WAITING_FAQ_ADMIN_REPLY,
 )
-from handlers.quiz import on_quiz_button, on_quiz_answer, on_quiz_begin
+from handlers.quiz import on_quiz_button, on_quiz_begin, on_quiz_answer
 from handlers.custom import (
     on_custom_button,
     on_custom_back,
