@@ -15,13 +15,39 @@ from data.guides_data import GUIDES
 from data.diamonds_data import PACKAGES, SUBSCRIPTIONS, button_label
 
 
+import re
+
+from data.premium_emoji_ids import EMOJI_IDS
+
+_EMOJI_PREFIX_RE = re.compile(
+    r"^([\U0001F000-\U0001FFFF\u2600-\u27BF\u2B00-\u2BFF]\uFE0F?)\s*"
+)
+
+
+def _apply_emoji_icon(text: str, kwargs: dict) -> str:
+    """Agar matn boshida emoji bo'lsa va unga ID mavjud bo'lsa, icon_custom_emoji_id
+    qo'shadi va matndan native emojini olib tashlaydi (takrorlanmasligi uchun)."""
+    if "icon_custom_emoji_id" in kwargs:
+        return text
+    match = _EMOJI_PREFIX_RE.match(text)
+    if match:
+        emoji = match.group(1)
+        emoji_id = EMOJI_IDS.get(emoji, "")
+        if emoji_id:
+            kwargs["icon_custom_emoji_id"] = emoji_id
+            return text[match.end():].strip()
+    return text
+
+
 # Barcha tugmalar uchun standart rang (ko'k) - Bot API 9.4+ talab qiladi.
 def _ikb(text, **kwargs):
-    return InlineKeyboardButton(text, style="primary", **kwargs)
+    display_text = _apply_emoji_icon(text, kwargs)
+    return InlineKeyboardButton(display_text, style="primary", **kwargs)
 
 
 def _kb(text, **kwargs):
-    return KeyboardButton(text, style="primary")
+    display_text = _apply_emoji_icon(text, kwargs)
+    return KeyboardButton(display_text, style="primary", **kwargs)
 
 # ---------- Asosiy menyu (ReplyKeyboard) ----------
 
