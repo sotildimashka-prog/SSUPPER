@@ -396,6 +396,12 @@ def faq_admin_keyboard(user_id: int) -> InlineKeyboardMarkup:
 
 # ---------- 🧠 Savol va Javob (Quiz) ----------
 
+def quiz_intro_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[_ikb("▶️ Boshladik", callback_data="quiz_begin")]]
+    )
+
+
 def quiz_options_keyboard(question_index: int, options: list) -> InlineKeyboardMarkup:
     rows = []
     for i, opt in enumerate(options):
