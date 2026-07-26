@@ -8,7 +8,7 @@ from telegram import (
     InlineKeyboardButton,
 )
 
-from config import REQUIRED_CHANNELS, ADMIN_ID
+from config import REQUIRED_CHANNELS, ADMIN_ID, WEBSITE_URL
 from data.settings_data import PHONES
 from data.tablet_data import TABLETS
 from data.guides_data import GUIDES
@@ -16,17 +16,20 @@ from data.diamonds_data import PACKAGES, SUBSCRIPTIONS, button_label
 
 # ---------- Asosiy menyu (ReplyKeyboard) ----------
 
-BTN_SETTINGS = "⚙Telefon nastroyka"
+BTN_SETTINGS = "⚙️ Telefon nastroyka"
+BTN_TABLET = "⚙️ Planshet nastroyka"
 BTN_NICKS = "🎮 Free Fire niklar"
-BTN_TABLET = "⚙Planshet nastroyka"
-BTN_FFID = "🕹️ Mening FF ID'im"
 BTN_HACK = "🔫 Maxsus xizmat"
-BTN_DIAMONDS = "💎Almaz xarid qilish"
-BTN_ACCOUNT = "💰Mening hisobim"
-BTN_HELP = "📬Savollar ( FAQ )"
-BTN_TOURNAMENTS = "🎉katta Turnirlar"
 BTN_CUSTOM = "📲 Shaxsiy nastroyka"
-BTN_FEEDBACK = "❓ Savol va Takliflar"
+BTN_WEBSITE = "🏆 Free Fire Turnirlar"
+BTN_NEWS = "📰 Free Fire yangiliklari"
+BTN_MUSIC = "🎵 Free Fire qo'shiq"
+BTN_QUIZ = "🧠 Savol va Javob"
+BTN_DIAMONDS = "💎 Almaz xarid qilish"
+BTN_ACCOUNT = "💰 Mening hisobim"
+BTN_HELP = "🎧 Yordam"
+BTN_GUIDES = "📚 Qo'llanmalar"
+BTN_FAQ = "📬 Savollar (FAQ)"
 BTN_STATS = "📈 Statistika"
 BTN_BROADCAST = "📣 Xabar yuborish"
 BTN_POST = "🖋️ Post"
@@ -35,12 +38,14 @@ BTN_EDIT_TEXTS = "✏️ Tugmalarni tahrirlash"
 
 def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
     rows = [
-        [KeyboardButton(BTN_ACCOUNT), KeyboardButton(BTN_HELP)],
-        [KeyboardButton(BTN_NICKS), KeyboardButton(BTN_DIAMONDS)],
+        [KeyboardButton(BTN_WEBSITE)],
         [KeyboardButton(BTN_SETTINGS), KeyboardButton(BTN_TABLET)],
-        [KeyboardButton(BTN_HACK), KeyboardButton(BTN_TOURNAMENTS)],
-        [KeyboardButton(BTN_CUSTOM), KeyboardButton(BTN_FEEDBACK)],
-        [KeyboardButton(BTN_FFID)],
+        [KeyboardButton(BTN_NICKS), KeyboardButton(BTN_HACK)],
+        [KeyboardButton(BTN_CUSTOM), KeyboardButton(BTN_NEWS)],
+        [KeyboardButton(BTN_MUSIC), KeyboardButton(BTN_QUIZ)],
+        [KeyboardButton(BTN_DIAMONDS), KeyboardButton(BTN_ACCOUNT)],
+        [KeyboardButton(BTN_HELP), KeyboardButton(BTN_FAQ)],
+        [KeyboardButton(BTN_GUIDES)],
     ]
     if is_admin:
         rows.append([KeyboardButton(BTN_STATS), KeyboardButton(BTN_BROADCAST)])
@@ -82,6 +87,22 @@ def add_to_group_keyboard(bot_username: str) -> InlineKeyboardMarkup:
     url = f"https://t.me/{bot_username}?startgroup=true"
     return InlineKeyboardMarkup(
         [[InlineKeyboardButton("➕ Botni guruhga qo'shish", url=url)]]
+    )
+
+
+# ---------- Foydali web sayt ----------
+
+def website_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[InlineKeyboardButton("🌐 Saytga o'tish", url=WEBSITE_URL)]]
+    )
+
+
+# ---------- Free Fire qo'shiq ----------
+
+def music_keyboard(music_url: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[InlineKeyboardButton("🎧 Qo'shiqni tinglash", url=music_url)]]
     )
 
 
@@ -147,78 +168,6 @@ def tablet_model_back_keyboard(brand: str) -> InlineKeyboardMarkup:
     )
 
 
-# ---------- 🔫 Maxsus xizmat (Proxy / Cheat) ----------
-
-def hack_menu_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        [
-            [InlineKeyboardButton("🛰️ Proxy server", callback_data="hack:proxy")],
-            [InlineKeyboardButton("🛠️ Cheat va panellar", callback_data="hack:cheat")],
-        ]
-    )
-
-
-def hack_back_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        [[InlineKeyboardButton("⬅️ Orqaga", callback_data="hack:back")]]
-    )
-
-
-# ---------- 📲 Shaxsiy nastroyka (pullik / bepul) ----------
-
-def custom_entry_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        [
-            [InlineKeyboardButton("💳 Pullik nastroyka", callback_data="custom:paid")],
-            [InlineKeyboardButton("🆓 Bepul nastroyka", callback_data="custom:free")],
-            [InlineKeyboardButton("❓ Savollar", callback_data="custom:savollar")],
-        ]
-    )
-
-
-def custom_back_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        [[InlineKeyboardButton("⬅️ Orqaga", callback_data="custom:back")]]
-    )
-
-
-def custom_tiers_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        [
-            [InlineKeyboardButton("🎯 80% Headshot", callback_data="custom:tier:80")],
-            [InlineKeyboardButton("🎯 97% Headshot", callback_data="custom:tier:97")],
-            [InlineKeyboardButton("⬅️ Orqaga", callback_data="custom:back")],
-        ]
-    )
-
-
-def custom_tier_detail_keyboard(tier: str) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        [
-            [InlineKeyboardButton("🛒 Xarid qilish", callback_data=f"custom:buy:{tier}")],
-            [InlineKeyboardButton("⬅️ Orqaga", callback_data="custom:paid")],
-        ]
-    )
-
-
-def custom_agree_keyboard(tier: str) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        [[InlineKeyboardButton("✅ Roziman", callback_data=f"custom:agree:{tier}")]]
-    )
-
-
-def custom_admin_reply_keyboard(kind: str, user_id: int) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        [[InlineKeyboardButton("✍️ Nastroyka yuborish", callback_data=f"customreply:{kind}:{user_id}")]]
-    )
-
-
-def inquiry_admin_reply_keyboard(kind: str, user_id: int) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        [[InlineKeyboardButton("✍️ Javob yuborish", callback_data=f"inqreply:{kind}:{user_id}")]]
-    )
-
-
 # ---------- Niklar ----------
 
 def nicknames_keyboard() -> InlineKeyboardMarkup:
@@ -251,6 +200,24 @@ def guide_back_keyboard() -> InlineKeyboardMarkup:
     )
 
 
+# ---------- 🔓 Free Fire Hack (Proxy + Cheat + FF ID birlashtirilgan) ----------
+
+def hack_menu_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton("🛰️ Proxy server", callback_data="hack:proxy")],
+            [InlineKeyboardButton("🛠️ Cheat va panellar", callback_data="hack:cheat")],
+            [InlineKeyboardButton("🕹️ Mening FF ID'im", callback_data="hack:ffid")],
+        ]
+    )
+
+
+def hack_back_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[InlineKeyboardButton("⬅️ Orqaga", callback_data="hack:back")]]
+    )
+
+
 # ---------- Almaz sotib olish ----------
 
 def diamonds_entry_keyboard() -> InlineKeyboardMarkup:
@@ -266,7 +233,10 @@ def diamonds_entry_keyboard() -> InlineKeyboardMarkup:
 
 def diamonds_admin_keyboard(admin_username: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
-        [[InlineKeyboardButton("💬 Admin bilan bog'lanish", url=f"https://t.me/{admin_username}")]]
+        [
+            [InlineKeyboardButton("💬 Admin bilan bog'lanish", url=f"https://t.me/{admin_username}")],
+            [InlineKeyboardButton("⬅️ Orqaga", callback_data="dia:back")],
+        ]
     )
 
 
@@ -299,7 +269,7 @@ def package_detail_keyboard(key: str) -> InlineKeyboardMarkup:
 
 def insufficient_balance_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
-        [[InlineKeyboardButton("💰 Hisobim", callback_data="go_account")]]
+        [[InlineKeyboardButton("💰 Mening hisobim", callback_data="go_account")]]
     )
 
 
@@ -311,14 +281,18 @@ def account_keyboard() -> InlineKeyboardMarkup:
             [
                 InlineKeyboardButton("👤 Admin orqali to'ldirish", callback_data="acc:admin"),
                 InlineKeyboardButton("💳 Humo/Uzcard orqali to'ldirish", callback_data="acc:card"),
-            ]
+            ],
+            [InlineKeyboardButton("🎁 Bonus", callback_data="acc:bonus")],
         ]
     )
 
 
 def account_admin_keyboard(admin_username: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
-        [[InlineKeyboardButton("💬 Admin bilan bog'lanish", url=f"https://t.me/{admin_username}")]]
+        [
+            [InlineKeyboardButton("💬 Admin bilan bog'lanish", url=f"https://t.me/{admin_username}")],
+            [InlineKeyboardButton("⬅️ Orqaga", callback_data="acc:back")],
+        ]
     )
 
 
@@ -351,12 +325,70 @@ def edit_texts_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
             [
-                InlineKeyboardButton("📬 Savollar matni", callback_data="edittext:help_text"),
-                InlineKeyboardButton("🎉 Turnirlar matni", callback_data="edittext:tournament_text"),
+                InlineKeyboardButton("🎧 Yordam matni", callback_data="edittext:help_text"),
+                InlineKeyboardButton("🛠️ Cheat matni", callback_data="edittext:cheat_text"),
             ],
             [
-                InlineKeyboardButton("🛠️ Cheat matni", callback_data="edittext:cheat_text"),
                 InlineKeyboardButton("🛰️ Proxy matni", callback_data="edittext:proxy_text"),
             ],
         ]
     )
+
+
+# ---------- 📲 Shaxsiy nastroyka (Pullik/Bepul) ----------
+
+def custom_entry_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton("💰 Pullik nastroyka", callback_data="custom:paid")],
+            [InlineKeyboardButton("🆓 Bepul nastroyka", callback_data="custom:free")],
+        ]
+    )
+
+
+def paid_tiers_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton("🎯 80% Headshot", callback_data="paidtier:hs80")],
+            [InlineKeyboardButton("🎯 97% Headshot", callback_data="paidtier:hs97")],
+            [InlineKeyboardButton("⬅️ Orqaga", callback_data="custom:back")],
+        ]
+    )
+
+
+def paid_tier_detail_keyboard(key: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton("🛒 Xarid qilish", callback_data=f"paidbuy:{key}")],
+            [InlineKeyboardButton("⬅️ Orqaga", callback_data="custom:paid")],
+        ]
+    )
+
+
+def paid_disclaimer_keyboard(key: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[InlineKeyboardButton("✅ Roziman", callback_data=f"paidagree:{key}")]]
+    )
+
+
+def custom_admin_keyboard(user_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[InlineKeyboardButton("📤 Nastroyka yuborish", callback_data=f"customreply:{user_id}")]]
+    )
+
+
+# ---------- 📬 Savollar (FAQ) ----------
+
+def faq_admin_keyboard(user_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[InlineKeyboardButton("💬 Javob berish", callback_data=f"faqreply:{user_id}")]]
+    )
+
+
+# ---------- 🧠 Savol va Javob (Quiz) ----------
+
+def quiz_options_keyboard(question_index: int, options: list) -> InlineKeyboardMarkup:
+    rows = []
+    for i, opt in enumerate(options):
+        rows.append([InlineKeyboardButton(opt, callback_data=f"quiz:{question_index}:{i}")])
+    return InlineKeyboardMarkup(rows)
