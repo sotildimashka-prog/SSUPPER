@@ -90,7 +90,7 @@ from handlers.faq import (
     WAITING_FAQ_QUESTION,
     WAITING_FAQ_ADMIN_REPLY,
 )
-from handlers.quiz import on_quiz_button, on_quiz_answer
+from handlers.quiz import on_quiz_button, on_quiz_answer, on_quiz_begin
 from handlers.custom import (
     on_custom_button,
     on_custom_back,
@@ -377,6 +377,7 @@ def build_application() -> Application:
     app.add_handler(MessageHandler(_exact(BTN_NEWS), on_news_button))
     app.add_handler(MessageHandler(_exact(BTN_MUSIC), on_music_button))
     app.add_handler(MessageHandler(_exact(BTN_QUIZ), on_quiz_button))
+    app.add_handler(CallbackQueryHandler(on_quiz_begin, pattern="^quiz_begin$"))
     app.add_handler(CallbackQueryHandler(on_quiz_answer, pattern="^quiz:"))
     app.add_handler(MessageHandler(_exact(BTN_HACK), on_hack_button))
     app.add_handler(MessageHandler(_exact(BTN_STATS), on_stats_button))
