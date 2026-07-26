@@ -408,3 +408,25 @@ def update_diamond_order_status(order_id: int, status: str):
         conn.execute(
             "UPDATE diamond_orders SET status = ? WHERE id = ?", (status, order_id)
         )
+
+
+# ---------------- Kunlik bonus (Hisobim -> Bonus tugmasi uchun) ----------------
+
+def get_last_bonus_claim(user_id: int):
+    """Foydalanuvchi oxirgi marta bonusni qaysi kunda olganini qaytaradi (yoki None)."""
+    with get_conn() as conn:
+        cur = conn.execute(
+            "SELECT last_claim_date FROM bonus_claims WHERE user_id = ?", (user_id,)
+        )
+        row = cur.fetchone()
+        return row["last_claim_date"] if row else None
+
+
+def set_bonus_claim(user_id: int, day: str):
+    """Foydalanuvchi shu kuni bonus olganini yozib qo'yadi."""
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT INTO bonus_claims (user_id, last_claim_date) VALUES (?, ?) "
+            "ON CONFLICT(user_id) DO UPDATE SET last_claim_date = excluded.last_claim_date",
+            (user_id, day),
+        )
