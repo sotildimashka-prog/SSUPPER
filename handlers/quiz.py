@@ -69,7 +69,7 @@ async def on_quiz_begin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     await query.answer()
-    await _send_question(query.message, user_id, edit=True)
+    await _send_question(query, user_id, edit=True)
 
 
 async def on_quiz_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
