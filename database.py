@@ -98,9 +98,26 @@ def init_db():
         )
         cur.execute(
             """
-            CREATE TABLE IF NOT EXISTS daily_bonus (
+            CREATE TABLE IF NOT EXISTS bonus_claims (
                 user_id INTEGER PRIMARY KEY,
-                last_claim TEXT
+                last_claim_date TEXT
+            )
+            """
+        )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS quiz_progress (
+                user_id INTEGER PRIMARY KEY,
+                day TEXT,
+                answered_count INTEGER DEFAULT 0
+            )
+            """
+        )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS quiz_diamonds (
+                user_id INTEGER PRIMARY KEY,
+                diamonds INTEGER DEFAULT 0
             )
             """
         )
@@ -193,6 +210,105 @@ def set_setting(key: str, value: str):
             "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
             (key, value),
         )
+
+
+def get_content(key: str, default_text: str) -> dict:
+    """Matn yoki media (rasm/video/fayl) saqlangan sozlamani JSON sifatida qaytaradi."""
+    import json
+
+    raw = get_setting(key, "")
+    if not raw:
+        return {"type": "text", "text": default_text, "caption": ""}
+    try:
+        return json.loads(raw)
+    except (ValueError, TypeError):
+        return {"type": "text", "text": raw, "caption": ""}
+
+
+def set_content(key: str, content_type: str, text: str = "", file_id: str = "", caption: str = ""):
+    import json
+
+    set_setting(
+        key,
+        json.dumps(
+            {"type": content_type, "text": text, "file_id": file_id, "caption": caption}
+        ),
+    )
+
+
+# ---------------- Savol va Javob (Quiz) ----------------
+
+def get_quiz_answered_today(user_id: int) -> int:
+    today = date.today().isoformat()
+    with get_conn() as conn:
+        cur = conn.execute(
+            "SELECT day, answered_count FROM quiz_progress WHERE user_id = ?", (user_id,)
+        )
+        row = cur.fetchone()
+        if not row or row["day"] != today:
+            return 0
+        return row["answered_count"]
+
+
+def increment_quiz_answered(user_id: int):
+    today = date.today().isoformat()
+    with get_conn() as conn:
+        cur = conn.execute(
+            "SELECT day, answered_count FROM quiz_progress WHERE user_id = ?", (user_id,)
+        )
+        row = cur.fetchone()
+        if not row or row["day"] != today:
+            conn.execute(
+                "INSERT INTO quiz_progress (user_id, day, answered_count) VALUES (?, ?, 1) "
+                "ON CONFLICT(user_id) DO UPDATE SET day = excluded.day, answered_count = 1",
+                (user_id, today),
+            )
+        else:
+            conn.execute(
+                "UPDATE quiz_progress SET answered_count = answered_count + 1 WHERE user_id = ?",
+                (user_id,),
+            )
+
+
+def add_quiz_diamonds(user_id: int, amount: int):
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT INTO quiz_diamonds (user_id, diamonds) VALUES (?, ?) "
+            "ON CONFLICT(user_id) DO UPDATE SET diamonds = diamonds + excluded.diamonds",
+            (user_id, amount),
+        )
+
+
+def get_quiz_diamonds(user_id: int) -> int:
+    with get_conn() as conn:
+        cur = conn.execute("SELECT diamonds FROM quiz_diamonds WHERE user_id = ?", (user_id,))
+        row = cur.fetchone()
+        return row["diamonds"] if row else 0
+
+
+# ---------------- Kunlik bonus ----------------
+
+def claim_daily_bonus(user_id: int, amount: int) -> bool:
+    """Agar bugun hali bonus olinmagan bo'lsa, hisobga qo'shadi va True qaytaradi."""
+    today = date.today().isoformat()
+    with get_conn() as conn:
+        cur = conn.execute(
+            "SELECT last_claim_date FROM bonus_claims WHERE user_id = ?", (user_id,)
+        )
+        row = cur.fetchone()
+        if row and row["last_claim_date"] == today:
+            return False
+        conn.execute(
+            "INSERT INTO bonus_claims (user_id, last_claim_date) VALUES (?, ?) "
+            "ON CONFLICT(user_id) DO UPDATE SET last_claim_date = excluded.last_claim_date",
+            (user_id, today),
+        )
+        _ensure_balance_row(conn, user_id)
+        conn.execute(
+            "UPDATE balances SET balance = balance + ? WHERE user_id = ?",
+            (amount, user_id),
+        )
+        return True
 
 
 # ---------------- Hisob balansi ----------------
@@ -291,24 +407,4 @@ def update_diamond_order_status(order_id: int, status: str):
     with get_conn() as conn:
         conn.execute(
             "UPDATE diamond_orders SET status = ? WHERE id = ?", (status, order_id)
-        )
-
-
-# ---------------- Kunlik bonus (Hisobim -> Bonus) ----------------
-
-def get_last_bonus_claim(user_id: int):
-    with get_conn() as conn:
-        cur = conn.execute(
-            "SELECT last_claim FROM daily_bonus WHERE user_id = ?", (user_id,)
-        )
-        row = cur.fetchone()
-        return row["last_claim"] if row else None
-
-
-def set_bonus_claim(user_id: int, day: str):
-    with get_conn() as conn:
-        conn.execute(
-            "INSERT INTO daily_bonus (user_id, last_claim) VALUES (?, ?) "
-            "ON CONFLICT(user_id) DO UPDATE SET last_claim = excluded.last_claim",
-            (user_id, day),
         )
