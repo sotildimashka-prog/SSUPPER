@@ -39,6 +39,7 @@ from keyboards import (
     BTN_BROADCAST,
     BTN_POST,
     BTN_EDIT_TEXTS,
+    BTN_ADMIN_CREDIT,
 )
 
 from handlers.start import (
@@ -90,7 +91,7 @@ from handlers.faq import (
     WAITING_FAQ_QUESTION,
     WAITING_FAQ_ADMIN_REPLY,
 )
-from handlers.quiz import on_quiz_button, on_quiz_begin, on_quiz_answer
+from handlers.quiz import on_quiz_button, on_quiz_answer, on_quiz_begin
 from handlers.custom import (
     on_custom_button,
     on_custom_back,
@@ -154,6 +155,15 @@ from handlers.admin import (
     receive_new_text,
     cancel_edit_text,
     WAITING_EDIT_TEXT,
+)
+from handlers.admin_credit import (
+    on_admin_credit_button,
+    on_credit_type_selected,
+    receive_credit_amount,
+    receive_credit_user_id,
+    cancel_credit,
+    WAITING_CREDIT_AMOUNT,
+    WAITING_CREDIT_USER_ID,
 )
 
 logging.basicConfig(
@@ -336,6 +346,25 @@ def build_application() -> Application:
     )
     app.add_handler(CallbackQueryHandler(choose_text_to_edit, pattern="^edittext:"))
     app.add_handler(edit_texts_conv)
+
+    # ---------- 🛠 Admin buyrug'i (qo'lda pul/almaz berish, faqat admin) ----------
+    app.add_handler(MessageHandler(_exact(BTN_ADMIN_CREDIT), on_admin_credit_button))
+
+    admin_credit_flow_conv = ConversationHandler(
+        entry_points=[CallbackQueryHandler(on_credit_type_selected, pattern="^credittype:")],
+        states={
+            WAITING_CREDIT_AMOUNT: [
+                CommandHandler("bekor", cancel_credit),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_credit_amount),
+            ],
+            WAITING_CREDIT_USER_ID: [
+                CommandHandler("bekor", cancel_credit),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_credit_user_id),
+            ],
+        },
+        fallbacks=[CommandHandler("bekor", cancel_credit)],
+    )
+    app.add_handler(admin_credit_flow_conv)
 
     # ---------- Almaz sotib olish (xarid) conversation ----------
     buy_conv = ConversationHandler(
