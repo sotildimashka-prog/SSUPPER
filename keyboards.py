@@ -8,43 +8,11 @@ from telegram import (
     InlineKeyboardButton,
 )
 
-import re
-
 from config import REQUIRED_CHANNELS, ADMIN_ID, WEBSITE_URL
 from data.settings_data import PHONES
 from data.tablet_data import TABLETS
 from data.guides_data import GUIDES
 from data.diamonds_data import PACKAGES, SUBSCRIPTIONS, button_label
-from data.premium_emoji_ids import EMOJI_IDS
-
-_EMOJI_PREFIX_RE = re.compile(
-    r"^([\U0001F000-\U0001FFFF\u2600-\u27BF\u2B00-\u2BFF]\uFE0F?)\s*"
-)
-
-
-def _apply_emoji_icon(text: str, kwargs: dict) -> str:
-    """Agar matn boshida emoji bo'lsa va unga ID mavjud bo'lsa, icon_custom_emoji_id
-    qo'shadi va matndan native emojini olib tashlaydi (takrorlanmasligi uchun)."""
-    if "icon_custom_emoji_id" in kwargs:
-        return text
-    match = _EMOJI_PREFIX_RE.match(text)
-    if match:
-        emoji = match.group(1)
-        emoji_id = EMOJI_IDS.get(emoji, "")
-        if emoji_id:
-            kwargs["icon_custom_emoji_id"] = emoji_id
-            return text[match.end():].strip()
-    return text
-
-
-def _ikb(text, **kwargs):
-    display_text = _apply_emoji_icon(text, kwargs)
-    return InlineKeyboardButton(display_text, style="primary", **kwargs)
-
-
-def _kb(text, **kwargs):
-    display_text = _apply_emoji_icon(text, kwargs)
-    return KeyboardButton(display_text, style="primary", **kwargs)
 
 # ---------- Asosiy menyu (ReplyKeyboard) ----------
 
@@ -73,18 +41,18 @@ BTN_ADMIN_CREDIT = "🛠 Admin buyrug'i"
 
 def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
     rows = [
-        [_kb(BTN_WEBSITE)],
-        [_kb(BTN_SETTINGS), _kb(BTN_TABLET)],
-        [_kb(BTN_HACK), _kb(BTN_CUSTOM)],
-        [_kb(BTN_QUIZ), _kb(BTN_DIAMONDS)],
-        [_kb(BTN_NICKS), _kb(BTN_NEWS)],
-        [_kb(BTN_MUSIC), _kb(BTN_ACCOUNT)],
-        [_kb(BTN_FAQ), _kb(BTN_GUIDES)],
+        [KeyboardButton(BTN_WEBSITE)],
+        [KeyboardButton(BTN_SETTINGS), KeyboardButton(BTN_TABLET)],
+        [KeyboardButton(BTN_HACK), KeyboardButton(BTN_CUSTOM)],
+        [KeyboardButton(BTN_QUIZ), KeyboardButton(BTN_DIAMONDS)],
+        [KeyboardButton(BTN_NICKS), KeyboardButton(BTN_NEWS)],
+        [KeyboardButton(BTN_MUSIC), KeyboardButton(BTN_ACCOUNT)],
+        [KeyboardButton(BTN_FAQ), KeyboardButton(BTN_GUIDES)],
     ]
     if is_admin:
-        rows.append([_kb(BTN_STATS), _kb(BTN_BROADCAST)])
-        rows.append([_kb(BTN_POST), _kb(BTN_EDIT_TEXTS)])
-        rows.append([_kb(BTN_ADMIN_CREDIT)])
+        rows.append([KeyboardButton(BTN_STATS), KeyboardButton(BTN_BROADCAST)])
+        rows.append([KeyboardButton(BTN_POST), KeyboardButton(BTN_EDIT_TEXTS)])
+        rows.append([KeyboardButton(BTN_ADMIN_CREDIT)])
     return ReplyKeyboardMarkup(rows, resize_keyboard=True, is_persistent=True)
 
 
@@ -97,11 +65,11 @@ def subscription_keyboard() -> InlineKeyboardMarkup:
         chunk = channels[i:i + 2]
         rows.append(
             [
-                _ikb(f"📡 {ch['name']}", url=f"https://t.me/{ch['username']}")
+                InlineKeyboardButton(f"📡 {ch['name']}", url=f"https://t.me/{ch['username']}")
                 for ch in chunk
             ]
         )
-    rows.append([_ikb("✅ Obuna bo'ldim", callback_data="check_sub")])
+    rows.append([InlineKeyboardButton("✅ Obuna bo'ldim", callback_data="check_sub")])
     return InlineKeyboardMarkup(rows)
 
 
@@ -111,8 +79,8 @@ def player_type_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
             [
-                _ikb("🏆 Pro o'yinchiman", callback_data="player:pro"),
-                _ikb("🤖 Bot o'yinchiman", callback_data="player:bot"),
+                InlineKeyboardButton("🏆 Pro o'yinchiman", callback_data="player:pro"),
+                InlineKeyboardButton("🤖 Bot o'yinchiman", callback_data="player:bot"),
             ]
         ]
     )
@@ -121,7 +89,7 @@ def player_type_keyboard() -> InlineKeyboardMarkup:
 def add_to_group_keyboard(bot_username: str) -> InlineKeyboardMarkup:
     url = f"https://t.me/{bot_username}?startgroup=true"
     return InlineKeyboardMarkup(
-        [[_ikb("➕ Botni guruhga qo'shish", url=url)]]
+        [[InlineKeyboardButton("➕ Botni guruhga qo'shish", url=url)]]
     )
 
 
@@ -129,7 +97,7 @@ def add_to_group_keyboard(bot_username: str) -> InlineKeyboardMarkup:
 
 def website_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
-        [[_ikb("🌐 Saytga o'tish", url=WEBSITE_URL)]]
+        [[InlineKeyboardButton("🌐 Saytga o'tish", url=WEBSITE_URL)]]
     )
 
 
@@ -137,7 +105,7 @@ def website_keyboard() -> InlineKeyboardMarkup:
 
 def music_keyboard(music_url: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
-        [[_ikb("🎧 Qo'shiqni tinglash", url=music_url)]]
+        [[InlineKeyboardButton("🎧 Qo'shiqni tinglash", url=music_url)]]
     )
 
 
@@ -149,7 +117,7 @@ def brands_keyboard() -> InlineKeyboardMarkup:
     for i in range(0, len(brands), 2):
         chunk = brands[i:i + 2]
         rows.append(
-            [_ikb(b, callback_data=f"brand:{b}") for b in chunk]
+            [InlineKeyboardButton(b, callback_data=f"brand:{b}") for b in chunk]
         )
     return InlineKeyboardMarkup(rows)
 
@@ -160,15 +128,15 @@ def models_keyboard(brand: str) -> InlineKeyboardMarkup:
     for i in range(0, len(models), 2):
         chunk = models[i:i + 2]
         rows.append(
-            [_ikb(m[0], callback_data=f"model:{m[0]}") for m in chunk]
+            [InlineKeyboardButton(m[0], callback_data=f"model:{m[0]}") for m in chunk]
         )
-    rows.append([_ikb("⬅️ Orqaga", callback_data="back_to_brands")])
+    rows.append([InlineKeyboardButton("⬅️ Orqaga", callback_data="back_to_brands")])
     return InlineKeyboardMarkup(rows)
 
 
 def model_back_keyboard(brand: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
-        [[_ikb("⬅️ Modellarga qaytish", callback_data=f"brand:{brand}")]]
+        [[InlineKeyboardButton("⬅️ Modellarga qaytish", callback_data=f"brand:{brand}")]]
     )
 
 
@@ -180,7 +148,7 @@ def tablet_brands_keyboard() -> InlineKeyboardMarkup:
     for i in range(0, len(brands), 2):
         chunk = brands[i:i + 2]
         rows.append(
-            [_ikb(b, callback_data=f"tbrand:{b}") for b in chunk]
+            [InlineKeyboardButton(b, callback_data=f"tbrand:{b}") for b in chunk]
         )
     return InlineKeyboardMarkup(rows)
 
@@ -191,15 +159,15 @@ def tablet_models_keyboard(brand: str) -> InlineKeyboardMarkup:
     for i in range(0, len(models), 2):
         chunk = models[i:i + 2]
         rows.append(
-            [_ikb(m[0], callback_data=f"tmodel:{m[0]}") for m in chunk]
+            [InlineKeyboardButton(m[0], callback_data=f"tmodel:{m[0]}") for m in chunk]
         )
-    rows.append([_ikb("⬅️ Orqaga", callback_data="back_to_tbrands")])
+    rows.append([InlineKeyboardButton("⬅️ Orqaga", callback_data="back_to_tbrands")])
     return InlineKeyboardMarkup(rows)
 
 
 def tablet_model_back_keyboard(brand: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
-        [[_ikb("⬅️ Modellarga qaytish", callback_data=f"tbrand:{brand}")]]
+        [[InlineKeyboardButton("⬅️ Modellarga qaytish", callback_data=f"tbrand:{brand}")]]
     )
 
 
@@ -209,8 +177,8 @@ def nicknames_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
             [
-                _ikb("👦 Erkaklar niklari", callback_data="nick:male"),
-                _ikb("👧 Qizlar niklari", callback_data="nick:female"),
+                InlineKeyboardButton("👦 Erkaklar niklari", callback_data="nick:male"),
+                InlineKeyboardButton("👧 Qizlar niklari", callback_data="nick:female"),
             ]
         ]
     )
@@ -224,14 +192,14 @@ def guides_keyboard() -> InlineKeyboardMarkup:
     for i in range(0, len(items), 2):
         chunk = items[i:i + 2]
         rows.append(
-            [_ikb(v["title"], callback_data=f"guide:{k}") for k, v in chunk]
+            [InlineKeyboardButton(v["title"], callback_data=f"guide:{k}") for k, v in chunk]
         )
     return InlineKeyboardMarkup(rows)
 
 
 def guide_back_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
-        [[_ikb("⬅️ Qo'llanmalarga qaytish", callback_data="back_to_guides")]]
+        [[InlineKeyboardButton("⬅️ Qo'llanmalarga qaytish", callback_data="back_to_guides")]]
     )
 
 
@@ -240,16 +208,16 @@ def guide_back_keyboard() -> InlineKeyboardMarkup:
 def hack_menu_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
-            [_ikb("🛰️ Proxy server", callback_data="hack:proxy")],
-            [_ikb("🛠️ Cheat va panellar", callback_data="hack:cheat")],
-            [_ikb("🕹️ Mening FF ID'im", callback_data="hack:ffid")],
+            [InlineKeyboardButton("🛰️ Proxy server", callback_data="hack:proxy")],
+            [InlineKeyboardButton("🛠️ Cheat va panellar", callback_data="hack:cheat")],
+            [InlineKeyboardButton("🕹️ Mening FF ID'im", callback_data="hack:ffid")],
         ]
     )
 
 
 def hack_back_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
-        [[_ikb("⬅️ Orqaga", callback_data="hack:back")]]
+        [[InlineKeyboardButton("⬅️ Orqaga", callback_data="hack:back")]]
     )
 
 
@@ -259,8 +227,8 @@ def diamonds_entry_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
             [
-                _ikb("👤 Admin orqali olish", callback_data="dia:admin"),
-                _ikb("🤖 Bot orqali olish", callback_data="dia:bot"),
+                InlineKeyboardButton("👤 Admin orqali olish", callback_data="dia:admin"),
+                InlineKeyboardButton("🤖 Bot orqali olish", callback_data="dia:bot"),
             ]
         ]
     )
@@ -269,8 +237,8 @@ def diamonds_entry_keyboard() -> InlineKeyboardMarkup:
 def diamonds_admin_keyboard(admin_username: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
-            [_ikb("💬 Admin bilan bog'lanish", url=f"https://t.me/{admin_username}")],
-            [_ikb("⬅️ Orqaga", callback_data="dia:back")],
+            [InlineKeyboardButton("💬 Admin bilan bog'lanish", url=f"https://t.me/{admin_username}")],
+            [InlineKeyboardButton("⬅️ Orqaga", callback_data="dia:back")],
         ]
     )
 
@@ -281,30 +249,30 @@ def diamonds_packages_keyboard() -> InlineKeyboardMarkup:
     for i in range(0, len(items), 2):
         chunk = items[i:i + 2]
         rows.append(
-            [_ikb(button_label(it), callback_data=f"pkg:{it['key']}") for it in chunk]
+            [InlineKeyboardButton(button_label(it), callback_data=f"pkg:{it['key']}") for it in chunk]
         )
     sub_items = [{**s, "type": "subscription"} for s in SUBSCRIPTIONS]
     for i in range(0, len(sub_items), 2):
         chunk = sub_items[i:i + 2]
         rows.append(
-            [_ikb(button_label(it), callback_data=f"pkg:{it['key']}") for it in chunk]
+            [InlineKeyboardButton(button_label(it), callback_data=f"pkg:{it['key']}") for it in chunk]
         )
-    rows.append([_ikb("⬅️ Orqaga", callback_data="dia:back")])
+    rows.append([InlineKeyboardButton("⬅️ Orqaga", callback_data="dia:back")])
     return InlineKeyboardMarkup(rows)
 
 
 def package_detail_keyboard(key: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
-            [_ikb("🛒 Sotib olish", callback_data=f"buy:{key}")],
-            [_ikb("⬅️ Orqaga", callback_data="dia:bot")],
+            [InlineKeyboardButton("🛒 Sotib olish", callback_data=f"buy:{key}")],
+            [InlineKeyboardButton("⬅️ Orqaga", callback_data="dia:bot")],
         ]
     )
 
 
 def insufficient_balance_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
-        [[_ikb("💰 Mening hisobim", callback_data="go_account")]]
+        [[InlineKeyboardButton("💰 Mening hisobim", callback_data="go_account")]]
     )
 
 
@@ -314,10 +282,10 @@ def account_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
             [
-                _ikb("👤 Admin orqali to'ldirish", callback_data="acc:admin"),
-                _ikb("💳 Humo/Uzcard orqali to'ldirish", callback_data="acc:card"),
+                InlineKeyboardButton("👤 Admin orqali to'ldirish", callback_data="acc:admin"),
+                InlineKeyboardButton("💳 Humo/Uzcard orqali to'ldirish", callback_data="acc:card"),
             ],
-            [_ikb("🎁 Bonus", callback_data="acc:bonus")],
+            [InlineKeyboardButton("🎁 Bonus", callback_data="acc:bonus")],
         ]
     )
 
@@ -325,15 +293,15 @@ def account_keyboard() -> InlineKeyboardMarkup:
 def account_admin_keyboard(admin_username: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
-            [_ikb("💬 Admin bilan bog'lanish", url=f"https://t.me/{admin_username}")],
-            [_ikb("⬅️ Orqaga", callback_data="acc:back")],
+            [InlineKeyboardButton("💬 Admin bilan bog'lanish", url=f"https://t.me/{admin_username}")],
+            [InlineKeyboardButton("⬅️ Orqaga", callback_data="acc:back")],
         ]
     )
 
 
 def paid_confirm_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
-        [[_ikb("✅ To'lov qildim", callback_data="topup:paid")]]
+        [[InlineKeyboardButton("✅ To'lov qildim", callback_data="topup:paid")]]
     )
 
 
@@ -341,8 +309,8 @@ def admin_topup_review_keyboard(request_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
             [
-                _ikb("✅ Ha", callback_data=f"topup_ok:{request_id}"),
-                _ikb("❌ Yo'q", callback_data=f"topup_no:{request_id}"),
+                InlineKeyboardButton("✅ Ha", callback_data=f"topup_ok:{request_id}"),
+                InlineKeyboardButton("❌ Yo'q", callback_data=f"topup_no:{request_id}"),
             ]
         ]
     )
@@ -350,7 +318,7 @@ def admin_topup_review_keyboard(request_id: int) -> InlineKeyboardMarkup:
 
 def admin_order_review_keyboard(order_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
-        [[_ikb("✅ Yubordim", callback_data=f"order_sent:{order_id}")]]
+        [[InlineKeyboardButton("✅ Yubordim", callback_data=f"order_sent:{order_id}")]]
     )
 
 
@@ -360,11 +328,11 @@ def edit_texts_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
             [
-                _ikb("🎧 Yordam matni", callback_data="edittext:help_text"),
-                _ikb("🛠️ Cheat matni", callback_data="edittext:cheat_text"),
+                InlineKeyboardButton("🎧 Yordam matni", callback_data="edittext:help_text"),
+                InlineKeyboardButton("🛠️ Cheat matni", callback_data="edittext:cheat_text"),
             ],
             [
-                _ikb("🛰️ Proxy matni", callback_data="edittext:proxy_text"),
+                InlineKeyboardButton("🛰️ Proxy matni", callback_data="edittext:proxy_text"),
             ],
         ]
     )
@@ -375,8 +343,8 @@ def edit_texts_keyboard() -> InlineKeyboardMarkup:
 def custom_entry_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
-            [_ikb("💰 Pullik nastroyka", callback_data="custom:paid")],
-            [_ikb("🆓 Bepul nastroyka", callback_data="custom:free")],
+            [InlineKeyboardButton("💰 Pullik nastroyka", callback_data="custom:paid")],
+            [InlineKeyboardButton("🆓 Bepul nastroyka", callback_data="custom:free")],
         ]
     )
 
@@ -384,9 +352,9 @@ def custom_entry_keyboard() -> InlineKeyboardMarkup:
 def paid_tiers_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
-            [_ikb("🎯 80% Headshot", callback_data="paidtier:hs80")],
-            [_ikb("🎯 97% Headshot", callback_data="paidtier:hs97")],
-            [_ikb("⬅️ Orqaga", callback_data="custom:back")],
+            [InlineKeyboardButton("🎯 80% Headshot", callback_data="paidtier:hs80")],
+            [InlineKeyboardButton("🎯 97% Headshot", callback_data="paidtier:hs97")],
+            [InlineKeyboardButton("⬅️ Orqaga", callback_data="custom:back")],
         ]
     )
 
@@ -394,21 +362,21 @@ def paid_tiers_keyboard() -> InlineKeyboardMarkup:
 def paid_tier_detail_keyboard(key: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
-            [_ikb("🛒 Xarid qilish", callback_data=f"paidbuy:{key}")],
-            [_ikb("⬅️ Orqaga", callback_data="custom:paid")],
+            [InlineKeyboardButton("🛒 Xarid qilish", callback_data=f"paidbuy:{key}")],
+            [InlineKeyboardButton("⬅️ Orqaga", callback_data="custom:paid")],
         ]
     )
 
 
 def paid_disclaimer_keyboard(key: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
-        [[_ikb("✅ Roziman", callback_data=f"paidagree:{key}")]]
+        [[InlineKeyboardButton("✅ Roziman", callback_data=f"paidagree:{key}")]]
     )
 
 
 def custom_admin_keyboard(user_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
-        [[_ikb("📤 Nastroyka yuborish", callback_data=f"customreply:{user_id}")]]
+        [[InlineKeyboardButton("📤 Nastroyka yuborish", callback_data=f"customreply:{user_id}")]]
     )
 
 
@@ -416,7 +384,7 @@ def custom_admin_keyboard(user_id: int) -> InlineKeyboardMarkup:
 
 def faq_admin_keyboard(user_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
-        [[_ikb("💬 Javob berish", callback_data=f"faqreply:{user_id}")]]
+        [[InlineKeyboardButton("💬 Javob berish", callback_data=f"faqreply:{user_id}")]]
     )
 
 
@@ -424,14 +392,14 @@ def faq_admin_keyboard(user_id: int) -> InlineKeyboardMarkup:
 
 def quiz_intro_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
-        [[_ikb("▶️ Boshladik", callback_data="quiz_begin")]]
+        [[InlineKeyboardButton("▶️ Boshladik", callback_data="quiz_begin")]]
     )
 
 
 def quiz_options_keyboard(question_index: int, options: list) -> InlineKeyboardMarkup:
     rows = []
     for i, opt in enumerate(options):
-        rows.append([_ikb(opt, callback_data=f"quiz:{question_index}:{i}")])
+        rows.append([InlineKeyboardButton(opt, callback_data=f"quiz:{question_index}:{i}")])
     return InlineKeyboardMarkup(rows)
 
 
@@ -441,8 +409,8 @@ def admin_credit_type_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
             [
-                _ikb("💎 Almaz berish", callback_data="credittype:diamond"),
-                _ikb("💰 Pul berish", callback_data="credittype:money"),
+                InlineKeyboardButton("💎 Almaz berish", callback_data="credittype:diamond"),
+                InlineKeyboardButton("💰 Pul berish", callback_data="credittype:money"),
             ]
         ]
     )
