@@ -46,12 +46,11 @@ def _ikb(text, **kwargs):
     return InlineKeyboardButton(display_text, style="primary", **kwargs)
 
 
-def _kb(text, **kwargs):
+def _kb(text, style="primary", **kwargs):
     # MUHIM: ReplyKeyboard tugmasi bosilganda uning matni xabar sifatida
     # botga yuboriladi va bot shu matn orqali tugmani aniqlaydi. Shuning
     # uchun bu yerda emoji olib tashlanmaydi (aks holda tugmalar ishlamay qoladi).
-    return KeyboardButton(text, style="primary", **kwargs)
-    return _kb(text, style="primary", **kwargs)
+    return KeyboardButton(text, style=style, **kwargs)
 
 # ---------- Asosiy menyu (ReplyKeyboard) ----------
 
@@ -79,19 +78,32 @@ BTN_ADMIN_CREDIT = "🛠 Admin buyrug'i"
 
 
 def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
-    rows = [
-        [_kb(BTN_WEBSITE)],
-        [_kb(BTN_SETTINGS), _kb(BTN_TABLET)],
-        [_kb(BTN_HACK), _kb(BTN_CUSTOM)],
-        [_kb(BTN_QUIZ), _kb(BTN_DIAMONDS)],
-        [_kb(BTN_NICKS), _kb(BTN_NEWS)],
-        [_kb(BTN_MUSIC), _kb(BTN_ACCOUNT)],
-        [_kb(BTN_FAQ), _kb(BTN_GUIDES)],
+    row_texts = [
+        [BTN_WEBSITE],
+        [BTN_SETTINGS, BTN_TABLET],
+        [BTN_HACK, BTN_CUSTOM],
+        [BTN_QUIZ, BTN_DIAMONDS],
+        [BTN_NICKS, BTN_NEWS],
+        [BTN_MUSIC, BTN_ACCOUNT],
+        [BTN_FAQ, BTN_GUIDES],
     ]
     if is_admin:
-        rows.append([_kb(BTN_STATS), _kb(BTN_BROADCAST)])
-        rows.append([_kb(BTN_POST), _kb(BTN_EDIT_TEXTS)])
-        rows.append([_kb(BTN_ADMIN_CREDIT)])
+        row_texts.append([BTN_STATS, BTN_BROADCAST])
+        row_texts.append([BTN_POST, BTN_EDIT_TEXTS])
+        row_texts.append([BTN_ADMIN_CREDIT])
+
+    # Qatorlar navbat bilan yashil/ko'k rangda, eng oxirgi qator esa qizil bo'ladi.
+    rows = []
+    last_index = len(row_texts) - 1
+    for i, row in enumerate(row_texts):
+        if i == last_index:
+            row_style = "danger"
+        elif i % 2 == 0:
+            row_style = "success"
+        else:
+            row_style = "primary"
+        rows.append([_kb(text, style=row_style) for text in row])
+
     return ReplyKeyboardMarkup(rows, resize_keyboard=True, is_persistent=True)
 
 
