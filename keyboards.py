@@ -41,9 +41,9 @@ def _apply_emoji_icon(text: str, kwargs: dict) -> str:
 
 
 # Barcha tugmalar uchun standart rang (ko'k) - Bot API 9.4+ talab qiladi.
-def _ikb(text, **kwargs):
+def _ikb(text, style="primary", **kwargs):
     display_text = _apply_emoji_icon(text, kwargs)
-    return InlineKeyboardButton(display_text, style="primary", **kwargs)
+    return InlineKeyboardButton(display_text, style=style, **kwargs)
 
 
 def _kb(text, style="primary", **kwargs):
@@ -83,6 +83,7 @@ BTN_GIFT_ALL = "🎁 Hammaga sovg'a"
 def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
     row_texts = [
         [BTN_WEBSITE, BTN_WITHDRAW],
+        [BTN_FF2017],
         [BTN_SETTINGS, BTN_TABLET],
         [BTN_HACK, BTN_CUSTOM],
         [BTN_QUIZ, BTN_DIAMONDS],
@@ -387,6 +388,7 @@ def edit_texts_keyboard() -> InlineKeyboardMarkup:
             ],
             [
                 _ikb("🛰️ Proxy matni", callback_data="edittext:proxy_text"),
+                _ikb("🎬 Free Fire 2017", callback_data="edittext:ff2017_content"),
             ],
         ]
     )
@@ -490,5 +492,29 @@ def gift_all_confirm_keyboard() -> InlineKeyboardMarkup:
                 _ikb("✅ Ha, yubor", callback_data="giftall_confirm"),
                 _ikb("❌ Bekor qilish", callback_data="giftall_cancel"),
             ]
+        ]
+    )
+
+
+# ---------- 💎 Almaz yechish ----------
+
+def withdraw_amount_keyboard(amount: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[_ikb(f"💎 {amount}", style="success", callback_data=f"withdraw_confirm:{amount}")]]
+    )
+
+
+# ---------- 🎬 Free Fire 2017 ----------
+
+BTN_FF2017 = "🎬 Free Fire 2017"
+
+
+# ---------- Cheat/Proxy uchun kanal havolasi ----------
+
+def hack_content_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [_ikb("📢 @freefirechitpanel", url="https://t.me/freefirechitpanel")],
+            [_ikb("⬅️ Orqaga", callback_data="hack:back")],
         ]
     )
