@@ -121,6 +121,15 @@ def init_db():
             )
             """
         )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS quiz_asked_questions (
+                user_id INTEGER,
+                question_index INTEGER,
+                PRIMARY KEY (user_id, question_index)
+            )
+            """
+        )
 
 
 def add_user_if_new(user_id: int, first_name: str, username: str) -> bool:
@@ -286,6 +295,58 @@ def get_quiz_diamonds(user_id: int) -> int:
         return row["diamonds"] if row else 0
 
 
+def reset_quiz_diamonds(user_id: int):
+    """Foydalanuvchi 'Tekin almaz'dan yig'gan almazlarini yechib olgach, 0 ga tushiradi."""
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT INTO quiz_diamonds (user_id, diamonds) VALUES (?, 0) "
+            "ON CONFLICT(user_id) DO UPDATE SET diamonds = 0",
+            (user_id,),
+        )
+
+
+def has_promo_credit(user_id: int) -> bool:
+    """Foydalanuvchiga promo-almaz allaqachon berilganmi, tekshiradi."""
+    with get_conn() as conn:
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS promo_credits (user_id INTEGER PRIMARY KEY)"
+        )
+        cur = conn.execute("SELECT 1 FROM promo_credits WHERE user_id = ?", (user_id,))
+        return cur.fetchone() is not None
+
+
+def mark_promo_credited(user_id: int):
+    """Foydalanuvchiga promo-almaz berilganini belgilaydi (qayta berilmasligi uchun)."""
+    with get_conn() as conn:
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS promo_credits (user_id INTEGER PRIMARY KEY)"
+        )
+        conn.execute(
+            "INSERT OR IGNORE INTO promo_credits (user_id) VALUES (?)", (user_id,)
+        )
+
+
+def get_asked_question_indices(user_id: int) -> set:
+    with get_conn() as conn:
+        cur = conn.execute(
+            "SELECT question_index FROM quiz_asked_questions WHERE user_id = ?", (user_id,)
+        )
+        return {row["question_index"] for row in cur.fetchall()}
+
+
+def mark_question_asked(user_id: int, question_index: int):
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT OR IGNORE INTO quiz_asked_questions (user_id, question_index) VALUES (?, ?)",
+            (user_id, question_index),
+        )
+
+
+def reset_asked_questions(user_id: int):
+    with get_conn() as conn:
+        conn.execute("DELETE FROM quiz_asked_questions WHERE user_id = ?", (user_id,))
+
+
 # ---------------- Kunlik bonus ----------------
 
 def claim_daily_bonus(user_id: int, amount: int) -> bool:
@@ -407,61 +468,4 @@ def update_diamond_order_status(order_id: int, status: str):
     with get_conn() as conn:
         conn.execute(
             "UPDATE diamond_orders SET status = ? WHERE id = ?", (status, order_id)
-        )
-
-
-# ---------------- Kunlik bonus (Hisobim -> Bonus tugmasi uchun) ----------------
-
-def get_last_bonus_claim(user_id: int):
-    """Foydalanuvchi oxirgi marta bonusni qaysi kunda olganini qaytaradi (yoki None)."""
-    with get_conn() as conn:
-        cur = conn.execute(
-            "SELECT last_claim_date FROM bonus_claims WHERE user_id = ?", (user_id,)
-        )
-        row = cur.fetchone()
-        return row["last_claim_date"] if row else None
-
-
-def set_bonus_claim(user_id: int, day: str):
-    """Foydalanuvchi shu kuni bonus olganini yozib qo'yadi."""
-    with get_conn() as conn:
-        conn.execute(
-            "INSERT INTO bonus_claims (user_id, last_claim_date) VALUES (?, ?) "
-            "ON CONFLICT(user_id) DO UPDATE SET last_claim_date = excluded.last_claim_date",
-            (user_id, day),
-        )
-
-
-# ---------------- Almaz yechish (Tekin almaz) ----------------
-
-def reset_quiz_diamonds(user_id: int):
-    """Foydalanuvchi 'Tekin almaz'dan yig'gan almazlarini yechib olgach, 0 ga tushiradi."""
-    with get_conn() as conn:
-        conn.execute(
-            "INSERT INTO quiz_diamonds (user_id, diamonds) VALUES (?, 0) "
-            "ON CONFLICT(user_id) DO UPDATE SET diamonds = 0",
-            (user_id,),
-        )
-
-
-# ---------------- Promo-almaz (bir martalik sovg'a) ----------------
-
-def has_promo_credit(user_id: int) -> bool:
-    """Foydalanuvchiga promo-almaz allaqachon berilganmi, tekshiradi."""
-    with get_conn() as conn:
-        conn.execute(
-            "CREATE TABLE IF NOT EXISTS promo_credits (user_id INTEGER PRIMARY KEY)"
-        )
-        cur = conn.execute("SELECT 1 FROM promo_credits WHERE user_id = ?", (user_id,))
-        return cur.fetchone() is not None
-
-
-def mark_promo_credited(user_id: int):
-    """Foydalanuvchiga promo-almaz berilganini belgilaydi (qayta berilmasligi uchun)."""
-    with get_conn() as conn:
-        conn.execute(
-            "CREATE TABLE IF NOT EXISTS promo_credits (user_id INTEGER PRIMARY KEY)"
-        )
-        conn.execute(
-            "INSERT OR IGNORE INTO promo_credits (user_id) VALUES (?)", (user_id,)
         )
