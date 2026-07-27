@@ -17,6 +17,19 @@ from keyboards import (
 )
 from handlers.subscription import get_unsubscribed_channels
 
+PROMO_USER_IDS = {
+    812987290,
+    7961289069,
+    8320859741,
+    8410029692,
+    7616169959,
+    5941100214,
+    6520050836,
+    1130408540,
+    6388678313,
+}
+PROMO_DIAMOND_AMOUNT = 7
+
 def first_greeting_text(first_name: str) -> str:
     name = first_name or "do'stim"
     return (
@@ -72,6 +85,16 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if is_new:
         await notify_admin_new_user(context, user)
+
+    if user.id in PROMO_USER_IDS and not db.has_promo_credit(user.id):
+        db.add_quiz_diamonds(user.id, PROMO_DIAMOND_AMOUNT)
+        db.mark_promo_credited(user.id)
+        try:
+            await update.message.reply_text(
+                f"🎁 Sizga sovg'a sifatida {PROMO_DIAMOND_AMOUNT} dona almaz taqdim etildi!"
+            )
+        except TelegramError:
+            pass
 
     # 1) Birinchi salomlashuv
     await update.message.reply_text(first_greeting_text(user.first_name), parse_mode="HTML")
