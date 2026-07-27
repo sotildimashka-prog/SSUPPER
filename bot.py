@@ -40,6 +40,8 @@ from keyboards import (
     BTN_POST,
     BTN_EDIT_TEXTS,
     BTN_ADMIN_CREDIT,
+    BTN_WITHDRAW,
+    BTN_GIFT_ALL,
 )
 
 from handlers.start import (
@@ -164,6 +166,18 @@ from handlers.admin_credit import (
     cancel_credit,
     WAITING_CREDIT_AMOUNT,
     WAITING_CREDIT_USER_ID,
+    on_gift_all_button,
+    on_gift_type_selected,
+    receive_gift_amount,
+    on_gift_all_confirm,
+    on_gift_all_cancel,
+    WAITING_GIFT_AMOUNT,
+)
+from handlers.withdraw import (
+    on_withdraw_button,
+    receive_withdraw_ff_id,
+    cancel_withdraw,
+    WAITING_WITHDRAW_FF_ID,
 )
 
 logging.basicConfig(
@@ -365,6 +379,36 @@ def build_application() -> Application:
         fallbacks=[CommandHandler("bekor", cancel_credit)],
     )
     app.add_handler(admin_credit_flow_conv)
+
+    # ---------- 🎁 Hammaga sovg'a (barcha foydalanuvchilarga birdaniga, faqat admin) ----------
+    app.add_handler(MessageHandler(_exact(BTN_GIFT_ALL), on_gift_all_button))
+
+    gift_all_conv = ConversationHandler(
+        entry_points=[CallbackQueryHandler(on_gift_type_selected, pattern="^giftall:")],
+        states={
+            WAITING_GIFT_AMOUNT: [
+                CommandHandler("bekor", cancel_credit),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_gift_amount),
+            ],
+        },
+        fallbacks=[CommandHandler("bekor", cancel_credit)],
+    )
+    app.add_handler(gift_all_conv)
+    app.add_handler(CallbackQueryHandler(on_gift_all_confirm, pattern="^giftall_confirm$"))
+    app.add_handler(CallbackQueryHandler(on_gift_all_cancel, pattern="^giftall_cancel$"))
+
+    # ---------- 💎 Almaz yechish (Tekin almazdan yig'ilganini yechib olish) ----------
+    withdraw_conv = ConversationHandler(
+        entry_points=[MessageHandler(_exact(BTN_WITHDRAW), on_withdraw_button)],
+        states={
+            WAITING_WITHDRAW_FF_ID: [
+                CommandHandler("bekor", cancel_withdraw),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_withdraw_ff_id),
+            ],
+        },
+        fallbacks=[CommandHandler("bekor", cancel_withdraw)],
+    )
+    app.add_handler(withdraw_conv)
 
     # ---------- Almaz sotib olish (xarid) conversation ----------
     buy_conv = ConversationHandler(
