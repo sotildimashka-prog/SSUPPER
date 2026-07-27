@@ -1,90 +1,94 @@
 # -*- coding: utf-8 -*-
-"""🔫 Maxsus xizmat - Proxy server, Cheat va panellar hamda 🕹️ Mening FF ID'im
-bittasi ostida jamlangan bo'lim (inline tugmalar, har birida orqaga tugmasi)."""
+"""🔓 Free Fire Hack - Proxy server, Cheat va panellar, Mening FF ID'im birlashtirilgan menyu."""
 
 import asyncio
 import httpx
-
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes, ConversationHandler
 
 import database as db
-from config import ADMIN_ID, FF_API_URL, FF_REGION
-from keyboards import main_menu_keyboard
+from config import FF_API_URL, FF_REGION, ADMIN_ID
+from keyboards import hack_menu_keyboard, hack_back_keyboard, hack_content_keyboard, main_menu_keyboard
+
+WAITING_FF_ID = 1
 
 DEFAULT_CHEAT_TEXT = "🔧 <b>Cheat va panellar</b>\n\nTez orada qo'shiladi."
 DEFAULT_PROXY_TEXT = "🌐 <b>Proxy server</b>\n\nHozircha bo'sh."
 
-HACK_MENU_TEXT = "🔫🔥 <b>Maxsus xizmat</b>\n\nKerakli bo'limni tanlang 👇"
 
-WAITING_FF_ID = 40
+async def _send_content(query_or_msg, content: dict, back_markup, edit: bool):
+    """Matn yoki media (rasm/video/fayl) ko'rsatadi."""
+    ctype = content.get("type", "text")
+    caption = content.get("caption") or content.get("text") or ""
 
+    if ctype == "text" or not content.get("file_id"):
+        if edit:
+            await query_or_msg.edit_message_text(caption, parse_mode="HTML", reply_markup=back_markup)
+        else:
+            await query_or_msg.reply_text(caption, parse_mode="HTML", reply_markup=back_markup)
+        return
 
-def hack_menu_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        [
-            [InlineKeyboardButton("🛰️ Proxy server", callback_data="hack:proxy")],
-            [InlineKeyboardButton("🛠️ Cheat va panellar", callback_data="hack:cheat")],
-            [InlineKeyboardButton("🕹️ Mening FF ID'im", callback_data="hack:ffid")],
-        ]
-    )
+    # Media bo'lsa - avval eski inline xabarni matn bilan almashtiramiz, keyin faylni yuboramiz
+    if edit:
+        try:
+            await query_or_msg.edit_message_text("⏳ Yuklanmoqda...")
+        except Exception:
+            pass
+        chat_id = query_or_msg.message.chat_id
+        bot = query_or_msg.get_bot()
+    else:
+        chat_id = query_or_msg.chat_id
+        bot = query_or_msg.get_bot()
 
+    if ctype == "photo":
+        await bot.send_photo(chat_id, content["file_id"], caption=caption, parse_mode="HTML", reply_markup=back_markup)
+    elif ctype == "video":
+        await bot.send_video(chat_id, content["file_id"], caption=caption, parse_mode="HTML", reply_markup=back_markup)
+    elif ctype == "document":
+        await bot.send_document(chat_id, content["file_id"], caption=caption, parse_mode="HTML", reply_markup=back_markup)
+    else:
+        await bot.send_message(chat_id, caption, parse_mode="HTML", reply_markup=back_markup)
 
-def hack_back_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        [[InlineKeyboardButton("⬅️ Orqaga", callback_data="hack:back")]]
-    )
-
-
-async def _send_stored(message, setting_key: str, default_text: str, reply_markup=None):
-    text = db.get_setting(setting_key, default_text)
-    await message.reply_text(text, parse_mode="HTML", reply_markup=reply_markup)
-
-
-# ==================== Asosiy menyu ====================
 
 async def on_hack_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        HACK_MENU_TEXT, parse_mode="HTML", reply_markup=hack_menu_keyboard()
-    )
-
-
-async def on_hack_proxy(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    await _send_stored(
-        query.message, "proxy_text", DEFAULT_PROXY_TEXT, reply_markup=hack_back_keyboard()
-    )
-
-
-async def on_hack_cheat(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    await _send_stored(
-        query.message, "cheat_text", DEFAULT_CHEAT_TEXT, reply_markup=hack_back_keyboard()
+        "🔓 <b>Free Fire Hack</b>\n\nKerakli bo'limni tanlang 👇",
+        parse_mode="HTML",
+        reply_markup=hack_menu_keyboard(),
     )
 
 
 async def on_hack_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    try:
-        await query.edit_message_text(
-            HACK_MENU_TEXT, parse_mode="HTML", reply_markup=hack_menu_keyboard()
-        )
-    except Exception:
-        await query.message.reply_text(
-            HACK_MENU_TEXT, parse_mode="HTML", reply_markup=hack_menu_keyboard()
-        )
+    await query.edit_message_text(
+        "🔓 <b>Free Fire Hack</b>\n\nKerakli bo'limni tanlang 👇",
+        parse_mode="HTML",
+        reply_markup=hack_menu_keyboard(),
+    )
 
 
-# ==================== 🕹️ Mening FF ID'im (Maxsus xizmat ichida) ====================
+async def on_hack_proxy(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    content = db.get_content("proxy_text", DEFAULT_PROXY_TEXT)
+    await _send_content(query, content, hack_content_keyboard(), edit=True)
+
+
+async def on_hack_cheat(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    content = db.get_content("cheat_text", DEFAULT_CHEAT_TEXT)
+    await _send_content(query, content, hack_content_keyboard(), edit=True)
+
+
+# ---------- Mening FF ID'im (Hack menyusi ichida) ----------
 
 async def on_hack_ffid(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    await query.message.reply_text(
-        "🎮 <b>Mening FF ID'im</b>\n\n"
+    await query.edit_message_text(
+        "🕹️ <b>Mening FF ID'im</b>\n\n"
         "Iltimos, Free Fire UID (ID) raqamingizni yuboring.\n"
         "Bekor qilish uchun /bekor buyrug'ini yuboring.",
         parse_mode="HTML",
@@ -101,7 +105,6 @@ async def cancel_ffid(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def _fetch_ff_data(ff_id: str):
-    """API'ga so'rov yuboradi. Server uxlab qolgan bo'lsa, 2 marta qayta urinadi."""
     last_error = None
     for attempt in range(2):
         try:
