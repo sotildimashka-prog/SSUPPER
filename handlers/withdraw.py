@@ -8,9 +8,16 @@ from telegram.error import TelegramError
 
 import database as db
 from config import ADMIN_ID
-from keyboards import main_menu_keyboard
+from keyboards import main_menu_keyboard, withdraw_amount_keyboard
 
 WAITING_WITHDRAW_FF_ID = 40
+
+NO_DIAMONDS_TEXT = (
+    "💎 <b>Almaz yechish</b>\n\n"
+    "Iltimos, botimizdan almaz to'plang 🙂\n"
+    "Almazingiz yo'q. Almazni har xil o'yinlar (masalan 💎 Tekin almaz "
+    "bo'limidagi savol-javoblar) bilan to'plashingiz mumkin."
+)
 
 
 async def on_withdraw_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -18,20 +25,31 @@ async def on_withdraw_button(update: Update, context: ContextTypes.DEFAULT_TYPE)
     amount = db.get_quiz_diamonds(user_id)
 
     if amount <= 0:
-        await update.message.reply_text(
-            "💎 <b>Almaz yechish</b>\n\n"
-            "Hozircha yig'ilgan almazingiz yo'q. Avval 💎 <b>Tekin almaz</b> "
-            "bo'limidan savollarga javob berib, almaz to'plang.",
-            parse_mode="HTML",
-        )
+        await update.message.reply_text(NO_DIAMONDS_TEXT, parse_mode="HTML")
+        return
+
+    await update.message.reply_text(
+        "💎 Qancha almaz yechmoqchisiz? 👉",
+        reply_markup=withdraw_amount_keyboard(amount),
+    )
+
+
+async def on_withdraw_amount_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    user_id = query.from_user.id
+    amount = int(query.data.split(":", 1)[1])
+    current = db.get_quiz_diamonds(user_id)
+
+    if current < amount or current <= 0:
+        await query.edit_message_text(NO_DIAMONDS_TEXT, parse_mode="HTML")
         return ConversationHandler.END
 
     context.user_data["withdraw_amount"] = amount
-    await update.message.reply_text(
-        f"💎 <b>Almaz yechish</b>\n\n"
-        f"Sizda yig'ilgan: <b>{amount}</b> dona almaz bor.\n\n"
-        "Ularni yechib olish uchun Free Fire UID (ID) raqamingizni yuboring:\n\n"
-        "Bekor qilish uchun /bekor.",
+    await query.edit_message_text(
+        f"💎 <b>{amount}</b> dona almazni yechib olish uchun Free Fire UID "
+        "(ID) raqamingizni yuboring:\n\nBekor qilish uchun /bekor.",
         parse_mode="HTML",
     )
     return WAITING_WITHDRAW_FF_ID
