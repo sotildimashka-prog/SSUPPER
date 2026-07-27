@@ -74,12 +74,15 @@ BTN_POST = "🖋️ Post"
 BTN_EDIT_TEXTS = "✏️ Tugmalarni tahrirlash"
 
 
+BTN_WITHDRAW = "💎 Almaz yechish"
+
 BTN_ADMIN_CREDIT = "🛠 Admin buyrug'i"
+BTN_GIFT_ALL = "🎁 Hammaga sovg'a"
 
 
 def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
     row_texts = [
-        [BTN_WEBSITE],
+        [BTN_WEBSITE, BTN_WITHDRAW],
         [BTN_SETTINGS, BTN_TABLET],
         [BTN_HACK, BTN_CUSTOM],
         [BTN_QUIZ, BTN_DIAMONDS],
@@ -90,7 +93,7 @@ def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
     if is_admin:
         row_texts.append([BTN_STATS, BTN_BROADCAST])
         row_texts.append([BTN_POST, BTN_EDIT_TEXTS])
-        row_texts.append([BTN_ADMIN_CREDIT])
+        row_texts.append([BTN_ADMIN_CREDIT, BTN_GIFT_ALL])
 
     # Qatorlar navbat bilan yashil/ko'k rangda, eng oxirgi qator esa qizil bo'ladi.
     rows = []
@@ -462,6 +465,30 @@ def admin_credit_type_keyboard() -> InlineKeyboardMarkup:
             [
                 _ikb("💎 Almaz berish", callback_data="credittype:diamond"),
                 _ikb("💰 Pul berish", callback_data="credittype:money"),
+            ]
+        ]
+    )
+
+
+# ---------- 🎁 Hammaga sovg'a (barcha foydalanuvchilarga birdaniga) ----------
+
+def gift_all_type_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                _ikb("💎 Almaz berish", callback_data="giftall:diamond"),
+                _ikb("💰 Pul berish", callback_data="giftall:money"),
+            ]
+        ]
+    )
+
+
+def gift_all_confirm_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                _ikb("✅ Ha, yubor", callback_data="giftall_confirm"),
+                _ikb("❌ Bekor qilish", callback_data="giftall_cancel"),
             ]
         ]
     )
