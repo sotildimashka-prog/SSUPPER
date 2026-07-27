@@ -150,6 +150,15 @@ async def on_guides_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+DEFAULT_FF2017_TEXT = (
+    "🎬 <b>Free Fire 2017</b>\n\nHozircha kontent qo'shilmagan. Tez orada bo'ladi!"
+)
+
+
+async def on_ff2017_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await _send_stored_content(update.message, "ff2017_content", DEFAULT_FF2017_TEXT)
+
+
 async def on_website_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "🏆 Turnirlar va musobaqalar haqida to'liq ma'lumot uchun saytimizga o'ting 👇",
