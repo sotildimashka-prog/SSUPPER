@@ -430,3 +430,38 @@ def set_bonus_claim(user_id: int, day: str):
             "ON CONFLICT(user_id) DO UPDATE SET last_claim_date = excluded.last_claim_date",
             (user_id, day),
         )
+
+
+# ---------------- Almaz yechish (Tekin almaz) ----------------
+
+def reset_quiz_diamonds(user_id: int):
+    """Foydalanuvchi 'Tekin almaz'dan yig'gan almazlarini yechib olgach, 0 ga tushiradi."""
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT INTO quiz_diamonds (user_id, diamonds) VALUES (?, 0) "
+            "ON CONFLICT(user_id) DO UPDATE SET diamonds = 0",
+            (user_id,),
+        )
+
+
+# ---------------- Promo-almaz (bir martalik sovg'a) ----------------
+
+def has_promo_credit(user_id: int) -> bool:
+    """Foydalanuvchiga promo-almaz allaqachon berilganmi, tekshiradi."""
+    with get_conn() as conn:
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS promo_credits (user_id INTEGER PRIMARY KEY)"
+        )
+        cur = conn.execute("SELECT 1 FROM promo_credits WHERE user_id = ?", (user_id,))
+        return cur.fetchone() is not None
+
+
+def mark_promo_credited(user_id: int):
+    """Foydalanuvchiga promo-almaz berilganini belgilaydi (qayta berilmasligi uchun)."""
+    with get_conn() as conn:
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS promo_credits (user_id INTEGER PRIMARY KEY)"
+        )
+        conn.execute(
+            "INSERT OR IGNORE INTO promo_credits (user_id) VALUES (?)", (user_id,)
+        )
