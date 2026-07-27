@@ -42,6 +42,7 @@ from keyboards import (
     BTN_ADMIN_CREDIT,
     BTN_WITHDRAW,
     BTN_GIFT_ALL,
+    BTN_FF2017,
 )
 
 from handlers.start import (
@@ -63,6 +64,7 @@ from handlers.menu import (
     on_website_button,
     on_news_button,
     on_music_button,
+    on_ff2017_button,
 )
 from handlers.settings import on_brand_selected, on_back_to_brands, on_model_selected
 from handlers.tablet import (
@@ -175,6 +177,7 @@ from handlers.admin_credit import (
 )
 from handlers.withdraw import (
     on_withdraw_button,
+    on_withdraw_amount_confirm,
     receive_withdraw_ff_id,
     cancel_withdraw,
     WAITING_WITHDRAW_FF_ID,
@@ -398,8 +401,9 @@ def build_application() -> Application:
     app.add_handler(CallbackQueryHandler(on_gift_all_cancel, pattern="^giftall_cancel$"))
 
     # ---------- 💎 Almaz yechish (Tekin almazdan yig'ilganini yechib olish) ----------
+    app.add_handler(MessageHandler(_exact(BTN_WITHDRAW), on_withdraw_button))
     withdraw_conv = ConversationHandler(
-        entry_points=[MessageHandler(_exact(BTN_WITHDRAW), on_withdraw_button)],
+        entry_points=[CallbackQueryHandler(on_withdraw_amount_confirm, pattern="^withdraw_confirm:")],
         states={
             WAITING_WITHDRAW_FF_ID: [
                 CommandHandler("bekor", cancel_withdraw),
@@ -447,6 +451,7 @@ def build_application() -> Application:
     app.add_handler(MessageHandler(_exact(BTN_TABLET), on_tablet_button))
     app.add_handler(MessageHandler(_exact(BTN_GUIDES), on_guides_button))
     app.add_handler(MessageHandler(_exact(BTN_WEBSITE), on_website_button))
+    app.add_handler(MessageHandler(_exact(BTN_FF2017), on_ff2017_button))
     app.add_handler(MessageHandler(_exact(BTN_NEWS), on_news_button))
     app.add_handler(MessageHandler(_exact(BTN_MUSIC), on_music_button))
     app.add_handler(MessageHandler(_exact(BTN_QUIZ), on_quiz_button))
