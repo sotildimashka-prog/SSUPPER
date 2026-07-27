@@ -22,10 +22,10 @@ WAITING_POST_BUTTON = 4
 WAITING_EDIT_TEXT = 5
 
 TEXT_LABELS = {
-    "help_text": "📬 Savollar (FAQ) matni",
-    "tournament_text": "🎉 Turnirlar matni",
+    "help_text": "🎧 Yordam matni",
     "cheat_text": "🛠️ Cheat matni",
     "proxy_text": "🛰️ Proxy matni",
+    "ff2017_content": "🎬 Free Fire 2017",
 }
 
 
@@ -232,10 +232,16 @@ async def choose_text_to_edit(update: Update, context: ContextTypes.DEFAULT_TYPE
     context.user_data["editing_key"] = key
     label = TEXT_LABELS.get(key, key)
 
-    current = db.get_setting(key, "(hozircha standart matn ishlatilmoqda)")
+    content = db.get_content(key, "(hozircha standart matn ishlatilmoqda)")
+    if content.get("type") == "text" or not content.get("file_id"):
+        current = content.get("text", "")
+    else:
+        current = f"[{content['type'].upper()} fayl saqlangan] {content.get('caption', '')}"
+
     await query.edit_message_text(
-        f"✏️ <b>{label}</b> uchun joriy matn:\n\n{current}\n\n"
-        "Yangi matnni yuboring (HTML teglar: &lt;b&gt;, &lt;i&gt; ishlatishingiz mumkin).\n"
+        f"✏️ <b>{label}</b> uchun joriy holat:\n\n{current}\n\n"
+        "Yangi matn, rasm, video yoki fayl yuboring (HTML teglar: &lt;b&gt;, &lt;i&gt; "
+        "ishlatishingiz mumkin, rasm/video/fayl uchun izoh - caption - ham yozishingiz mumkin).\n"
         "Bekor qilish uchun /bekor.",
         parse_mode="HTML",
     )
@@ -251,8 +257,17 @@ async def receive_new_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return ConversationHandler.END
 
-    new_text = update.message.text_html or update.message.text or ""
-    db.set_setting(key, new_text)
+    message = update.message
+    if message.photo:
+        db.set_content(key, "photo", file_id=message.photo[-1].file_id, caption=message.caption or "")
+    elif message.video:
+        db.set_content(key, "video", file_id=message.video.file_id, caption=message.caption or "")
+    elif message.document:
+        db.set_content(key, "document", file_id=message.document.file_id, caption=message.caption or "")
+    else:
+        new_text = message.text_html or message.text or ""
+        db.set_content(key, "text", text=new_text)
+
     context.user_data.pop("editing_key", None)
 
     label = TEXT_LABELS.get(key, key)
