@@ -87,11 +87,24 @@ BTN_MAIN_DIAMONDS = "💎 Almaz olish"
 BTN_MAIN_SERVICES = "🛠️ Xizmatlar"
 BTN_MAIN_PROFILE = "👤 Profil"
 
+# ---------- 🆕 Asosiy menyu (6 ta tugma, 2 ustunda) ----------
+# 💎 Almaz olish     | 🛍 Xizmatlar
+# ⚙️ Nastroykalar    | 🎉 Free Fire Niklar
+# 💰 To'lov usullari | 📬 Savollar (FAQ)
+
+BTN_M2_DIAMONDS = "💎 Almaz olish"
+BTN_M2_SERVICES = "🛍 Xizmatlar"
+BTN_M2_SETTINGS = "⚙️ Nastroykalar"
+BTN_M2_NICKS = "🎉 Free Fire Niklar"
+BTN_M2_PAYMENTS = "💰 To'lov usullari"
+BTN_M2_FAQ = "📬 Savollar (FAQ)"
+
 
 def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
     row_texts = [
-        [BTN_MAIN_FF, BTN_MAIN_DIAMONDS],
-        [BTN_MAIN_SERVICES, BTN_MAIN_PROFILE],
+        [BTN_M2_DIAMONDS, BTN_M2_SERVICES],
+        [BTN_M2_SETTINGS, BTN_M2_NICKS],
+        [BTN_M2_PAYMENTS, BTN_M2_FAQ],
     ]
     if is_admin:
         row_texts.append([BTN_STATS, BTN_BROADCAST])
@@ -654,4 +667,128 @@ def profile_keyboard() -> InlineKeyboardMarkup:
             [_ikb("💰 Mening hisobim", callback_data="profile:account")],
             [_ikb("💎 Almaz yechish", callback_data="profile:withdraw")],
         ]
+    )
+
+
+# ============================================================================
+# 🆕 Yangi bosh menyu bo'limlari uchun inline klaviaturalar
+# (💎 Almaz olish / 🛍 Xizmatlar / ⚙️ Nastroykalar / 🎉 Free Fire Niklar /
+#  💰 To'lov usullari)
+# ============================================================================
+
+# ---------- 💎 Almaz olish ----------
+
+def diamonds_get_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                _ikb("🆓 Tekin Almaz", callback_data="diaget:free"),
+                _ikb("💎 Almaz sotib olish", callback_data="diaget:buy"),
+            ]
+        ]
+    )
+
+
+# ---------- ⚙️ Nastroykalar (yangi asosiy bo'lim) ----------
+
+def new_settings_menu_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                _ikb("📱 Telefon nastroykalari", callback_data="newset:phone"),
+                _ikb("📲 Planshet nastroykalari", callback_data="newset:tablet"),
+            ],
+            [
+                _ikb("🖥 PC nastroykalari", callback_data="newset:pc"),
+                _ikb("🎁✨ Maxsus nastroykalar", callback_data="newset:premium"),
+            ],
+        ]
+    )
+
+
+def new_settings_back_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[_ikb("⬅️ Orqaga", callback_data="newset:back")]]
+    )
+
+
+# ---------- 🎉 Free Fire Niklar (yangi asosiy bo'lim) ----------
+
+def new_nicks_menu_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                _ikb("🎮 Gamer Niklar", callback_data="newnick:gamer"),
+                _ikb("👑 Super Niklar", callback_data="newnick:super"),
+            ],
+            [
+                _ikb("🔥 Pro Niklar", callback_data="newnick:pro"),
+                _ikb("⚡ Top Niklar", callback_data="newnick:top"),
+            ],
+            [
+                _ikb("✨ Chiroyli Niklar", callback_data="newnick:chiroyli"),
+                _ikb("🛠 Nik Yasash", callback_data="ffmenu:nick"),
+            ],
+        ]
+    )
+
+
+def new_nicks_back_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[_ikb("⬅️ Orqaga", callback_data="newnick:back")]]
+    )
+
+
+# ---------- 🛍 Xizmatlar (yangi asosiy bo'lim) ----------
+
+def new_services_menu_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                _ikb("🎮 Free Fire 2017", callback_data="newsvc:ff2017"),
+                _ikb("🏆 Free Fire Turnirlari", callback_data="newsvc:tournament"),
+            ],
+            [
+                _ikb("🌐 Proxy Server", callback_data="newsvc:proxy"),
+                _ikb("🆔 FF IDM", callback_data="newsvc:ffidm"),
+            ],
+            [
+                _ikb("💀 Cheat Panel", callback_data="newsvc:cheat"),
+                _ikb("📰 Free Fire Yangiliklari", callback_data="newsvc:news"),
+            ],
+            [
+                _ikb("🎵 Free Fire Qo'shiqlari", callback_data="newsvc:music"),
+            ],
+        ]
+    )
+
+
+def service_channel_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [_ikb("📢 Kanalga qo'shilish", url="https://t.me/freefirepanelchit")],
+            [_ikb("⬅️ Orqaga", callback_data="newsvc:back")],
+        ]
+    )
+
+
+# ---------- 💰 To'lov usullari (yangi asosiy bo'lim) ----------
+
+def payments_menu_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                _ikb("💎 Almaz yechish", callback_data="pay:withdraw"),
+                _ikb("🌙 Bonus Almaz", callback_data="pay:bonusdiamond"),
+            ],
+            [
+                _ikb("💵 Kunlik Bonus", callback_data="pay:dailybonus"),
+            ],
+        ]
+    )
+
+
+def payments_back_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[_ikb("⬅️ Orqaga", callback_data="pay:back")]]
     )
