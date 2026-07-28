@@ -47,6 +47,11 @@ from keyboards import (
     BTN_MAIN_DIAMONDS,
     BTN_MAIN_SERVICES,
     BTN_MAIN_PROFILE,
+    BTN_M2_DIAMONDS,
+    BTN_M2_SERVICES,
+    BTN_M2_SETTINGS,
+    BTN_M2_NICKS,
+    BTN_M2_PAYMENTS,
 )
 
 from handlers.start import (
@@ -221,6 +226,26 @@ from handlers.services import (
     on_svcother_ff2017,
 )
 from handlers.profile import on_profile_button, on_profile_account
+
+# ---------- 🆕 Yangi asosiy menyu (6 tugma, 2 ustunda) ----------
+from handlers.newflow import (
+    on_m2_diamonds_button,
+    on_diaget_free,
+    on_diaget_buy,
+    on_m2_settings_button,
+    on_newset_back,
+    on_newset_premium,
+    on_m2_nicks_button,
+    on_newnick_back,
+    on_newnick_category,
+    on_m2_services_button,
+    on_newsvc_back,
+    on_newsvc_item,
+    on_m2_payments_button,
+    on_pay_back,
+    on_pay_bonus_diamond,
+    on_pay_daily_bonus,
+)
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -594,6 +619,60 @@ def build_application() -> Application:
     app.add_handler(MessageHandler(_exact(BTN_MAIN_PROFILE), on_profile_button))
     app.add_handler(CallbackQueryHandler(on_profile_account, pattern="^profile:account$"))
     app.add_handler(CallbackQueryHandler(on_withdraw_button_callback, pattern="^profile:withdraw$"))
+
+    # ============================================================================
+    # 🆕 Yangi asosiy menyu (6 tugma, 2 ustunda):
+    # 💎 Almaz olish | 🛍 Xizmatlar
+    # ⚙️ Nastroykalar | 🎉 Free Fire Niklar
+    # 💰 To'lov usullari | 📬 Savollar (FAQ)
+    # (📬 Savollar (FAQ) tugmasi matni eski BTN_FAQ bilan bir xil, shu sabab
+    # yuqoridagi faq_conv avtomatik ishlaydi - qo'shimcha handler shart emas)
+    # ============================================================================
+
+    # ---------- 💎 Almaz olish ----------
+    app.add_handler(MessageHandler(_exact(BTN_M2_DIAMONDS), on_m2_diamonds_button))
+    app.add_handler(CallbackQueryHandler(on_diaget_free, pattern="^diaget:free$"))
+    app.add_handler(CallbackQueryHandler(on_diaget_buy, pattern="^diaget:buy$"))
+
+    # ---------- ⚙️ Nastroykalar ----------
+    app.add_handler(MessageHandler(_exact(BTN_M2_SETTINGS), on_m2_settings_button))
+    app.add_handler(CallbackQueryHandler(on_newset_back, pattern="^newset:back$"))
+    app.add_handler(CallbackQueryHandler(on_newset_premium, pattern="^newset:premium$"))
+    # Telefon/Planshet/PC nastroykalari - mavjud Free Fire menyusidagi funksiyalar
+    # qayta ishlatiladi (kod takrorlanmasligi uchun)
+    app.add_handler(CallbackQueryHandler(on_ff_phone, pattern="^newset:phone$"))
+    app.add_handler(CallbackQueryHandler(on_ff_tablet, pattern="^newset:tablet$"))
+    app.add_handler(CallbackQueryHandler(on_ff_pc, pattern="^newset:pc$"))
+
+    # ---------- 🎉 Free Fire Niklar ----------
+    app.add_handler(MessageHandler(_exact(BTN_M2_NICKS), on_m2_nicks_button))
+    app.add_handler(CallbackQueryHandler(on_newnick_back, pattern="^newnick:back$"))
+    app.add_handler(
+        CallbackQueryHandler(
+            on_newnick_category,
+            pattern="^newnick:(gamer|super|pro|top|chiroyli)$",
+        )
+    )
+    # "🛠 Nik Yasash" tugmasi mavjud "ffmenu:nick" conversation'ini ishga tushiradi
+    # (yuqorida nick_conv allaqachon ro'yxatdan o'tgan)
+
+    # ---------- 🛍 Xizmatlar ----------
+    app.add_handler(MessageHandler(_exact(BTN_M2_SERVICES), on_m2_services_button))
+    app.add_handler(CallbackQueryHandler(on_newsvc_back, pattern="^newsvc:back$"))
+    app.add_handler(
+        CallbackQueryHandler(
+            on_newsvc_item,
+            pattern="^newsvc:(ff2017|tournament|proxy|ffidm|cheat|news|music)$",
+        )
+    )
+
+    # ---------- 💰 To'lov usullari ----------
+    app.add_handler(MessageHandler(_exact(BTN_M2_PAYMENTS), on_m2_payments_button))
+    app.add_handler(CallbackQueryHandler(on_pay_back, pattern="^pay:back$"))
+    # "💎 Almaz yechish" - mavjud Profil bo'limidagi funksiya qayta ishlatiladi
+    app.add_handler(CallbackQueryHandler(on_withdraw_button_callback, pattern="^pay:withdraw$"))
+    app.add_handler(CallbackQueryHandler(on_pay_bonus_diamond, pattern="^pay:bonusdiamond$"))
+    app.add_handler(CallbackQueryHandler(on_pay_daily_bonus, pattern="^pay:dailybonus$"))
 
     # ---------- Statistika uchun umumiy loglash (barcha xabarlar) ----------
     app.add_handler(MessageHandler(filters.ALL, log_all_messages), group=1)
