@@ -11,6 +11,7 @@ from telegram import (
 from config import REQUIRED_CHANNELS, ADMIN_ID, WEBSITE_URL
 from data.settings_data import PHONES
 from data.tablet_data import TABLETS
+from data.pc_data import PC_MODELS
 from data.guides_data import GUIDES
 from data.diamonds_data import PACKAGES, SUBSCRIPTIONS, button_label
 
@@ -79,17 +80,18 @@ BTN_WITHDRAW = "💎 Almaz yechish"
 BTN_ADMIN_CREDIT = "🛠 Admin buyrug'i"
 BTN_GIFT_ALL = "🎁 Hammaga sovg'a"
 
+# ---------- Yangi Bosh menyu (faqat 4 ta tugma) ----------
+
+BTN_MAIN_FF = "🎮 Free Fire"
+BTN_MAIN_DIAMONDS = "💎 Almaz olish"
+BTN_MAIN_SERVICES = "🛠️ Xizmatlar"
+BTN_MAIN_PROFILE = "👤 Profil"
+
 
 def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
     row_texts = [
-        [BTN_WEBSITE, BTN_WITHDRAW],
-        [BTN_FF2017],
-        [BTN_SETTINGS, BTN_TABLET],
-        [BTN_HACK, BTN_CUSTOM],
-        [BTN_QUIZ, BTN_DIAMONDS],
-        [BTN_NICKS, BTN_NEWS],
-        [BTN_MUSIC, BTN_ACCOUNT],
-        [BTN_FAQ, BTN_GUIDES],
+        [BTN_MAIN_FF, BTN_MAIN_DIAMONDS],
+        [BTN_MAIN_SERVICES, BTN_MAIN_PROFILE],
     ]
     if is_admin:
         row_texts.append([BTN_STATS, BTN_BROADCAST])
@@ -174,6 +176,7 @@ def brands_keyboard() -> InlineKeyboardMarkup:
         rows.append(
             [_ikb(b, callback_data=f"brand:{b}") for b in chunk]
         )
+    rows.append([_ikb("⬅️ Free Fire menyu", callback_data="back_to_ff")])
     return InlineKeyboardMarkup(rows)
 
 
@@ -205,6 +208,7 @@ def tablet_brands_keyboard() -> InlineKeyboardMarkup:
         rows.append(
             [_ikb(b, callback_data=f"tbrand:{b}") for b in chunk]
         )
+    rows.append([_ikb("⬅️ Free Fire menyu", callback_data="back_to_ff")])
     return InlineKeyboardMarkup(rows)
 
 
@@ -516,5 +520,138 @@ def hack_content_keyboard() -> InlineKeyboardMarkup:
         [
             [_ikb("📢 @freefirechitpanel", url="https://t.me/freefirechitpanel")],
             [_ikb("⬅️ Orqaga", callback_data="hack:back")],
+        ]
+    )
+
+
+# ============================================================================
+# 🎮 Free Fire (yangi bosh menyu bo'limi)
+# ============================================================================
+
+def ff_menu_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [_ikb("📱 Telefon nastroyka", callback_data="ffmenu:phone")],
+            [_ikb("📲 Planshet nastroyka", callback_data="ffmenu:tablet")],
+            [_ikb("💻 PC nastroyka", callback_data="ffmenu:pc")],
+            [_ikb("🎮 Nik yaratish", callback_data="ffmenu:nick")],
+        ]
+    )
+
+
+def back_to_ff_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[_ikb("⬅️ Free Fire menyu", callback_data="back_to_ff")]]
+    )
+
+
+# ---------- 💻 PC nastroykalari (20 ta model, brendsiz to'g'ridan-to'g'ri) ----------
+
+def pc_keyboard() -> InlineKeyboardMarkup:
+    rows = []
+    names = [m[0] for m in PC_MODELS]
+    for i in range(0, len(names), 2):
+        chunk = names[i:i + 2]
+        rows.append(
+            [_ikb(n, callback_data=f"pc:{n}") for n in chunk]
+        )
+    rows.append([_ikb("⬅️ Free Fire menyu", callback_data="back_to_ff")])
+    return InlineKeyboardMarkup(rows)
+
+
+def pc_back_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[_ikb("⬅️ PC modellariga qaytish", callback_data="back_to_pc")]]
+    )
+
+
+# ---------- 🎮 Nik yaratish (orqaga) ----------
+
+def nick_creation_back_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[_ikb("⬅️ Free Fire menyu", callback_data="back_to_ff")]]
+    )
+
+
+# ============================================================================
+# 🛠️ Xizmatlar (yangi bosh menyu bo'limi)
+# ============================================================================
+
+def services_menu_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [_ikb("🎁 Bonuslar", callback_data="svc:bonus")],
+            [_ikb("💳 To'lov qilish", callback_data="svc:pay")],
+            [_ikb("📬 Savollar (FAQ)", callback_data="svc:faq")],
+            [_ikb("📚 Qo'llanmalar", callback_data="svc:guides")],
+            [_ikb("📰 Yangiliklar", callback_data="svc:news")],
+            [_ikb("🔧 Boshqa xizmatlar", callback_data="svc:other")],
+        ]
+    )
+
+
+def back_to_services_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[_ikb("⬅️ Xizmatlar menyusi", callback_data="back_to_services")]]
+    )
+
+
+def services_bonus_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [_ikb("🧠 Savol-javob (Tekin almaz)", callback_data="svcbonus:quiz")],
+            [_ikb("🎁 Kunlik bonus", callback_data="svcbonus:daily")],
+            [_ikb("⬅️ Xizmatlar menyusi", callback_data="back_to_services")],
+        ]
+    )
+
+
+def services_other_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [_ikb("🎧 Yordam", callback_data="svcother:help")],
+            [_ikb("🏆 Turnirlar / Sayt", callback_data="svcother:website")],
+            [_ikb("🎵 Free Fire qo'shiq", callback_data="svcother:music")],
+            [_ikb("🔓 Maxsus xizmat", callback_data="svcother:hack")],
+            [_ikb("⚠️ Shaxsiy nastroyka", callback_data="svcother:custom")],
+            [_ikb("🎬 Free Fire 2017", callback_data="svcother:ff2017")],
+            [_ikb("⬅️ Xizmatlar menyusi", callback_data="back_to_services")],
+        ]
+    )
+
+
+def back_to_services_other_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[_ikb("⬅️ Orqaga", callback_data="back_to_svcother")]]
+    )
+
+
+def website_service_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [_ikb("🌐 Saytga o'tish", url=WEBSITE_URL)],
+            [_ikb("⬅️ Orqaga", callback_data="back_to_svcother")],
+        ]
+    )
+
+
+def music_service_keyboard(music_url: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [_ikb("🎧 Qo'shiqni tinglash", url=music_url)],
+            [_ikb("⬅️ Orqaga", callback_data="back_to_svcother")],
+        ]
+    )
+
+
+# ============================================================================
+# 👤 Profil (yangi bosh menyu bo'limi)
+# ============================================================================
+
+def profile_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [_ikb("💰 Mening hisobim", callback_data="profile:account")],
+            [_ikb("💎 Almaz yechish", callback_data="profile:withdraw")],
         ]
     )
