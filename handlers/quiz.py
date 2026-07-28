@@ -59,6 +59,28 @@ async def on_quiz_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+async def on_quiz_button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """🎁 Bonuslar inline menyusidagi '🧠 Savol-javob' tugmasi bosilganda ishlaydi."""
+    query = update.callback_query
+    await query.answer()
+    user_id = query.from_user.id
+    answered = db.get_quiz_answered_today(user_id)
+
+    if answered >= DAILY_LIMIT:
+        total = db.get_quiz_diamonds(user_id)
+        await query.edit_message_text(
+            "✅ <b>Bugungi 3 ta savolingizga javob berib bo'ldingiz!</b>\n\n"
+            f"💎 Jami yig'ilgan almazlaringiz: <b>{total}</b>\n\n"
+            "Ertaga qayta urinib ko'ring.",
+            parse_mode="HTML",
+        )
+        return
+
+    await query.edit_message_text(
+        INTRO_TEXT, parse_mode="HTML", reply_markup=quiz_intro_keyboard()
+    )
+
+
 async def on_quiz_begin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user_id = query.from_user.id
