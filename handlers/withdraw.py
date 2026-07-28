@@ -12,12 +12,22 @@ from keyboards import main_menu_keyboard, withdraw_amount_keyboard
 
 WAITING_WITHDRAW_FF_ID = 40
 
+MIN_WITHDRAW = 450
+
 NO_DIAMONDS_TEXT = (
     "💎 <b>Almaz yechish</b>\n\n"
     "Iltimos, botimizdan almaz to'plang 🙂\n"
     "Almazingiz yo'q. Almazni har xil o'yinlar (masalan 💎 Tekin almaz "
     "bo'limidagi savol-javoblar) bilan to'plashingiz mumkin."
 )
+
+
+def _not_enough_text(amount: int) -> str:
+    return (
+        "💎 <b>Almaz yechish</b>\n\n"
+        f"Yechish uchun kamida <b>{MIN_WITHDRAW}</b> ta almaz to'plashingiz kerak.\n\n"
+        f"Sizda hozircha: <b>{amount}</b> ta almaz bor."
+    )
 
 
 async def on_withdraw_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -28,7 +38,32 @@ async def on_withdraw_button(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await update.message.reply_text(NO_DIAMONDS_TEXT, parse_mode="HTML")
         return
 
+    if amount < MIN_WITHDRAW:
+        await update.message.reply_text(_not_enough_text(amount), parse_mode="HTML")
+        return
+
     await update.message.reply_text(
+        "💎 Qancha almaz yechmoqchisiz? 👉",
+        reply_markup=withdraw_amount_keyboard(amount),
+    )
+
+
+async def on_withdraw_button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """👤 Profil menyusidagi '💎 Almaz yechish' tugmasi bosilganda ishlaydi."""
+    query = update.callback_query
+    await query.answer()
+    user_id = query.from_user.id
+    amount = db.get_quiz_diamonds(user_id)
+
+    if amount <= 0:
+        await query.edit_message_text(NO_DIAMONDS_TEXT, parse_mode="HTML")
+        return
+
+    if amount < MIN_WITHDRAW:
+        await query.edit_message_text(_not_enough_text(amount), parse_mode="HTML")
+        return
+
+    await query.edit_message_text(
         "💎 Qancha almaz yechmoqchisiz? 👉",
         reply_markup=withdraw_amount_keyboard(amount),
     )
@@ -44,6 +79,10 @@ async def on_withdraw_amount_confirm(update: Update, context: ContextTypes.DEFAU
 
     if current < amount or current <= 0:
         await query.edit_message_text(NO_DIAMONDS_TEXT, parse_mode="HTML")
+        return ConversationHandler.END
+
+    if current < MIN_WITHDRAW:
+        await query.edit_message_text(_not_enough_text(current), parse_mode="HTML")
         return ConversationHandler.END
 
     context.user_data["withdraw_amount"] = amount
