@@ -24,6 +24,14 @@ async def start_faq(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return WAITING_FAQ_QUESTION
 
 
+async def start_faq_from_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Xizmatlar inline menyusidagi '📬 Savollar (FAQ)' tugmasi bosilganda ishlaydi."""
+    query = update.callback_query
+    await query.answer()
+    await query.edit_message_text(ASK_QUESTION_TEXT, parse_mode="HTML")
+    return WAITING_FAQ_QUESTION
+
+
 async def receive_faq_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     question = update.message.text
