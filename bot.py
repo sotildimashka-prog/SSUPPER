@@ -43,6 +43,10 @@ from keyboards import (
     BTN_WITHDRAW,
     BTN_GIFT_ALL,
     BTN_FF2017,
+    BTN_MAIN_FF,
+    BTN_MAIN_DIAMONDS,
+    BTN_MAIN_SERVICES,
+    BTN_MAIN_PROFILE,
 )
 
 from handlers.start import (
@@ -87,6 +91,7 @@ from handlers.hack import (
 )
 from handlers.faq import (
     start_faq,
+    start_faq_from_callback,
     receive_faq_question,
     cancel_faq,
     start_faq_admin_reply,
@@ -95,7 +100,7 @@ from handlers.faq import (
     WAITING_FAQ_QUESTION,
     WAITING_FAQ_ADMIN_REPLY,
 )
-from handlers.quiz import on_quiz_button, on_quiz_answer, on_quiz_begin
+from handlers.quiz import on_quiz_button, on_quiz_button_callback, on_quiz_answer, on_quiz_begin
 from handlers.custom import (
     on_custom_button,
     on_custom_back,
@@ -177,11 +182,45 @@ from handlers.admin_credit import (
 )
 from handlers.withdraw import (
     on_withdraw_button,
+    on_withdraw_button_callback,
     on_withdraw_amount_confirm,
     receive_withdraw_ff_id,
     cancel_withdraw,
     WAITING_WITHDRAW_FF_ID,
 )
+
+# ---------- Yangi bosh menyu bo'limlari (🎮 Free Fire / 💎 Almaz olish / 🛠️ Xizmatlar / 👤 Profil) ----------
+from handlers.ffmenu import (
+    on_ff_main_button,
+    on_back_to_ff,
+    on_ff_phone,
+    on_ff_tablet,
+    on_ff_pc,
+)
+from handlers.pc import on_pc_model_selected, on_back_to_pc
+from handlers.nickgen import (
+    start_nick_creation,
+    receive_nick_name,
+    cancel_nick_creation,
+    WAITING_NICK_NAME,
+)
+from handlers.services import (
+    on_services_button,
+    on_back_to_services,
+    on_svc_bonus,
+    on_svc_pay,
+    on_svc_guides,
+    on_svc_news,
+    on_svc_other,
+    on_back_to_services_other,
+    on_svcother_help,
+    on_svcother_website,
+    on_svcother_music,
+    on_svcother_hack,
+    on_svcother_custom,
+    on_svcother_ff2017,
+)
+from handlers.profile import on_profile_button, on_profile_account
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -243,7 +282,10 @@ def build_application() -> Application:
 
     # ---------- 📬 Savollar (FAQ) ----------
     faq_conv = ConversationHandler(
-        entry_points=[MessageHandler(_exact(BTN_FAQ), start_faq)],
+        entry_points=[
+            MessageHandler(_exact(BTN_FAQ), start_faq),
+            CallbackQueryHandler(start_faq_from_callback, pattern="^svc:faq$"),
+        ],
         states={
             WAITING_FAQ_QUESTION: [
                 CommandHandler("bekor", cancel_faq),
@@ -495,6 +537,63 @@ def build_application() -> Application:
     app.add_handler(CallbackQueryHandler(on_account_back, pattern="^acc:back$"))
     app.add_handler(CallbackQueryHandler(topup_approved, pattern="^topup_ok:"))
     app.add_handler(CallbackQueryHandler(topup_rejected, pattern="^topup_no:"))
+
+    # ============================================================================
+    # 🆕 Yangi bosh menyu (faqat 4 ta tugma): 🎮 Free Fire / 💎 Almaz olish /
+    # 🛠️ Xizmatlar / 👤 Profil
+    # ============================================================================
+
+    # ---------- 🎮 Free Fire (reply tugma + inline bo'limlar) ----------
+    app.add_handler(MessageHandler(_exact(BTN_MAIN_FF), on_ff_main_button))
+    app.add_handler(CallbackQueryHandler(on_back_to_ff, pattern="^back_to_ff$"))
+    app.add_handler(CallbackQueryHandler(on_ff_phone, pattern="^ffmenu:phone$"))
+    app.add_handler(CallbackQueryHandler(on_ff_tablet, pattern="^ffmenu:tablet$"))
+    app.add_handler(CallbackQueryHandler(on_ff_pc, pattern="^ffmenu:pc$"))
+
+    # ---------- 💻 PC nastroyka (20 ta model) ----------
+    app.add_handler(CallbackQueryHandler(on_pc_model_selected, pattern="^pc:"))
+    app.add_handler(CallbackQueryHandler(on_back_to_pc, pattern="^back_to_pc$"))
+
+    # ---------- 🎮 Nik yaratish (ism -> 20+ nik) ----------
+    nick_conv = ConversationHandler(
+        entry_points=[CallbackQueryHandler(start_nick_creation, pattern="^ffmenu:nick$")],
+        states={
+            WAITING_NICK_NAME: [
+                CommandHandler("bekor", cancel_nick_creation),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_nick_name),
+            ]
+        },
+        fallbacks=[CommandHandler("bekor", cancel_nick_creation)],
+    )
+    app.add_handler(nick_conv)
+
+    # ---------- 💎 Almaz olish (reply tugma - eski Almaz sotib olish oqimi qayta ishlatiladi) ----------
+    app.add_handler(MessageHandler(_exact(BTN_MAIN_DIAMONDS), on_diamonds_button))
+
+    # ---------- 🛠️ Xizmatlar (reply tugma + inline bo'limlar) ----------
+    app.add_handler(MessageHandler(_exact(BTN_MAIN_SERVICES), on_services_button))
+    app.add_handler(CallbackQueryHandler(on_back_to_services, pattern="^back_to_services$"))
+    app.add_handler(CallbackQueryHandler(on_svc_bonus, pattern="^svc:bonus$"))
+    app.add_handler(CallbackQueryHandler(on_svc_pay, pattern="^svc:pay$"))
+    app.add_handler(CallbackQueryHandler(on_svc_guides, pattern="^svc:guides$"))
+    app.add_handler(CallbackQueryHandler(on_svc_news, pattern="^svc:news$"))
+    app.add_handler(CallbackQueryHandler(on_svc_other, pattern="^svc:other$"))
+    app.add_handler(CallbackQueryHandler(on_back_to_services_other, pattern="^back_to_svcother$"))
+    app.add_handler(CallbackQueryHandler(on_svcother_help, pattern="^svcother:help$"))
+    app.add_handler(CallbackQueryHandler(on_svcother_website, pattern="^svcother:website$"))
+    app.add_handler(CallbackQueryHandler(on_svcother_music, pattern="^svcother:music$"))
+    app.add_handler(CallbackQueryHandler(on_svcother_hack, pattern="^svcother:hack$"))
+    app.add_handler(CallbackQueryHandler(on_svcother_custom, pattern="^svcother:custom$"))
+    app.add_handler(CallbackQueryHandler(on_svcother_ff2017, pattern="^svcother:ff2017$"))
+
+    # ---------- 🎁 Bonuslar (Xizmatlar ichida - Tekin almaz + Kunlik bonus) ----------
+    app.add_handler(CallbackQueryHandler(on_quiz_button_callback, pattern="^svcbonus:quiz$"))
+    app.add_handler(CallbackQueryHandler(on_account_bonus, pattern="^svcbonus:daily$"))
+
+    # ---------- 👤 Profil (reply tugma + inline: Hisobim / Almaz yechish) ----------
+    app.add_handler(MessageHandler(_exact(BTN_MAIN_PROFILE), on_profile_button))
+    app.add_handler(CallbackQueryHandler(on_profile_account, pattern="^profile:account$"))
+    app.add_handler(CallbackQueryHandler(on_withdraw_button_callback, pattern="^profile:withdraw$"))
 
     # ---------- Statistika uchun umumiy loglash (barcha xabarlar) ----------
     app.add_handler(MessageHandler(filters.ALL, log_all_messages), group=1)
