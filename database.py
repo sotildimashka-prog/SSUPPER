@@ -130,6 +130,23 @@ def init_db():
             )
             """
         )
+        # ---------- 💰 To'lov usullari: yangi bonus jadvallari ----------
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS daily_money_bonus (
+                user_id INTEGER PRIMARY KEY,
+                last_claim_at TEXT
+            )
+            """
+        )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS diamond_bonus_claims (
+                user_id INTEGER PRIMARY KEY,
+                last_claim_date TEXT
+            )
+            """
+        )
 
 
 def add_user_if_new(user_id: int, first_name: str, username: str) -> bool:
@@ -469,3 +486,66 @@ def update_diamond_order_status(order_id: int, status: str):
         conn.execute(
             "UPDATE diamond_orders SET status = ? WHERE id = ?", (status, order_id)
         )
+
+
+# ---------------- 🌙 Bonus Almaz (kunlik almaz bonusi) ----------------
+
+DIAMOND_BONUS_AMOUNT = 3
+
+
+def claim_diamond_bonus(user_id: int, amount: int = DIAMOND_BONUS_AMOUNT) -> bool:
+    """Agar bugun hali 'Bonus Almaz' olinmagan bo'lsa, almaz qo'shadi va True qaytaradi."""
+    today = date.today().isoformat()
+    with get_conn() as conn:
+        cur = conn.execute(
+            "SELECT last_claim_date FROM diamond_bonus_claims WHERE user_id = ?", (user_id,)
+        )
+        row = cur.fetchone()
+        if row and row["last_claim_date"] == today:
+            return False
+        conn.execute(
+            "INSERT INTO diamond_bonus_claims (user_id, last_claim_date) VALUES (?, ?) "
+            "ON CONFLICT(user_id) DO UPDATE SET last_claim_date = excluded.last_claim_date",
+            (user_id, today),
+        )
+        conn.execute(
+            "INSERT INTO quiz_diamonds (user_id, diamonds) VALUES (?, ?) "
+            "ON CONFLICT(user_id) DO UPDATE SET diamonds = diamonds + excluded.diamonds",
+            (user_id, amount),
+        )
+        return True
+
+
+# ---------------- 💵 Kunlik Bonus (har 24 soatda avtomatik 20 so'm) ----------------
+
+DAILY_MONEY_BONUS_AMOUNT = 20
+DAILY_MONEY_BONUS_SECONDS = 24 * 60 * 60
+
+
+def try_give_daily_money_bonus(user_id: int, amount: int = DAILY_MONEY_BONUS_AMOUNT):
+    """Agar oxirgi berilgan vaqtdan beri 24 soat o'tgan bo'lsa (yoki umuman berilmagan
+    bo'lsa), foydalanuvchi balansiga avtomatik ravishda `amount` qo'shadi.
+    Qaytaradi: (berildimi: bool, keyingi bonusgacha qolgan soniya: int)."""
+    now = datetime.utcnow()
+    with get_conn() as conn:
+        cur = conn.execute(
+            "SELECT last_claim_at FROM daily_money_bonus WHERE user_id = ?", (user_id,)
+        )
+        row = cur.fetchone()
+        if row and row["last_claim_at"]:
+            last = datetime.fromisoformat(row["last_claim_at"])
+            elapsed = (now - last).total_seconds()
+            if elapsed < DAILY_MONEY_BONUS_SECONDS:
+                return False, int(DAILY_MONEY_BONUS_SECONDS - elapsed)
+
+        conn.execute(
+            "INSERT INTO daily_money_bonus (user_id, last_claim_at) VALUES (?, ?) "
+            "ON CONFLICT(user_id) DO UPDATE SET last_claim_at = excluded.last_claim_at",
+            (user_id, now.isoformat()),
+        )
+        _ensure_balance_row(conn, user_id)
+        conn.execute(
+            "UPDATE balances SET balance = balance + ? WHERE user_id = ?",
+            (amount, user_id),
+        )
+        return True, DAILY_MONEY_BONUS_SECONDS
