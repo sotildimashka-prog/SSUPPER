@@ -147,6 +147,35 @@ def init_db():
             )
             """
         )
+        # ---------- 🌐 Til tanlash (uz / ru) ----------
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS user_language (
+                user_id INTEGER PRIMARY KEY,
+                language TEXT
+            )
+            """
+        )
+
+
+def set_user_language(user_id: int, language: str):
+    """Foydalanuvchi tanlagan tilni saqlaydi ('uz' yoki 'ru')."""
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT INTO user_language (user_id, language) VALUES (?, ?) "
+            "ON CONFLICT(user_id) DO UPDATE SET language = excluded.language",
+            (user_id, language),
+        )
+
+
+def get_user_language(user_id: int) -> str | None:
+    """Foydalanuvchining saqlangan tilini qaytaradi, tanlanmagan bo'lsa None."""
+    with get_conn() as conn:
+        cur = conn.execute(
+            "SELECT language FROM user_language WHERE user_id = ?", (user_id,)
+        )
+        row = cur.fetchone()
+        return row["language"] if row else None
 
 
 def add_user_if_new(user_id: int, first_name: str, username: str) -> bool:
