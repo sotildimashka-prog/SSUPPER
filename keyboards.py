@@ -6,9 +6,10 @@ from telegram import (
     KeyboardButton,
     InlineKeyboardMarkup,
     InlineKeyboardButton,
+    WebAppInfo,
 )
 
-from config import REQUIRED_CHANNELS, ADMIN_ID, WEBSITE_URL
+from config import REQUIRED_CHANNELS, ADMIN_ID, WEBSITE_URL, WEBAPP_URL, NEWS_CHANNEL_URL
 from data.settings_data import PHONES
 from data.tablet_data import TABLETS
 from data.pc_data import PC_MODELS
@@ -41,13 +42,16 @@ def _apply_emoji_icon(text: str, kwargs: dict) -> str:
     return text
 
 
-# Barcha tugmalar uchun standart rang (ko'k) - Bot API 9.4+ talab qiladi.
-def _ikb(text, style="primary", **kwargs):
+# Inline tugmalar: standart holatda RANGSIZ (oddiy, style berilmaydi).
+def _ikb(text, style=None, **kwargs):
     display_text = _apply_emoji_icon(text, kwargs)
-    return InlineKeyboardButton(display_text, style=style, **kwargs)
+    if style:
+        kwargs["style"] = style
+    return InlineKeyboardButton(display_text, **kwargs)
 
 
-def _kb(text, style="primary", **kwargs):
+# Pastki (Reply) klaviatura tugmalari: barchasi doim YASHIL (success) rangda.
+def _kb(text, style="success", **kwargs):
     # MUHIM: ReplyKeyboard tugmasi bosilganda uning matni xabar sifatida
     # botga yuboriladi va bot shu matn orqali tugmani aniqlaydi. Shuning
     # uchun bu yerda emoji olib tashlanmaydi (aks holda tugmalar ishlamay qoladi).
@@ -98,6 +102,8 @@ BTN_M2_SETTINGS = "⚙️ Nastroykalar"
 BTN_M2_NICKS = "🎉 Free Fire Niklar"
 BTN_M2_PAYMENTS = "💰 To'lov usullari"
 BTN_M2_FAQ = "📬 Savollar (FAQ)"
+BTN_GIFTS = "🎁 Sovg'alar"
+BTN_PORTAL = "🗺 Free Fire Portal 🚀"
 
 
 def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
@@ -111,19 +117,32 @@ def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
         row_texts.append([BTN_POST, BTN_EDIT_TEXTS])
         row_texts.append([BTN_ADMIN_CREDIT, BTN_GIFT_ALL])
 
-    # Qatorlar navbat bilan yashil/ko'k rangda, eng oxirgi qator esa qizil bo'ladi.
-    rows = []
-    last_index = len(row_texts) - 1
-    for i, row in enumerate(row_texts):
-        if i == last_index:
-            row_style = "danger"
-        elif i % 2 == 0:
-            row_style = "success"
-        else:
-            row_style = "primary"
-        rows.append([_kb(text, style=row_style) for text in row])
+    # Barcha qatorlar faqat YASHIL (success) rangda.
+    rows = [[_kb(text) for text in row] for row in row_texts]
+
+    # 🎁 Sovg'alar - oddiy matnli tugma (pastda MessageHandler orqali ushlanadi)
+    # 🗺 Free Fire Portal - to'g'ridan-to'g'ri Web App'ni ochadigan tugma
+    rows.append(
+        [
+            _kb(BTN_GIFTS),
+            _kb(BTN_PORTAL, web_app=WebAppInfo(url=WEBAPP_URL)),
+        ]
+    )
 
     return ReplyKeyboardMarkup(rows, resize_keyboard=True, is_persistent=True)
+
+
+# ---------- 🌐 Til tanlash ----------
+
+def language_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                _ikb("🇺🇿 O'zbek tili", callback_data="lang:uz"),
+                _ikb("🇷🇺 Русский язык", callback_data="lang:ru"),
+            ]
+        ]
+    )
 
 
 # ---------- Majburiy obuna ----------
@@ -167,8 +186,25 @@ def add_to_group_keyboard(bot_username: str) -> InlineKeyboardMarkup:
 
 def website_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
-        [[_ikb("🌐 Saytga o'tish", url=WEBSITE_URL)]]
+        [[_ikb("🌐 Saytga o'tish", web_app=WebAppInfo(url=WEBSITE_URL))]]
     )
+
+
+# ---------- 🗺 Free Fire Portal (Mini App) ----------
+
+def mini_app_portal_keyboard(bot_username: str = "") -> InlineKeyboardMarkup:
+    """NovaPin uslubidagi Mini App tugmasi + kanal + qo'llanma."""
+    rows = [
+        [_ikb("🗺 Free Fire Portal 🚀", web_app=WebAppInfo(url=WEBAPP_URL))],
+        [_ikb("📢 Kanal", url=NEWS_CHANNEL_URL)],
+        [_ikb("📖 Qo'llanma", callback_data="svc:guides")],
+    ]
+    return InlineKeyboardMarkup(rows)
+
+
+def portal_button_row() -> list:
+    """Boshqa menyularga qo'shish uchun bitta qatorlik Portal tugmasi."""
+    return [_ikb("🗺 Free Fire Portal 🚀", web_app=WebAppInfo(url=WEBAPP_URL))]
 
 
 # ---------- Free Fire qo'shiq ----------
@@ -517,7 +553,7 @@ def gift_all_confirm_keyboard() -> InlineKeyboardMarkup:
 
 def withdraw_amount_keyboard(amount: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
-        [[_ikb(f"💎 {amount}", style="success", callback_data=f"withdraw_confirm:{amount}")]]
+        [[_ikb(f"💎 {amount}", callback_data=f"withdraw_confirm:{amount}")]]
     )
 
 
@@ -622,6 +658,7 @@ def services_bonus_keyboard() -> InlineKeyboardMarkup:
 def services_other_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
+            [_ikb("🗺 Free Fire Portal 🚀", web_app=WebAppInfo(url=WEBAPP_URL))],
             [_ikb("🎧 Yordam", callback_data="svcother:help")],
             [_ikb("🏆 Turnirlar / Sayt", callback_data="svcother:website")],
             [_ikb("🎵 Free Fire qo'shiq", callback_data="svcother:music")],
@@ -642,7 +679,7 @@ def back_to_services_other_keyboard() -> InlineKeyboardMarkup:
 def website_service_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
-            [_ikb("🌐 Saytga o'tish", url=WEBSITE_URL)],
+            [_ikb("🏆 Turnirlar / Yangiliklar sayti", web_app=WebAppInfo(url=WEBAPP_URL))],
             [_ikb("⬅️ Orqaga", callback_data="back_to_svcother")],
         ]
     )
@@ -744,6 +781,7 @@ def new_nicks_back_keyboard() -> InlineKeyboardMarkup:
 def new_services_menu_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
+            [_ikb("🗺 Free Fire Portal 🚀", web_app=WebAppInfo(url=WEBAPP_URL))],
             [
                 _ikb("🎮 Free Fire 2017", callback_data="newsvc:ff2017"),
                 _ikb("🏆 Free Fire Turnirlari", callback_data="newsvc:tournament"),
@@ -763,11 +801,33 @@ def new_services_menu_keyboard() -> InlineKeyboardMarkup:
     )
 
 
+def newsvc_portal_keyboard() -> InlineKeyboardMarkup:
+    """🏆 Turnirlar / 📰 Yangiliklar uchun Free Fire Portal (Web App) tugmasi."""
+    return InlineKeyboardMarkup(
+        [
+            [_ikb("🗺 Free Fire Portal 🚀", web_app=WebAppInfo(url=WEBAPP_URL))],
+            [_ikb("⬅️ Orqaga", callback_data="newsvc:back")],
+        ]
+    )
+
+
 def service_channel_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
             [_ikb("📢 Kanalga qo'shilish", url="https://t.me/freefirepanelchit")],
             [_ikb("⬅️ Orqaga", callback_data="newsvc:back")],
+        ]
+    )
+
+
+# ---------- 🎁 Sovg'alar (bosh menyu tugmasi) ----------
+
+def gifts_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [_ikb("🆓 Tekin almaz", callback_data="gift:free_diamond")],
+            [_ikb("💵 Pul bonusi", callback_data="gift:money_bonus")],
+            [_ikb("🌙 Almaz bonusi", callback_data="gift:diamond_bonus")],
         ]
     )
 
