@@ -24,6 +24,7 @@ from keyboards import (
     new_nicks_back_keyboard,
     new_services_menu_keyboard,
     service_channel_keyboard,
+    newsvc_portal_keyboard,
     payments_menu_keyboard,
     payments_back_keyboard,
     custom_entry_keyboard,
@@ -193,6 +194,19 @@ async def on_newsvc_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     key = query.data.split(":", 1)[1]
     title = SERVICE_TITLES.get(key, "🛍 Xizmat")
+
+    # 🏆 Turnirlar va 📰 Yangiliklar - Free Fire Portal saytiga (Web App) yo'naltiriladi
+    if key in ("tournament", "news"):
+        text = (
+            f"{title}\n\n"
+            "🗺 Barcha Free Fire yangiliklari va turnirlar Free Fire Portal "
+            "saytida joylashgan. Pastdagi tugma orqali Telegram ichida ochiladi 👇"
+        )
+        await query.edit_message_text(
+            text, parse_mode="HTML", reply_markup=newsvc_portal_keyboard()
+        )
+        return
+
     text = f"{title}\n\n{SERVICE_CHANNEL_TEXT}"
     await query.edit_message_text(
         text, parse_mode="HTML", reply_markup=service_channel_keyboard()
