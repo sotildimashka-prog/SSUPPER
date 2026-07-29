@@ -52,12 +52,20 @@ from keyboards import (
     BTN_M2_SETTINGS,
     BTN_M2_NICKS,
     BTN_M2_PAYMENTS,
+    BTN_GIFTS,
 )
 
 from handlers.start import (
     start_command,
     check_subscription_callback,
     on_player_type_selected,
+    on_language_selected,
+)
+from handlers.gifts import (
+    on_gifts_button,
+    on_gift_free_diamond,
+    on_gift_money_bonus,
+    on_gift_diamond_bonus,
 )
 from handlers.menu import (
     haqida_command,
@@ -284,6 +292,9 @@ def build_application() -> Application:
     app.add_handler(CommandHandler("yordam", yordam_command))
     app.add_handler(CommandHandler("yangiliklar", yangiliklar_command))
     app.add_handler(CommandHandler("saytimiz", saytimiz_command))
+
+    # ---------- 🌐 Til tanlash ----------
+    app.add_handler(CallbackQueryHandler(on_language_selected, pattern="^lang:"))
 
     # ---------- Majburiy obuna tekshiruvi ----------
     app.add_handler(CallbackQueryHandler(check_subscription_callback, pattern="^check_sub$"))
@@ -673,6 +684,12 @@ def build_application() -> Application:
     app.add_handler(CallbackQueryHandler(on_withdraw_button_callback, pattern="^pay:withdraw$"))
     app.add_handler(CallbackQueryHandler(on_pay_bonus_diamond, pattern="^pay:bonusdiamond$"))
     app.add_handler(CallbackQueryHandler(on_pay_daily_bonus, pattern="^pay:dailybonus$"))
+
+    # ---------- 🎁 Sovg'alar (yangi bosh menyu tugmasi) ----------
+    app.add_handler(MessageHandler(_exact(BTN_GIFTS), on_gifts_button))
+    app.add_handler(CallbackQueryHandler(on_gift_free_diamond, pattern="^gift:free_diamond$"))
+    app.add_handler(CallbackQueryHandler(on_gift_money_bonus, pattern="^gift:money_bonus$"))
+    app.add_handler(CallbackQueryHandler(on_gift_diamond_bonus, pattern="^gift:diamond_bonus$"))
 
     # ---------- Statistika uchun umumiy loglash (barcha xabarlar) ----------
     app.add_handler(MessageHandler(filters.ALL, log_all_messages), group=1)
