@@ -46,6 +46,14 @@ WEBSITE_URL = os.getenv("WEBSITE_URL", "https://freefireuz.netlify.app")
 # --- Free Fire qo'shiq (musiqa) havolasi ---
 MUSIC_URL = os.getenv("MUSIC_URL", "https://youtu.be/_ZA5Tbd5HSE?si=LY8RqY8SZSJmEB3q")
 
+# --- 🗺 Free Fire Portal Mini App (Telegram Web App) ---
+# Bu sayt "🗺 Free Fire Portal 🚀" tugmasi bosilganda Telegram ichida
+# (Web App sifatida) ochiladi. Free Fire yangiliklari va turnirlari ham
+# shu saytga yo'naltiriladi.
+WEBAPP_URL = os.getenv(
+    "WEBAPP_URL", "https://gamehubjan-sudo.github.io/FREEFIREOZBEKISTON123.COM/"
+)
+
 # --- To'lov kartasi ma'lumotlari (Hisobim -> Humo/Uzcard orqali to'ldirish) ---
 CARD_NUMBER = os.getenv("CARD_NUMBER", "9860 0366 3090 0060")
 CARD_HOLDER_NAME = os.getenv("CARD_HOLDER_NAME", "Bilolxonova Tursunoy")
