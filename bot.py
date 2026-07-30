@@ -7,7 +7,8 @@ Asosiy ishga tushirish fayli.
 import logging
 import re
 
-from telegram import Update, MenuButtonDefault
+from telegram import Update, MenuButtonDefault, ReactionTypeEmoji
+from telegram.error import TelegramError
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -251,8 +252,8 @@ from handlers.newflow import (
     on_newsvc_item,
     on_m2_payments_button,
     on_pay_back,
-    on_pay_bonus_diamond,
-    on_pay_daily_bonus,
+    on_pay_admin,
+    on_pay_card,
 )
 
 logging.basicConfig(
@@ -266,10 +267,25 @@ def _exact(text: str):
     return filters.Regex(f"^{re.escape(text)}$")
 
 
+AUTO_REACTION_EMOJI = "🔥"
+
+
 async def log_all_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user:
         db.touch_user_activity(update.effective_user.id)
         db.log_message(update.effective_user.id)
+
+    # Botga yozilgan har qanday xabarga (shu jumladan /start) avtomatik
+    # reaksiya bosiladi.
+    if update.effective_message and update.effective_chat:
+        try:
+            await context.bot.set_message_reaction(
+                chat_id=update.effective_chat.id,
+                message_id=update.effective_message.message_id,
+                reaction=[ReactionTypeEmoji(emoji=AUTO_REACTION_EMOJI)],
+            )
+        except TelegramError:
+            pass
 
 
 async def post_init(application: Application):
@@ -680,10 +696,8 @@ def build_application() -> Application:
     # ---------- 💰 To'lov usullari ----------
     app.add_handler(MessageHandler(_exact(BTN_M2_PAYMENTS), on_m2_payments_button))
     app.add_handler(CallbackQueryHandler(on_pay_back, pattern="^pay:back$"))
-    # "💎 Almaz yechish" - mavjud Profil bo'limidagi funksiya qayta ishlatiladi
-    app.add_handler(CallbackQueryHandler(on_withdraw_button_callback, pattern="^pay:withdraw$"))
-    app.add_handler(CallbackQueryHandler(on_pay_bonus_diamond, pattern="^pay:bonusdiamond$"))
-    app.add_handler(CallbackQueryHandler(on_pay_daily_bonus, pattern="^pay:dailybonus$"))
+    app.add_handler(CallbackQueryHandler(on_pay_admin, pattern="^pay:admin$"))
+    app.add_handler(CallbackQueryHandler(on_pay_card, pattern="^pay:card$"))
 
     # ---------- 🎁 Sovg'alar (yangi bosh menyu tugmasi) ----------
     app.add_handler(MessageHandler(_exact(BTN_GIFTS), on_gifts_button))
