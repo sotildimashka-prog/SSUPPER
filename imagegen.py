@@ -35,24 +35,6 @@ def _first_existing(paths, fallback):
     return fallback
 
 
-def _cover_fit(img: Image.Image, size) -> Image.Image:
-    """Rasmni berilgan o'lchamga (size) markazdan kesib, to'liq qoplaydigan
-    (cover) tarzda moslashtiradi - proporsiya buzilmaydi."""
-    target_w, target_h = size
-    tw, th = img.size
-    target_ratio = target_w / target_h
-    src_ratio = tw / th
-    if src_ratio > target_ratio:
-        new_w = int(th * target_ratio)
-        left = (tw - new_w) // 2
-        img = img.crop((left, 0, left + new_w, th))
-    else:
-        new_h = int(tw / target_ratio)
-        top = (th - new_h) // 2
-        img = img.crop((0, top, tw, top + new_h))
-    return img.resize(size)
-
-
 FONT_PATH_BOLD = _first_existing(
     [_BUNDLED_BOLD] + _SYSTEM_BOLD_CANDIDATES, _BUNDLED_BOLD
 )
@@ -100,19 +82,15 @@ def generate_oddiy_rasm(text: str, style_id: str) -> str:
     text = (text or "").strip().upper()[:28] or "XONFIRE"
 
     w, h = CANVAS_SIZE
-    if style["preview"] and os.path.exists(style["preview"]):
-        # 🖼️ Foydalanuvchi yuklagan haqiqiy uslub rasmini fon qilib olamiz
-        # (aynan o'zi - faqat canvasga moslab kesamiz), gradient EMAS.
-        img = Image.open(style["preview"]).convert("RGB")
-        img = _cover_fit(img, (w, h))
-    else:
-        img = _vertical_gradient((w, h), style["bg_from"], style["bg_to"]).convert("RGB")
+    img = _vertical_gradient((w, h), style["bg_from"], style["bg_to"]).convert("RGB")
 
-    # Matn o'qilishi uchun pastroq qismni biroz qorong'ilashtirish (yengil overlay)
-    overlay = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    od = ImageDraw.Draw(overlay)
-    od.rectangle((0, int(h * 0.30), w, int(h * 0.70)), fill=(0, 0, 0, 90))
-    img = Image.alpha_composite(img.convert("RGBA"), overlay).convert("RGB")
+    # Yengil "vinyet" effekti - chetlarni qorong'ilashtirish
+    vignette = Image.new("L", (w, h), 0)
+    vd = ImageDraw.Draw(vignette)
+    vd.ellipse((-w * 0.3, -h * 0.3, w * 1.3, h * 1.3), fill=180)
+    vignette = vignette.filter(ImageFilter.GaussianBlur(180))
+    dark = Image.new("RGB", (w, h), (0, 0, 0))
+    img = Image.composite(img, dark, vignette)
 
     draw = ImageDraw.Draw(img)
 
@@ -181,7 +159,19 @@ def generate_style_grid() -> str:
 
         if style["preview"] and os.path.exists(style["preview"]):
             thumb = Image.open(style["preview"]).convert("RGB")
-            thumb = _cover_fit(thumb, (cell_w, cell_h))
+            # markazdan kesib, katakka moslashtirish (cover)
+            tw, th = thumb.size
+            target_ratio = cell_w / cell_h
+            src_ratio = tw / th
+            if src_ratio > target_ratio:
+                new_w = int(th * target_ratio)
+                left = (tw - new_w) // 2
+                thumb = thumb.crop((left, 0, left + new_w, th))
+            else:
+                new_h = int(tw / target_ratio)
+                top = (th - new_h) // 2
+                thumb = thumb.crop((0, top, tw, top + new_h))
+            thumb = thumb.resize((cell_w, cell_h))
         else:
             thumb = _vertical_gradient((cell_w, cell_h), style["bg_from"], style["bg_to"])
 
