@@ -27,3 +27,34 @@ async def get_unsubscribed_channels(user_id: int, context: ContextTypes.DEFAULT_
             # foydalanuvchini obuna bo'lmagan deb hisoblaymiz.
             unsubscribed.append(ch)
     return unsubscribed
+
+
+async def require_subscription(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    """Yangi bo'limlar (Rasm/Video Yasash) ochilishidan oldin majburiy obunani
+    tekshiradi. Agar foydalanuvchi obuna bo'lmagan bo'lsa - kanallarga
+    qo'shilish tugmalari va "✅ Tekshirish" tugmasini yuboradi va False
+    qaytaradi (chaqiruvchi handler shu holatda davom etmasligi kerak)."""
+    import database as db
+    from keyboards import subscription_keyboard
+
+    user = update.effective_user
+    unsubscribed = await get_unsubscribed_channels(user.id, context)
+    if not unsubscribed:
+        return True
+
+    lang = db.get_user_language(user.id) or "uz"
+    if lang == "ru":
+        text = (
+            "📢 <b>Чтобы пользоваться этим разделом, сначала подпишитесь на каналы ниже!</b>\n\n"
+            "После подписки на все каналы нажмите кнопку <b>✅ Я подписался</b> внизу 👇"
+        )
+    else:
+        text = (
+            "📢 <b>Bu bo'limdan foydalanish uchun avval quyidagi kanallarga obuna bo'ling!</b>\n\n"
+            "Barcha kanallarga obuna bo'lgach, pastdagi <b>✅ Obuna bo'ldim</b> "
+            "tugmasini bosing 👇"
+        )
+
+    target = update.effective_message
+    await target.reply_text(text, parse_mode="HTML", reply_markup=subscription_keyboard())
+    return False
