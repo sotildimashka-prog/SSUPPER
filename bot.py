@@ -7,8 +7,7 @@ Asosiy ishga tushirish fayli.
 import logging
 import re
 
-from telegram import Update, MenuButtonDefault, ReactionTypeEmoji
-from telegram.error import TelegramError
+from telegram import Update, MenuButtonDefault
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -54,14 +53,11 @@ from keyboards import (
     BTN_M2_NICKS,
     BTN_M2_PAYMENTS,
     BTN_GIFTS,
-    BTN_MAIN_RASM,
-    BTN_MAIN_VIDEO,
 )
 
 from handlers.start import (
     start_command,
     check_subscription_callback,
-    on_player_type_selected,
     on_language_selected,
 )
 from handlers.gifts import (
@@ -204,28 +200,6 @@ from handlers.withdraw import (
     cancel_withdraw,
     WAITING_WITHDRAW_FF_ID,
 )
-from handlers.image_gen import (
-    on_rasm_button,
-    on_rasm_back,
-    on_oddiy_rasm_start,
-    cancel_oddiy,
-    receive_oddiy_text,
-    on_oddiy_style_selected,
-    on_maxsus_rasm_start,
-    cancel_maxsus,
-    receive_maxsus_name,
-    receive_maxsus_desc,
-    WAITING_ODDIY_TEXT,
-    WAITING_MAXSUS_NAME,
-    WAITING_MAXSUS_DESC,
-)
-from handlers.video_gen import (
-    on_video_button,
-    on_video_cancel_inline,
-    cancel_video,
-    receive_video_prompt,
-    WAITING_VIDEO_PROMPT,
-)
 
 # ---------- Yangi bosh menyu bo'limlari (🎮 Free Fire / 💎 Almaz olish / 🛠️ Xizmatlar / 👤 Profil) ----------
 from handlers.ffmenu import (
@@ -276,8 +250,8 @@ from handlers.newflow import (
     on_newsvc_item,
     on_m2_payments_button,
     on_pay_back,
-    on_pay_admin,
-    on_pay_card,
+    on_pay_bonus_diamond,
+    on_pay_daily_bonus,
 )
 
 logging.basicConfig(
@@ -291,25 +265,10 @@ def _exact(text: str):
     return filters.Regex(f"^{re.escape(text)}$")
 
 
-AUTO_REACTION_EMOJI = "🔥"
-
-
 async def log_all_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user:
         db.touch_user_activity(update.effective_user.id)
         db.log_message(update.effective_user.id)
-
-    # Botga yozilgan har qanday xabarga (shu jumladan /start) avtomatik
-    # reaksiya bosiladi.
-    if update.effective_message and update.effective_chat:
-        try:
-            await context.bot.set_message_reaction(
-                chat_id=update.effective_chat.id,
-                message_id=update.effective_message.message_id,
-                reaction=[ReactionTypeEmoji(emoji=AUTO_REACTION_EMOJI)],
-            )
-        except TelegramError:
-            pass
 
 
 async def post_init(application: Application):
@@ -338,7 +297,6 @@ def build_application() -> Application:
 
     # ---------- Majburiy obuna tekshiruvi ----------
     app.add_handler(CallbackQueryHandler(check_subscription_callback, pattern="^check_sub$"))
-    app.add_handler(CallbackQueryHandler(on_player_type_selected, pattern="^player:"))
 
     # ---------- 🔓 Maxsus xizmat (Proxy/Cheat/FF ID) ----------
     hack_ffid_conv = ConversationHandler(
@@ -562,64 +520,6 @@ def build_application() -> Application:
     )
     app.add_handler(topup_conv)
 
-    # ---------- 🔥 Oddiy Rasm (nom/matn -> uslub tanlash -> natija) ----------
-    oddiy_rasm_conv = ConversationHandler(
-        entry_points=[CallbackQueryHandler(on_oddiy_rasm_start, pattern="^rasm:oddiy$")],
-        states={
-            WAITING_ODDIY_TEXT: [
-                CommandHandler("bekor", cancel_oddiy),
-                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_oddiy_text),
-            ],
-        },
-        fallbacks=[
-            CommandHandler("bekor", cancel_oddiy),
-            CallbackQueryHandler(on_rasm_back, pattern="^rasm:back$"),
-        ],
-    )
-    app.add_handler(oddiy_rasm_conv)
-    app.add_handler(CallbackQueryHandler(on_oddiy_style_selected, pattern="^oddiyrasm:"))
-
-    # ---------- 💎 Maxsus Rasm (nom -> tavsif -> adminga yuboriladi) ----------
-    maxsus_rasm_conv = ConversationHandler(
-        entry_points=[CallbackQueryHandler(on_maxsus_rasm_start, pattern="^rasm:maxsus$")],
-        states={
-            WAITING_MAXSUS_NAME: [
-                CommandHandler("bekor", cancel_maxsus),
-                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_maxsus_name),
-            ],
-            WAITING_MAXSUS_DESC: [
-                CommandHandler("bekor", cancel_maxsus),
-                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_maxsus_desc),
-            ],
-        },
-        fallbacks=[
-            CommandHandler("bekor", cancel_maxsus),
-            CallbackQueryHandler(on_rasm_back, pattern="^rasm:back$"),
-        ],
-    )
-    app.add_handler(maxsus_rasm_conv)
-
-    # ---------- 🖼️ Rasm Yasash bosh menyusi + orqaga (mustaqil) ----------
-    app.add_handler(MessageHandler(_exact(BTN_MAIN_RASM), on_rasm_button))
-    app.add_handler(CallbackQueryHandler(on_rasm_back, pattern="^rasm:back$"))
-
-    # ---------- 🎬 Video Yasash (faqat pullik, kamida 30 000 so'm) ----------
-    video_conv = ConversationHandler(
-        entry_points=[MessageHandler(_exact(BTN_MAIN_VIDEO), on_video_button)],
-        states={
-            WAITING_VIDEO_PROMPT: [
-                CommandHandler("bekor", cancel_video),
-                CallbackQueryHandler(on_video_cancel_inline, pattern="^video:cancel$"),
-                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_video_prompt),
-            ],
-        },
-        fallbacks=[
-            CommandHandler("bekor", cancel_video),
-            CallbackQueryHandler(on_video_cancel_inline, pattern="^video:cancel$"),
-        ],
-    )
-    app.add_handler(video_conv)
-
     # ---------- Reply tugmalar ----------
     app.add_handler(MessageHandler(_exact(BTN_HELP), on_help_button))
     app.add_handler(MessageHandler(_exact(BTN_SETTINGS), on_settings_button))
@@ -778,8 +678,10 @@ def build_application() -> Application:
     # ---------- 💰 To'lov usullari ----------
     app.add_handler(MessageHandler(_exact(BTN_M2_PAYMENTS), on_m2_payments_button))
     app.add_handler(CallbackQueryHandler(on_pay_back, pattern="^pay:back$"))
-    app.add_handler(CallbackQueryHandler(on_pay_admin, pattern="^pay:admin$"))
-    app.add_handler(CallbackQueryHandler(on_pay_card, pattern="^pay:card$"))
+    # "💎 Almaz yechish" - mavjud Profil bo'limidagi funksiya qayta ishlatiladi
+    app.add_handler(CallbackQueryHandler(on_withdraw_button_callback, pattern="^pay:withdraw$"))
+    app.add_handler(CallbackQueryHandler(on_pay_bonus_diamond, pattern="^pay:bonusdiamond$"))
+    app.add_handler(CallbackQueryHandler(on_pay_daily_bonus, pattern="^pay:dailybonus$"))
 
     # ---------- 🎁 Sovg'alar (yangi bosh menyu tugmasi) ----------
     app.add_handler(MessageHandler(_exact(BTN_GIFTS), on_gifts_button))
