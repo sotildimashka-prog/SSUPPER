@@ -878,7 +878,7 @@ def oddiy_rasm_styles_keyboard() -> InlineKeyboardMarkup:
     rows = []
     row = []
     for style in STYLES:
-        row.append(_ikb(style["title"], callback_data=f"oddiyrasm:{style['id']}"))
+        row.append(_ikb(f"{style['id']}-rasm", callback_data=f"oddiyrasm:{style['id']}"))
         if len(row) == 2:
             rows.append(row)
             row = []
