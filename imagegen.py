@@ -13,13 +13,34 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from data.rasm_uslublari_data import STYLES
 
 CANVAS_SIZE = (1080, 1080)
-FONT_PATH_BOLD = "/usr/share/fonts/truetype/google-fonts/Poppins-Bold.ttf"
-FONT_PATH_REGULAR = "/usr/share/fonts/truetype/google-fonts/Poppins-Regular.ttf"
 
-if not os.path.exists(FONT_PATH_BOLD):
-    FONT_PATH_BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-if not os.path.exists(FONT_PATH_REGULAR):
-    FONT_PATH_REGULAR = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+_PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+_BUNDLED_BOLD = os.path.join(_PROJECT_ROOT, "assets", "fonts", "Poppins-Bold.ttf")
+_BUNDLED_REGULAR = os.path.join(_PROJECT_ROOT, "assets", "fonts", "Poppins-Regular.ttf")
+
+_SYSTEM_BOLD_CANDIDATES = [
+    "/usr/share/fonts/truetype/google-fonts/Poppins-Bold.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+]
+_SYSTEM_REGULAR_CANDIDATES = [
+    "/usr/share/fonts/truetype/google-fonts/Poppins-Regular.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+]
+
+
+def _first_existing(paths, fallback):
+    for p in paths:
+        if os.path.exists(p):
+            return p
+    return fallback
+
+
+FONT_PATH_BOLD = _first_existing(
+    [_BUNDLED_BOLD] + _SYSTEM_BOLD_CANDIDATES, _BUNDLED_BOLD
+)
+FONT_PATH_REGULAR = _first_existing(
+    [_BUNDLED_REGULAR] + _SYSTEM_REGULAR_CANDIDATES, _BUNDLED_REGULAR
+)
 
 
 def _vertical_gradient(size, color_from, color_to):
