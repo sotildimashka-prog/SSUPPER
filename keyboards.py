@@ -845,8 +845,6 @@ def payments_menu_keyboard() -> InlineKeyboardMarkup:
         [
             [
                 _ikb("👤 Admin orqali to'ldirish", callback_data="pay:admin"),
-            ],
-            [
                 _ikb("💳 Humo/Uzcard orqali to'ldirish", callback_data="pay:card"),
             ],
         ]
