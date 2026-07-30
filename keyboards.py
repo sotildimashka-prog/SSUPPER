@@ -105,20 +105,12 @@ BTN_M2_FAQ = "📬 Savollar (FAQ)"
 BTN_GIFTS = "🎁 Sovg'alar"
 BTN_PORTAL = "🗺 Free Fire Portal 🚀"
 
-# ---------- 🖼️ Rasm Yasash / 🎬 Video Yasash (Bosh menyu) ----------
-
-BTN_MAIN_RASM = "🖼️ Rasm Yasash"
-BTN_MAIN_VIDEO = "🎬 Video Yasash"
-
-VIDEO_MIN_BALANCE = 30000
-
 
 def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
     row_texts = [
         [BTN_M2_DIAMONDS, BTN_M2_SERVICES],
         [BTN_M2_SETTINGS, BTN_M2_NICKS],
         [BTN_M2_PAYMENTS, BTN_M2_FAQ],
-        [BTN_MAIN_RASM, BTN_MAIN_VIDEO],
     ]
     if is_admin:
         row_texts.append([BTN_STATS, BTN_BROADCAST])
@@ -128,8 +120,7 @@ def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
     # Barcha qatorlar faqat YASHIL (success) rangda.
     rows = [[_kb(text) for text in row] for row in row_texts]
 
-    # 🗺 Free Fire Portal - alohida, birinchi qatorda, to'g'ridan-to'g'ri
-    # Web App'ni ochadigan tugma.
+    # 🗺 Free Fire Portal - birinchi qatorda, alohida (o'z-o'zicha) turadi.
     rows.insert(0, [_kb(BTN_PORTAL, web_app=WebAppInfo(url=WEBAPP_URL))])
 
     # 🎁 Sovg'alar - oddiy matnli tugma (pastda MessageHandler orqali ushlanadi)
@@ -844,8 +835,10 @@ def payments_menu_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
             [
-                _ikb("👤 Admin orqali to'ldirish", callback_data="pay:admin"),
-                _ikb("💳 Humo/Uzcard orqali to'ldirish", callback_data="pay:card"),
+                _ikb("👤 Admin orqali to'ldirish", callback_data="acc:admin"),
+            ],
+            [
+                _ikb("💳 Humo/Uzcard orqali to'ldirish", callback_data="acc:card"),
             ],
         ]
     )
@@ -855,52 +848,3 @@ def payments_back_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [[_ikb("⬅️ Orqaga", callback_data="pay:back")]]
     )
-
-
-# ---------- 🖼️ Rasm Yasash ----------
-
-def rasm_menu_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        [
-            [_ikb("🔥 Oddiy Rasm", callback_data="rasm:oddiy")],
-            [_ikb("💎 Maxsus Rasm", callback_data="rasm:maxsus")],
-        ]
-    )
-
-
-def oddiy_rasm_cancel_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup([[_ikb("⬅️ Bekor qilish", callback_data="rasm:back")]])
-
-
-def oddiy_rasm_styles_keyboard() -> InlineKeyboardMarkup:
-    from data.rasm_uslublari_data import STYLES
-
-    rows = []
-    row = []
-    for style in STYLES:
-        row.append(_ikb(f"{style['id']}-rasm", callback_data=f"oddiyrasm:{style['id']}"))
-        if len(row) == 2:
-            rows.append(row)
-            row = []
-    if row:
-        rows.append(row)
-    rows.append([_ikb("⬅️ Orqaga", callback_data="rasm:back")])
-    return InlineKeyboardMarkup(rows)
-
-
-def oddiy_rasm_result_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        [[_ikb("🔁 Yana rasm yasash", callback_data="rasm:oddiy")]]
-    )
-
-
-# ---------- 🎬 Video Yasash ----------
-
-def video_insufficient_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        [[_ikb("💳 Hisobni to'ldirish", callback_data="topup:paid")]]
-    )
-
-
-def video_cancel_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup([[_ikb("⬅️ Bekor qilish", callback_data="video:cancel")]])
