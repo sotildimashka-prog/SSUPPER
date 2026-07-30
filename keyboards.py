@@ -120,14 +120,12 @@ def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
     # Barcha qatorlar faqat YASHIL (success) rangda.
     rows = [[_kb(text) for text in row] for row in row_texts]
 
+    # 🗺 Free Fire Portal - alohida, birinchi qatorda, to'g'ridan-to'g'ri
+    # Web App'ni ochadigan tugma.
+    rows.insert(0, [_kb(BTN_PORTAL, web_app=WebAppInfo(url=WEBAPP_URL))])
+
     # 🎁 Sovg'alar - oddiy matnli tugma (pastda MessageHandler orqali ushlanadi)
-    # 🗺 Free Fire Portal - to'g'ridan-to'g'ri Web App'ni ochadigan tugma
-    rows.append(
-        [
-            _kb(BTN_GIFTS),
-            _kb(BTN_PORTAL, web_app=WebAppInfo(url=WEBAPP_URL)),
-        ]
-    )
+    rows.append([_kb(BTN_GIFTS)])
 
     return ReplyKeyboardMarkup(rows, resize_keyboard=True, is_persistent=True)
 
@@ -838,11 +836,8 @@ def payments_menu_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
             [
-                _ikb("💎 Almaz yechish", callback_data="pay:withdraw"),
-                _ikb("🌙 Bonus Almaz", callback_data="pay:bonusdiamond"),
-            ],
-            [
-                _ikb("💵 Kunlik Bonus", callback_data="pay:dailybonus"),
+                _ikb("👤 Admin orqali to'ldirish", callback_data="pay:admin"),
+                _ikb("💳 Humo/Uzcard orqali to'ldirish", callback_data="pay:card"),
             ],
         ]
     )
