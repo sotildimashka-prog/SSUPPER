@@ -3,7 +3,7 @@
 
 from datetime import datetime
 
-from telegram import Update
+from telegram import Update, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from telegram.error import TelegramError
 
@@ -15,6 +15,7 @@ from keyboards import (
     player_type_keyboard,
     add_to_group_keyboard,
     language_keyboard,
+    portal_button_row,
 )
 from handlers.subscription import get_unsubscribed_channels
 
@@ -101,6 +102,18 @@ def main_menu_ready_text(lang: str = "uz") -> str:
     return "👇 Asosiy menyu tayyor:"
 
 
+def official_site_text(lang: str = "uz") -> str:
+    if lang == "ru":
+        return (
+            "🌐 <b>Наш официальный сайт</b>\n\n"
+            "Перейдите на Free Fire Portal, нажав кнопку ниже 👇"
+        )
+    return (
+        "🌐 <b>Bizning rasmiy sayt</b>\n\n"
+        "Free Fire Portal'ga o'tish uchun pastdagi tugmani bosing 👇"
+    )
+
+
 # Eski nomlar (SUBSCRIBE_TEXT, PLAYER_TYPE_QUESTION, ADD_TO_GROUP_TEXT) boshqa
 # modullarda ishlatilgan bo'lishi mumkin - orqaga moslik uchun (uz tilida) saqlanadi.
 SUBSCRIBE_TEXT = subscribe_text("uz")
@@ -131,6 +144,15 @@ async def _send_player_type_question(update_or_query, context: ContextTypes.DEFA
     )
 
 
+async def _send_official_site_message(context: ContextTypes.DEFAULT_TYPE, chat_id: int, lang: str = "uz"):
+    await context.bot.send_message(
+        chat_id=chat_id,
+        text=official_site_text(lang),
+        parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup([portal_button_row()]),
+    )
+
+
 async def _continue_after_language(update: Update, context: ContextTypes.DEFAULT_TYPE, user, lang: str):
     """Til tanlangandan (yoki avval tanlangan bo'lsa) so'ng davom etadigan qism:
     salomlashuv -> majburiy obuna -> pro/bot savoli -> asosiy menyu."""
@@ -155,12 +177,12 @@ async def _continue_after_language(update: Update, context: ContextTypes.DEFAULT
 
     # Agar allaqachon obuna bo'lgan bo'lsa - to'g'ridan-to'g'ri asosiy menyuga
     is_admin = user.id == ADMIN_ID
-    await _send_player_type_question(update, context, user.id, lang)
     await context.bot.send_message(
         chat_id=user.id,
         text=main_menu_ready_text(lang),
         reply_markup=main_menu_keyboard(is_admin),
     )
+    await _send_official_site_message(context, user.id, lang)
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -230,14 +252,13 @@ async def check_subscription_callback(update: Update, context: ContextTypes.DEFA
     except TelegramError:
         pass
 
-    # 3) Pro/Bot o'yinchi savoli
-    await _send_player_type_question(query, context, user.id, lang)
-    # 4) Asosiy menyu
+    # 3) Asosiy menyu
     await context.bot.send_message(
         chat_id=user.id,
         text=main_menu_ready_text(lang),
         reply_markup=main_menu_keyboard(is_admin),
     )
+    await _send_official_site_message(context, user.id, lang)
 
 
 async def on_player_type_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
