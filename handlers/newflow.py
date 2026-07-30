@@ -15,6 +15,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 import database as db
+from config import ADMIN_USERNAME, CARD_NUMBER, CARD_HOLDER_NAME, CARD_PHONE
 from keyboards import (
     diamonds_get_keyboard,
     diamonds_entry_keyboard,
@@ -27,6 +28,8 @@ from keyboards import (
     newsvc_portal_keyboard,
     payments_menu_keyboard,
     payments_back_keyboard,
+    account_admin_keyboard,
+    paid_confirm_keyboard,
     custom_entry_keyboard,
 )
 from data.nicknames_data import (
@@ -235,7 +238,11 @@ async def on_pay_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def on_pay_bonus_diamond(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """🌙 Bonus Almaz - foydalanuvchi har kuni (kalendar kuni bo'yicha) bonus olishi mumkin."""
+    """🌙 Bonus Almaz - foydalanuvchi har kuni (kalendar kuni bo'yicha) bonus olishi mumkin.
+
+    Endi to'lov usullari menyusida tugma sifatida ko'rinmaydi, lekin
+    handlers/gifts.py (🎁 Sovg'alar) shu funksiyani qayta ishlatadi.
+    """
     query = update.callback_query
     user_id = query.from_user.id
 
@@ -276,7 +283,11 @@ def _format_hms(seconds: int) -> str:
 
 
 async def on_pay_daily_bonus(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """💵 Kunlik Bonus - har 24 soatda avtomatik ravishda 20 so'm balansga qo'shiladi."""
+    """💵 Kunlik Bonus - har 24 soatda avtomatik ravishda 20 so'm balansga qo'shiladi.
+
+    Endi to'lov usullari menyusida tugma sifatida ko'rinmaydi, lekin
+    handlers/gifts.py (🎁 Sovg'alar) shu funksiyani qayta ishlatadi.
+    """
     query = update.callback_query
     user_id = query.from_user.id
 
@@ -306,3 +317,29 @@ async def on_pay_daily_bonus(update: Update, context: ContextTypes.DEFAULT_TYPE)
             parse_mode="HTML",
             reply_markup=payments_back_keyboard(),
         )
+
+
+async def on_pay_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """👤 Admin orqali to'ldirish - eski (asl) usul."""
+    query = update.callback_query
+    await query.answer()
+    await query.edit_message_text(
+        "👤 Admin bilan bevosita bog'lanish uchun tugmani bosing 👇",
+        reply_markup=account_admin_keyboard(ADMIN_USERNAME),
+    )
+
+
+async def on_pay_card(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """💳 Humo/Uzcard orqali to'ldirish - eski (asl) usul."""
+    query = update.callback_query
+    await query.answer()
+    text = (
+        "Assalomu aleykum, to'lov uchun karta raqami ⚡️\n\n"
+        f"( Isim familiya {CARD_HOLDER_NAME} ) ⚡️ boshqa isim chiqsa to'lov qilmang\n\n"
+        "cheksiz qabul yo'q, ulangan raqam: "
+        f"{CARD_PHONE}\n\n"
+        f"💳 Karta raqami: <code>{CARD_NUMBER}</code>\n"
+        "(ustiga bosangiz nusxa olinadi) 🎉\n\n"
+        "To'lov qilib bo'lgach, pastdagi <b>✅ To'lov qildim</b> tugmasini bosing."
+    )
+    await query.edit_message_text(text, parse_mode="HTML", reply_markup=paid_confirm_keyboard())
