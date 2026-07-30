@@ -107,13 +107,13 @@ async def receive_oddiy_text(update: Update, context: ContextTypes.DEFAULT_TYPE)
         with open(grid_path, "rb") as f:
             await update.message.reply_photo(
                 photo=f,
-                caption="🎨 <b>10 ta uslubdan birini tanlang</b> 👇",
+                caption="🎨 <b>Qaysi rasmni tanlaysiz?</b>\n\nYuqoridagi rasmga qarab, raqamiga mos tugmani bosing 👇",
                 parse_mode="HTML",
                 reply_markup=oddiy_rasm_styles_keyboard(),
             )
     except Exception:
         await update.message.reply_text(
-            "🎨 <b>10 ta uslubdan birini tanlang</b> 👇",
+            "🎨 <b>Qaysi rasmni tanlaysiz?</b>\n\nYuqoridagi rasmga qarab, raqamiga mos tugmani bosing 👇",
             parse_mode="HTML",
             reply_markup=oddiy_rasm_styles_keyboard(),
         )
