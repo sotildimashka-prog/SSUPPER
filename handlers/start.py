@@ -12,6 +12,8 @@ from config import ADMIN_ID, BOT_NAME
 from keyboards import (
     subscription_keyboard,
     main_menu_keyboard,
+    player_type_keyboard,
+    add_to_group_keyboard,
     language_keyboard,
     portal_button_row,
 )
@@ -74,10 +76,24 @@ def subscribe_text(lang: str = "uz") -> str:
     )
 
 
-def official_site_text(lang: str = "uz") -> str:
+def player_type_question(lang: str = "uz") -> str:
     if lang == "ru":
-        return "🌐 <b>Наш официальный сайт</b>\n\nНажмите кнопку ниже 👇"
-    return "🌐 <b>Bizning rasmiy sayt</b>\n\nPastdagi tugmani bosing 👇"
+        return "🎮 <b>Вы PRO игрок или BOT игрок?</b> 👇"
+    return "🎮 <b>Siz PRO o'yinchimisiz yoki BOT o'yinchimisiz?</b> 👇"
+
+
+def add_to_group_text(lang: str = "uz") -> str:
+    if lang == "ru":
+        return (
+            "➕ <b>Добавьте бота в свою группу!</b>\n\n"
+            "Наслаждайтесь настройками и новостями Free Fire вместе с друзьями. "
+            "Нажмите кнопку ниже 👇"
+        )
+    return (
+        "➕ <b>Botni guruhingizga qo'shing!</b>\n\n"
+        "Do'stlaringiz bilan birga Free Fire nastroykalari va yangiliklaridan "
+        "bahramand bo'ling. Pastdagi tugmani bosing 👇"
+    )
 
 
 def main_menu_ready_text(lang: str = "uz") -> str:
@@ -86,9 +102,23 @@ def main_menu_ready_text(lang: str = "uz") -> str:
     return "👇 Asosiy menyu tayyor:"
 
 
-# Eski nomlar (SUBSCRIBE_TEXT) boshqa modullarda ishlatilgan bo'lishi mumkin -
-# orqaga moslik uchun (uz tilida) saqlanadi.
+def official_site_text(lang: str = "uz") -> str:
+    if lang == "ru":
+        return (
+            "🌐 <b>Наш официальный сайт</b>\n\n"
+            "Перейдите на Free Fire Portal, нажав кнопку ниже 👇"
+        )
+    return (
+        "🌐 <b>Bizning rasmiy sayt</b>\n\n"
+        "Free Fire Portal'ga o'tish uchun pastdagi tugmani bosing 👇"
+    )
+
+
+# Eski nomlar (SUBSCRIBE_TEXT, PLAYER_TYPE_QUESTION, ADD_TO_GROUP_TEXT) boshqa
+# modullarda ishlatilgan bo'lishi mumkin - orqaga moslik uchun (uz tilida) saqlanadi.
 SUBSCRIBE_TEXT = subscribe_text("uz")
+PLAYER_TYPE_QUESTION = player_type_question("uz")
+ADD_TO_GROUP_TEXT = add_to_group_text("uz")
 
 
 async def notify_admin_new_user(context: ContextTypes.DEFAULT_TYPE, user):
@@ -105,7 +135,16 @@ async def notify_admin_new_user(context: ContextTypes.DEFAULT_TYPE, user):
         pass
 
 
-async def _send_official_site(context: ContextTypes.DEFAULT_TYPE, chat_id: int, lang: str = "uz"):
+async def _send_player_type_question(update_or_query, context: ContextTypes.DEFAULT_TYPE, chat_id: int, lang: str = "uz"):
+    await context.bot.send_message(
+        chat_id=chat_id,
+        text=player_type_question(lang),
+        parse_mode="HTML",
+        reply_markup=player_type_keyboard(),
+    )
+
+
+async def _send_official_site_message(context: ContextTypes.DEFAULT_TYPE, chat_id: int, lang: str = "uz"):
     await context.bot.send_message(
         chat_id=chat_id,
         text=official_site_text(lang),
@@ -138,12 +177,12 @@ async def _continue_after_language(update: Update, context: ContextTypes.DEFAULT
 
     # Agar allaqachon obuna bo'lgan bo'lsa - to'g'ridan-to'g'ri asosiy menyuga
     is_admin = user.id == ADMIN_ID
-    await _send_official_site(context, user.id, lang)
     await context.bot.send_message(
         chat_id=user.id,
         text=main_menu_ready_text(lang),
         reply_markup=main_menu_keyboard(is_admin),
     )
+    await _send_official_site_message(context, user.id, lang)
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -213,11 +252,27 @@ async def check_subscription_callback(update: Update, context: ContextTypes.DEFA
     except TelegramError:
         pass
 
-    # 3) 🌐 Bizning rasmiy sayt (Free Fire Portal)
-    await _send_official_site(context, user.id, lang)
-    # 4) Asosiy menyu
+    # 3) Asosiy menyu
     await context.bot.send_message(
         chat_id=user.id,
         text=main_menu_ready_text(lang),
         reply_markup=main_menu_keyboard(is_admin),
     )
+    await _send_official_site_message(context, user.id, lang)
+
+
+async def on_player_type_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Pro yoki Bot o'yinchi tanlanganda - ikkalasida ham guruhga qo'shish taklifi chiqadi."""
+    query = update.callback_query
+    await query.answer()
+    lang = db.get_user_language(query.from_user.id) or "uz"
+
+    me = await context.bot.get_me()
+    try:
+        await query.edit_message_text(
+            add_to_group_text(lang),
+            parse_mode="HTML",
+            reply_markup=add_to_group_keyboard(me.username),
+        )
+    except TelegramError:
+        pass
