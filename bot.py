@@ -56,6 +56,7 @@ from keyboards import (
     BTN_GIFTS,
     BTN_MAIN_RASM,
     BTN_MAIN_VIDEO,
+    BTN_MINI_GAMES,
 )
 
 from handlers.start import (
@@ -225,6 +226,11 @@ from handlers.video_gen import (
     cancel_video,
     receive_video_prompt,
     WAITING_VIDEO_PROMPT,
+)
+from handlers.games import (
+    on_games_button,
+    on_games_root_callback,
+    receive_number_guess,
 )
 
 # ---------- Yangi bosh menyu bo'limlari (🎮 Free Fire / 💎 Almaz olish / 🛠️ Xizmatlar / 👤 Profil) ----------
@@ -786,6 +792,15 @@ def build_application() -> Application:
     app.add_handler(CallbackQueryHandler(on_gift_free_diamond, pattern="^gift:free_diamond$"))
     app.add_handler(CallbackQueryHandler(on_gift_money_bonus, pattern="^gift:money_bonus$"))
     app.add_handler(CallbackQueryHandler(on_gift_diamond_bonus, pattern="^gift:diamond_bonus$"))
+
+    # ---------- 🎮 Mini O'yinlar ----------
+    app.add_handler(MessageHandler(_exact(BTN_MINI_GAMES), on_games_button))
+    app.add_handler(CallbackQueryHandler(on_games_root_callback, pattern="^games:"))
+    app.add_handler(CallbackQueryHandler(on_games_root_callback, pattern="^(mine|target|dice|coin|card|slot|chicken|quiz|reflex|number):"))
+    # "Sonni top" o'yinida faqat raqamli xabarlar shu yerda ushlanadi; boshqa
+    # conversationlar (masalan to'lov, FF ID) o'z holatida ustuvor bo'lib
+    # qoladi, chunki bu handler ular ro'yxatdan o'tgandan KEYIN qo'shilgan.
+    app.add_handler(MessageHandler(filters.Regex(r"^\d+$") & ~filters.COMMAND, receive_number_guess))
 
     # ---------- Statistika uchun umumiy loglash (barcha xabarlar) ----------
     app.add_handler(MessageHandler(filters.ALL, log_all_messages), group=1)
