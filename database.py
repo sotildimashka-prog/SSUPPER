@@ -187,6 +187,18 @@ def init_db():
             )
             """
         )
+        # ---------- 🏆 Yutiqni chiqarish (pul yechish so'rovlari) ----------
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS cash_withdraw_requests (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                amount INTEGER,
+                status TEXT DEFAULT 'pending',
+                created_at TEXT
+            )
+            """
+        )
 
 
 def set_user_language(user_id: int, language: str):
@@ -710,3 +722,16 @@ def set_menu_version(user_id: int, version: int):
             "ON CONFLICT(user_id) DO UPDATE SET version = excluded.version",
             (user_id, version),
         )
+
+
+# ==================== 🏆 Yutiqni chiqarish (Pul) ====================
+
+def create_cash_withdraw_request(user_id: int, amount: int) -> int:
+    now = datetime.utcnow().isoformat()
+    with get_conn() as conn:
+        cur = conn.execute(
+            "INSERT INTO cash_withdraw_requests (user_id, amount, status, created_at) "
+            "VALUES (?, ?, 'pending', ?)",
+            (user_id, amount, now),
+        )
+        return cur.lastrowid
