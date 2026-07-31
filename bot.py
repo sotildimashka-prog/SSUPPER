@@ -7,7 +7,7 @@ Asosiy ishga tushirish fayli.
 import logging
 import re
 
-from telegram import Update, MenuButtonDefault, ReactionTypeEmoji
+from telegram import Update, MenuButtonDefault, ReactionTypeEmoji, ReplyKeyboardRemove
 from telegram.error import TelegramError
 from telegram.ext import (
     Application,
@@ -20,8 +20,10 @@ from telegram.ext import (
 )
 
 import database as db
-from config import BOT_TOKEN
+from config import BOT_TOKEN, ADMIN_ID
 from keyboards import (
+    main_menu_keyboard,
+    MENU_VERSION,
     BTN_SETTINGS,
     BTN_NICKS,
     BTN_TABLET,
@@ -303,10 +305,45 @@ def _exact(text: str):
 AUTO_REACTION_EMOJI = "🔥"
 
 
+async def _auto_refresh_menu_if_needed(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Foydalanuvchining pastki (Reply) tugmalar oynasi eskirgan bo'lsa
+    (ya'ni oxirgi marta ko'rgan menyusi joriy MENU_VERSION'dan past bo'lsa),
+    hech qanday buyruq yubormasa ham, botga yozgan birinchi xabaridayoq
+    avtomatik ravishda eski oynani tozalab, yangi menyuni ko'rsatadi."""
+    user = update.effective_user
+    chat = update.effective_chat
+    if not user or not chat:
+        return
+
+    current_version = db.get_menu_version(user.id)
+    if current_version >= MENU_VERSION:
+        return
+
+    is_admin = user.id == ADMIN_ID
+    try:
+        old = await context.bot.send_message(
+            chat_id=chat.id, text="🔄 Yangilanmoqda...", reply_markup=ReplyKeyboardRemove()
+        )
+        try:
+            await old.delete()
+        except TelegramError:
+            pass
+        await context.bot.send_message(
+            chat_id=chat.id,
+            text="✅ <b>Bot yangilandi!</b>\n\nYangi tugmalar qo'shildi 👇",
+            parse_mode="HTML",
+            reply_markup=main_menu_keyboard(is_admin),
+        )
+        db.set_menu_version(user.id, MENU_VERSION)
+    except TelegramError:
+        pass
+
+
 async def log_all_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user:
         db.touch_user_activity(update.effective_user.id)
         db.log_message(update.effective_user.id)
+        await _auto_refresh_menu_if_needed(update, context)
 
     # Botga yozilgan har qanday xabarga (shu jumladan /start) avtomatik
     # reaksiya bosiladi.
