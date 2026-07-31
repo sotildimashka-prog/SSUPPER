@@ -114,6 +114,12 @@ BTN_MAIN_VIDEO = "🎬 Video Yasash"
 
 VIDEO_MIN_BALANCE = 30000
 
+# Har safar pastki (Reply) tugmalar tarkibi o'zgarganda bu raqamni +1
+# oshiring. Shunda barcha foydalanuvchilarning eski (keshlangan) tugmalar
+# oynasi ular botga keyingi safar yozganda AVTOMATIK yangilanadi —
+# broadcast yuborish shart emas.
+MENU_VERSION = 2
+
 
 def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
     row_texts = [
