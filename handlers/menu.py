@@ -8,6 +8,7 @@ import database as db
 from config import ADMIN_ID, BOT_NAME, HELP_CONTACT, PREMIUM_CONTACT, NEWS_CHANNEL_URL, MUSIC_URL, WEBSITE_URL
 from keyboards import (
     main_menu_keyboard,
+    MENU_VERSION,
     brands_keyboard,
     nicknames_keyboard,
     guides_keyboard,
@@ -86,6 +87,7 @@ async def update_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="HTML",
         reply_markup=main_menu_keyboard(is_admin),
     )
+    db.set_menu_version(update.effective_user.id, MENU_VERSION)
 
 
 async def profil_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
