@@ -84,6 +84,11 @@ BTN_WITHDRAW = "💎 Almaz yechish"
 BTN_ADMIN_CREDIT = "🛠 Admin buyrug'i"
 BTN_GIFT_ALL = "🎁 Hammaga sovg'a"
 
+# ---------- 🛒 Free Fire Do'koni / 🎁 Giftlar / 🏆 Yutiqni chiqarish ----------
+BTN_STORE = "🛒 Free Fire Do'koni"
+BTN_GIFT_ORDER = "🎁 Giftlar"
+BTN_WITHDRAW_WIN = "🏆 Yutiqni chiqarish"
+
 # ---------- Yangi Bosh menyu (faqat 4 ta tugma) ----------
 
 BTN_MAIN_FF = "🎮 Free Fire"
@@ -118,7 +123,7 @@ VIDEO_MIN_BALANCE = 30000
 # oshiring. Shunda barcha foydalanuvchilarning eski (keshlangan) tugmalar
 # oynasi ular botga keyingi safar yozganda AVTOMATIK yangilanadi —
 # broadcast yuborish shart emas.
-MENU_VERSION = 2
+MENU_VERSION = 3
 
 
 def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
@@ -142,6 +147,12 @@ def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
 
     # 🎮 Mini O'yinlar + 👛 Hisobim - yonma-yon bitta qatorda
     rows.append([_kb(BTN_MINI_GAMES), _kb(BTN_MY_ACCOUNT)])
+
+    # 🛒 Free Fire Do'koni + 🎁 Giftlar - yonma-yon bitta qatorda
+    rows.append([_kb(BTN_STORE), _kb(BTN_GIFT_ORDER)])
+
+    # 🏆 Yutiqni chiqarish - alohida qator
+    rows.append([_kb(BTN_WITHDRAW_WIN)])
 
     # 🎁 Sovg'alar - oddiy matnli tugma (pastda MessageHandler orqali ushlanadi)
     rows.append([_kb(BTN_GIFTS)])
@@ -915,3 +926,84 @@ def video_insufficient_keyboard() -> InlineKeyboardMarkup:
 
 def video_cancel_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([[_ikb("⬅️ Bekor qilish", callback_data="video:cancel")]])
+
+
+# ============================================================================
+# 🛒 Free Fire Do'koni (bosh menyu tugmasi)
+# ============================================================================
+
+def store_menu_keyboard() -> InlineKeyboardMarkup:
+    from data.store_data import STORE_ITEMS
+
+    rows = [
+        [_ikb(item["label"], callback_data=f"storeitem:{item['key']}")]
+        for item in STORE_ITEMS
+    ]
+    return InlineKeyboardMarkup(rows)
+
+
+def store_item_detail_keyboard(key: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [_ikb("🛒 Sotib olish", callback_data=f"storebuy:{key}")],
+            [_ikb("⬅️ Orqaga", callback_data="store:back")],
+        ]
+    )
+
+
+def store_admin_review_keyboard(order_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[_ikb("✅ Yubordim", callback_data=f"store_sent:{order_id}")]]
+    )
+
+
+# ============================================================================
+# 🎁 Giftlar (bosh menyu tugmasi - o'yin ichidagi gift buyurtmalari)
+# ============================================================================
+
+def gift_order_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [_ikb("🎁 Character Gift", callback_data="giftorder:character")],
+            [_ikb("🎁 Emote Gift", callback_data="giftorder:emote")],
+            [_ikb("🎁 Gun Skin Gift", callback_data="giftorder:gunskin")],
+            [_ikb("🎁 Evo Gun Gift", callback_data="giftorder:evogun")],
+            [_ikb("🎁 Bundle Gift", callback_data="giftorder:bundle")],
+        ]
+    )
+
+
+def gift_order_item_back_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[_ikb("⬅️ Orqaga", callback_data="giftorder:back")]]
+    )
+
+
+def gift_order_admin_keyboard(user_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[_ikb("💬 Narx aytish", callback_data=f"giftreply:{user_id}")]]
+    )
+
+
+# ============================================================================
+# 🏆 Yutiqni chiqarish (bosh menyu tugmasi - Pul yoki Almaz)
+# ============================================================================
+
+def withdraw_win_type_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                _ikb("💵 Pul chiqarish", callback_data="winwd:cash"),
+                _ikb("💎 Almaz chiqarish", callback_data="winwd:diamond"),
+            ]
+        ]
+    )
+
+
+def withdraw_win_cash_not_enough_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [_ikb("❌ Yechib bo'lmaydi", callback_data="winwd:noop")],
+            [_ikb("⬅️ Orqaga", callback_data="winwd:back")],
+        ]
+    )
