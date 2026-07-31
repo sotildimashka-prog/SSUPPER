@@ -178,6 +178,15 @@ def init_db():
             )
             """
         )
+        # ---------- 🔄 Avtomatik menyu yangilanishi ----------
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS user_menu_version (
+                user_id INTEGER PRIMARY KEY,
+                version INTEGER DEFAULT 0
+            )
+            """
+        )
 
 
 def set_user_language(user_id: int, language: str):
@@ -681,3 +690,23 @@ def decrement_number_game_try(user_id: int) -> int:
 def clear_number_game(user_id: int):
     with get_conn() as conn:
         conn.execute("DELETE FROM number_game_state WHERE user_id = ?", (user_id,))
+
+
+# ==================== 🔄 Avtomatik menyu yangilanishi ====================
+
+def get_menu_version(user_id: int) -> int:
+    with get_conn() as conn:
+        cur = conn.execute(
+            "SELECT version FROM user_menu_version WHERE user_id = ?", (user_id,)
+        )
+        row = cur.fetchone()
+        return row["version"] if row else 0
+
+
+def set_menu_version(user_id: int, version: int):
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT INTO user_menu_version (user_id, version) VALUES (?, ?) "
+            "ON CONFLICT(user_id) DO UPDATE SET version = excluded.version",
+            (user_id, version),
+        )
