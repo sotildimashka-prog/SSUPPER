@@ -156,6 +156,28 @@ def init_db():
             )
             """
         )
+        # ---------- 🎮 Mini O'yinlar (24 soatlik limit, mukofotli rejim) ----------
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS game_cooldowns (
+                user_id INTEGER,
+                game_key TEXT,
+                last_played_at TEXT,
+                PRIMARY KEY (user_id, game_key)
+            )
+            """
+        )
+        # Raqam topish o'yini uchun vaqtinchalik holat (ketma-ket taxminlar)
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS number_game_state (
+                user_id INTEGER PRIMARY KEY,
+                target INTEGER,
+                tries_left INTEGER,
+                mode TEXT
+            )
+            """
+        )
 
 
 def set_user_language(user_id: int, language: str):
@@ -578,3 +600,84 @@ def try_give_daily_money_bonus(user_id: int, amount: int = DAILY_MONEY_BONUS_AMO
             (amount, user_id),
         )
         return True, DAILY_MONEY_BONUS_SECONDS
+
+
+# ==================== 🎮 Mini O'yinlar ====================
+
+GAME_COOLDOWN_SECONDS = 24 * 60 * 60  # 24 soat
+
+
+def check_game_cooldown(user_id: int, game_key: str):
+    """Mukofotli rejimda o'yin 24 soatda 1 marta o'ynaladi.
+    Qaytaradi: (ruxsat_bormi: bool, qolgan_soniya: int)"""
+    now = datetime.utcnow()
+    with get_conn() as conn:
+        cur = conn.execute(
+            "SELECT last_played_at FROM game_cooldowns WHERE user_id = ? AND game_key = ?",
+            (user_id, game_key),
+        )
+        row = cur.fetchone()
+        if row and row["last_played_at"]:
+            last = datetime.fromisoformat(row["last_played_at"])
+            elapsed = (now - last).total_seconds()
+            if elapsed < GAME_COOLDOWN_SECONDS:
+                return False, int(GAME_COOLDOWN_SECONDS - elapsed)
+        return True, 0
+
+
+def set_game_cooldown(user_id: int, game_key: str):
+    now = datetime.utcnow().isoformat()
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT INTO game_cooldowns (user_id, game_key, last_played_at) VALUES (?, ?, ?) "
+            "ON CONFLICT(user_id, game_key) DO UPDATE SET last_played_at = excluded.last_played_at",
+            (user_id, game_key, now),
+        )
+
+
+def give_game_reward(user_id: int, amount: int = 10):
+    """Mukofotli o'yinda g'alaba qozonilganda Almaz balansiga qo'shadi
+    (Tekin almaz bilan bir xil hisobdan foydalaniladi)."""
+    add_quiz_diamonds(user_id, amount)
+
+
+# ---- Raqamni top o'yini uchun holat ----
+
+def start_number_game(user_id: int, target: int, tries: int, mode: str):
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT INTO number_game_state (user_id, target, tries_left, mode) VALUES (?, ?, ?, ?) "
+            "ON CONFLICT(user_id) DO UPDATE SET target = excluded.target, "
+            "tries_left = excluded.tries_left, mode = excluded.mode",
+            (user_id, target, tries, mode),
+        )
+
+
+def get_number_game(user_id: int):
+    with get_conn() as conn:
+        cur = conn.execute(
+            "SELECT target, tries_left, mode FROM number_game_state WHERE user_id = ?",
+            (user_id,),
+        )
+        row = cur.fetchone()
+        if not row:
+            return None
+        return {"target": row["target"], "tries_left": row["tries_left"], "mode": row["mode"]}
+
+
+def decrement_number_game_try(user_id: int) -> int:
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE number_game_state SET tries_left = tries_left - 1 WHERE user_id = ?",
+            (user_id,),
+        )
+        cur = conn.execute(
+            "SELECT tries_left FROM number_game_state WHERE user_id = ?", (user_id,)
+        )
+        row = cur.fetchone()
+        return row["tries_left"] if row else 0
+
+
+def clear_number_game(user_id: int):
+    with get_conn() as conn:
+        conn.execute("DELETE FROM number_game_state WHERE user_id = ?", (user_id,))
