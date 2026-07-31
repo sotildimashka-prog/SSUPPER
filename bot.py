@@ -60,6 +60,9 @@ from keyboards import (
     BTN_MAIN_VIDEO,
     BTN_MINI_GAMES,
     BTN_MY_ACCOUNT,
+    BTN_STORE,
+    BTN_GIFT_ORDER,
+    BTN_WITHDRAW_WIN,
 )
 
 from handlers.start import (
@@ -289,6 +292,43 @@ from handlers.newflow import (
     on_pay_back,
     on_pay_admin,
     on_pay_card,
+)
+
+# ---------- 🛒 Free Fire Do'koni ----------
+from handlers.store import (
+    on_store_button,
+    on_store_back,
+    on_store_item_selected,
+    start_store_buy,
+    receive_store_ff_id,
+    cancel_store_order,
+    store_order_sent_by_admin,
+    WAITING_STORE_FF_ID,
+)
+
+# ---------- 🎁 Giftlar (o'yin ichidagi gift buyurtmalari) ----------
+from handlers.gift_order import (
+    on_gift_order_button,
+    on_gift_order_back,
+    on_gift_order_type_selected,
+    receive_gift_order_item,
+    cancel_gift_order,
+    start_gift_order_admin_reply,
+    receive_gift_order_admin_reply,
+    cancel_gift_order_admin_reply,
+    WAITING_GIFT_ORDER_ITEM,
+    WAITING_GIFT_ORDER_ADMIN_REPLY,
+)
+
+# ---------- 🏆 Yutiqni chiqarish ----------
+from handlers.withdraw_win import (
+    on_withdraw_win_button,
+    on_withdraw_win_back,
+    on_withdraw_win_cash_noop,
+    on_withdraw_win_cash,
+    receive_withdraw_cash_amount,
+    cancel_withdraw_cash,
+    WAITING_WITHDRAW_CASH_AMOUNT,
 )
 
 logging.basicConfig(
@@ -833,6 +873,87 @@ def build_application() -> Application:
     app.add_handler(CallbackQueryHandler(on_gift_free_diamond, pattern="^gift:free_diamond$"))
     app.add_handler(CallbackQueryHandler(on_gift_money_bonus, pattern="^gift:money_bonus$"))
     app.add_handler(CallbackQueryHandler(on_gift_diamond_bonus, pattern="^gift:diamond_bonus$"))
+
+    # ---------- 🛒 Free Fire Do'koni (yangi bosh menyu tugmasi) ----------
+    app.add_handler(MessageHandler(_exact(BTN_STORE), on_store_button))
+    app.add_handler(CallbackQueryHandler(on_store_back, pattern="^store:back$"))
+    app.add_handler(CallbackQueryHandler(on_store_item_selected, pattern="^storeitem:"))
+    app.add_handler(CallbackQueryHandler(store_order_sent_by_admin, pattern="^store_sent:"))
+
+    store_buy_conv = ConversationHandler(
+        entry_points=[CallbackQueryHandler(start_store_buy, pattern="^storebuy:")],
+        states={
+            WAITING_STORE_FF_ID: [
+                CommandHandler("bekor", cancel_store_order),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_store_ff_id),
+            ],
+        },
+        fallbacks=[CommandHandler("bekor", cancel_store_order)],
+    )
+    app.add_handler(store_buy_conv)
+
+    # ---------- 🎁 Giftlar (yangi bosh menyu tugmasi - o'yin ichidagi gift buyurtmalari) ----------
+    app.add_handler(MessageHandler(_exact(BTN_GIFT_ORDER), on_gift_order_button))
+
+    gift_order_conv = ConversationHandler(
+        entry_points=[
+            CallbackQueryHandler(
+                on_gift_order_type_selected,
+                pattern="^giftorder:(character|emote|gunskin|evogun|bundle)$",
+            )
+        ],
+        states={
+            WAITING_GIFT_ORDER_ITEM: [
+                CommandHandler("bekor", cancel_gift_order),
+                CallbackQueryHandler(on_gift_order_back, pattern="^giftorder:back$"),
+                MessageHandler(
+                    (filters.TEXT | filters.PHOTO) & ~filters.COMMAND,
+                    receive_gift_order_item,
+                ),
+            ],
+        },
+        fallbacks=[
+            CommandHandler("bekor", cancel_gift_order),
+            CallbackQueryHandler(on_gift_order_back, pattern="^giftorder:back$"),
+        ],
+    )
+    app.add_handler(gift_order_conv)
+    app.add_handler(CallbackQueryHandler(on_gift_order_back, pattern="^giftorder:back$"))
+
+    gift_order_admin_reply_conv = ConversationHandler(
+        entry_points=[CallbackQueryHandler(start_gift_order_admin_reply, pattern="^giftreply:")],
+        states={
+            WAITING_GIFT_ORDER_ADMIN_REPLY: [
+                CommandHandler("bekor", cancel_gift_order_admin_reply),
+                MessageHandler(
+                    (filters.TEXT | filters.PHOTO | filters.VIDEO | filters.Document.ALL)
+                    & ~filters.COMMAND,
+                    receive_gift_order_admin_reply,
+                ),
+            ],
+        },
+        fallbacks=[CommandHandler("bekor", cancel_gift_order_admin_reply)],
+    )
+    app.add_handler(gift_order_admin_reply_conv)
+
+    # ---------- 🏆 Yutiqni chiqarish (yangi bosh menyu tugmasi - Pul/Almaz) ----------
+    app.add_handler(MessageHandler(_exact(BTN_WITHDRAW_WIN), on_withdraw_win_button))
+    app.add_handler(CallbackQueryHandler(on_withdraw_win_back, pattern="^winwd:back$"))
+    app.add_handler(CallbackQueryHandler(on_withdraw_win_cash_noop, pattern="^winwd:noop$"))
+    # 💎 Almaz tanlansa, mavjud "💎 Almaz yechish" oqimi qayta ishlatiladi
+    app.add_handler(CallbackQueryHandler(on_withdraw_button_callback, pattern="^winwd:diamond$"))
+
+    withdraw_win_cash_conv = ConversationHandler(
+        entry_points=[CallbackQueryHandler(on_withdraw_win_cash, pattern="^winwd:cash$")],
+        states={
+            WAITING_WITHDRAW_CASH_AMOUNT: [
+                CommandHandler("bekor", cancel_withdraw_cash),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_withdraw_cash_amount),
+            ],
+        },
+        fallbacks=[CommandHandler("bekor", cancel_withdraw_cash)],
+    )
+    app.add_handler(withdraw_win_cash_conv)
 
     # ---------- 🎮 Mini O'yinlar ----------
     app.add_handler(MessageHandler(_exact(BTN_MINI_GAMES), on_games_button))
