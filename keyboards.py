@@ -104,6 +104,7 @@ BTN_M2_PAYMENTS = "💰 To'lov usullari"
 BTN_M2_FAQ = "📬 Savollar (FAQ)"
 BTN_GIFTS = "🎁 Sovg'alar"
 BTN_PORTAL = "🗺 Free Fire Portal 🚀"
+BTN_MINI_GAMES = "🎮 Mini O'yinlar"
 
 # ---------- 🖼️ Rasm Yasash / 🎬 Video Yasash (Bosh menyu) ----------
 
@@ -131,6 +132,9 @@ def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
     # 🗺 Free Fire Portal - alohida, birinchi qatorda, to'g'ridan-to'g'ri
     # Web App'ni ochadigan tugma.
     rows.insert(0, [_kb(BTN_PORTAL, web_app=WebAppInfo(url=WEBAPP_URL))])
+
+    # 🎮 Mini O'yinlar - oddiy matnli tugma (pastda MessageHandler orqali ushlanadi)
+    rows.append([_kb(BTN_MINI_GAMES)])
 
     # 🎁 Sovg'alar - oddiy matnli tugma (pastda MessageHandler orqali ushlanadi)
     rows.append([_kb(BTN_GIFTS)])
