@@ -75,6 +75,7 @@ from handlers.gifts import (
 from handlers.menu import (
     haqida_command,
     menu_command,
+    update_command,
     profil_command,
     yordam_command,
     yangiliklar_command,
@@ -336,6 +337,7 @@ def build_application() -> Application:
     app.add_handler(CommandHandler("start", start_command))
     app.add_handler(CommandHandler("haqida", haqida_command))
     app.add_handler(CommandHandler("menu", menu_command))
+    app.add_handler(CommandHandler("update", update_command))
     app.add_handler(CommandHandler("profil", profil_command))
     app.add_handler(CommandHandler("yordam", yordam_command))
     app.add_handler(CommandHandler("yangiliklar", yangiliklar_command))
