@@ -126,3 +126,25 @@ ochiq joyda ulashilgan bo'lsa).
 - **🌐✨ Foydali web sayt**: bosilganda https://freefireuz.netlify.app saytiga olib boradigan tugma chiqadi.
 
 Barcha yangi bo'limlarda "⬅️ Orqaga" tugmasi mavjud.
+
+## 🆕 Yangi qo'shilgan imkoniyatlar (v3 yangilanish)
+
+- **🛒 Free Fire Do'koni**: Xaftalik vaucher (18.000 so'm), Oylik vaucher
+  (79.000 so'm), Booyah Pass (60.000 so'm), Level Up Pass (70.000 so'm, 1250
+  almaz). Xarid qilinganda balansdan pul yechiladi, so'ng Free Fire UID
+  so'raladi va so'rov adminga boradi.
+- **🎁 Giftlar**: Character Gift, Emote Gift, Gun Skin Gift, Evo Gun Gift,
+  Bundle Gift. Foydalanuvchi kerakli gift nomi yoki rasmini yuboradi, so'rov
+  adminga boradi, admin narxni to'g'ridan-to'g'ri o'sha foydalanuvchiga
+  yuboradi.
+- **🏆 Yutiqni chiqarish**: Pul yoki Almaz chiqarish tanlanadi. Pul
+  tanlansa - bir martada maksimum 20.000 so'm (kamida 20.000 so'm balans
+  talab qilinadi). Almaz tanlansa - mavjud "💎 Almaz yechish" oqimi
+  ishlatiladi (kamida 450 dona almaz).
+- Bu yangilanishda **hech qanday eski ma'lumot yoki funksiya o'chirilmadi** -
+  barcha eski bo'limlar (Sovg'alar, Almaz yechish va h.k.) o'z holicha
+  ishlayveradi. `MENU_VERSION` oshirilgani uchun barcha mavjud
+  foydalanuvchilarning pastki tugmalari ular botga keyingi safar
+  yozganda **avtomatik** yangilanadi - qo'lda xabar yuborish shart emas.
+  Botga tasodifan kirib qolgan foydalanuvchi ham `/update` buyrug'i orqali
+  yangi tugmalarni darhol ko'rishi mumkin.
