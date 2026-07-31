@@ -57,6 +57,7 @@ from keyboards import (
     BTN_MAIN_RASM,
     BTN_MAIN_VIDEO,
     BTN_MINI_GAMES,
+    BTN_MY_ACCOUNT,
 )
 
 from handlers.start import (
@@ -231,6 +232,7 @@ from handlers.games import (
     on_games_button,
     on_games_root_callback,
     receive_number_guess,
+    on_my_account_button,
 )
 
 # ---------- Yangi bosh menyu bo'limlari (🎮 Free Fire / 💎 Almaz olish / 🛠️ Xizmatlar / 👤 Profil) ----------
@@ -795,6 +797,7 @@ def build_application() -> Application:
 
     # ---------- 🎮 Mini O'yinlar ----------
     app.add_handler(MessageHandler(_exact(BTN_MINI_GAMES), on_games_button))
+    app.add_handler(MessageHandler(_exact(BTN_MY_ACCOUNT), on_my_account_button))
     app.add_handler(CallbackQueryHandler(on_games_root_callback, pattern="^games:"))
     app.add_handler(CallbackQueryHandler(on_games_root_callback, pattern="^(mine|target|dice|coin|card|slot|chicken|quiz|reflex|number):"))
     # "Sonni top" o'yinida faqat raqamli xabarlar shu yerda ushlanadi; boshqa
