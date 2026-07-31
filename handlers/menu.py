@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """/haqida, /menu, /profil, /yordam, /yangiliklar buyruqlari va oddiy tugma javoblari."""
 
-from telegram import Update
+from telegram import Update, ReplyKeyboardRemove
 from telegram.ext import ContextTypes
 
 import database as db
@@ -59,6 +59,30 @@ async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     is_admin = _is_admin(update.effective_user.id)
     await update.message.reply_text(
         "🏠 <b>Bosh menyu</b>\n\nKerakli bo'limni tanlang 👇",
+        parse_mode="HTML",
+        reply_markup=main_menu_keyboard(is_admin),
+    )
+
+
+async def update_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """/update — Telegram'da eski (keshlangan) pastki tugmalar ko'rinishini
+    tozalab, botning eng so'nggi menyusini qayta ko'rsatadi. Botga tasodifan
+    kirib qolgan foydalanuvchi ham shu buyruq bilan yangilanishlarni darhol
+    ko'ra oladi."""
+    is_admin = _is_admin(update.effective_user.id)
+
+    # 1) Eski pastki tugmalar oynasini tozalaymiz (mijoz keshini yangilaydi).
+    old = await update.message.reply_text(
+        "🔄 Yangilanmoqda...", reply_markup=ReplyKeyboardRemove()
+    )
+    try:
+        await old.delete()
+    except Exception:
+        pass
+
+    # 2) Yangi (eng so'nggi) menyuni ko'rsatamiz.
+    await update.message.reply_text(
+        "✅ <b>Bot yangilandi!</b>\n\nEng so'nggi menyu tugmalari yuklandi 👇",
         parse_mode="HTML",
         reply_markup=main_menu_keyboard(is_admin),
     )
