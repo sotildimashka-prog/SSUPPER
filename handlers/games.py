@@ -3,7 +3,7 @@
 
 Ikki rejim mavjud:
   - free (🎮 Oddiy O'yinlar)      -> mukofotsiz, cheksiz o'ynash mumkin
-  - paid (🏆 Mukofotli O'yinlar)  -> g'alabada 10 💎 Almaz, har bir o'yin
+  - paid (🏆 Mukofotli O'yinlar)  -> g'alabada 5 💎 Almaz, har bir o'yin
                                       foydalanuvchi uchun 24 soatda 1 marta
 """
 
@@ -17,7 +17,7 @@ from telegram.ext import ContextTypes
 import database as db
 from keyboards import BTN_MINI_GAMES  # noqa: F401 (bot.py orqali chaqiriladi)
 
-REWARD_AMOUNT = 10
+REWARD_AMOUNT = 5
 
 GAMES = [
     ("mine", "💣 Minani top"),
@@ -69,6 +69,19 @@ def _back_keyboard(mode: str) -> InlineKeyboardMarkup:
 # Kirish nuqtalari
 # ---------------------------------------------------------------------------
 
+async def on_my_account_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """👛 Hisobim (Reply tugma) - Almaz va pul balansini ko'rsatadi."""
+    user_id = update.effective_user.id
+    diamonds = db.get_quiz_diamonds(user_id)
+    money = db.get_balance(user_id)
+    text = (
+        "👛 <b>Hisobim</b>\n\n"
+        f"💎 Almaz: <b>{diamonds}</b>\n"
+        f"💵 Pul: <b>{money:,} so'm</b>".replace(",", ".")
+    )
+    await update.message.reply_text(text, parse_mode="HTML")
+
+
 async def on_games_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """🎮 Mini O'yinlar (Reply tugma)."""
     text = (
@@ -78,7 +91,7 @@ async def on_games_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Hech qanday mukofot berilmaydi. Faqat qiziqarli mini o'yinlarni "
         "o'ynab vaqtni maroqli o'tkazing!\n\n"
         "🏆 <b>Mukofotli O'yinlar</b> 🎁\n"
-        "G'olib bo'lsangiz har bir o'yinda 10 💎 Almaz mukofotiga ega bo'lasiz!"
+        "G'olib bo'lsangiz har bir o'yinda 5 💎 Almaz mukofotiga ega bo'lasiz!"
     )
     keyboard = InlineKeyboardMarkup(
         [
@@ -97,7 +110,7 @@ async def _show_mode_select(query):
         "Hech qanday mukofot berilmaydi. Faqat qiziqarli mini o'yinlarni "
         "o'ynab vaqtni maroqli o'tkazing!\n\n"
         "🏆 <b>Mukofotli O'yinlar</b> 🎁\n"
-        "G'olib bo'lsangiz har bir o'yinda 10 💎 Almaz mukofotiga ega bo'lasiz!"
+        "G'olib bo'lsangiz har bir o'yinda 5 💎 Almaz mukofotiga ega bo'lasiz!"
     )
     keyboard = InlineKeyboardMarkup(
         [
@@ -121,7 +134,7 @@ async def _show_game_list(query, mode: str):
     rows.append([InlineKeyboardButton("⬅️ Orqaga", callback_data="games:back")])
 
     if mode == "paid":
-        text = "🏆 <b>Mukofotli O'yinlar</b> 🎁\n\nG'olib bo'lsangiz har biridan +10 💎 Almaz!\nHar bir o'yin 24 soatda 1 marta o'ynaladi.\n\nO'yinni tanlang:"
+        text = "🏆 <b>Mukofotli O'yinlar</b> 🎁\n\nG'olib bo'lsangiz har biridan +5 💎 Almaz!\nHar bir o'yin 24 soatda 1 marta o'ynaladi.\n\nO'yinni tanlang:"
     else:
         text = "🎮 <b>Oddiy O'yinlar</b> 🎲\n\nMukofotsiz, xohlagancha o'ynang!\n\nO'yinni tanlang:"
 
@@ -197,7 +210,7 @@ async def _finish(query, context, mode, key, won: bool):
     if won:
         if mode == "paid":
             db.give_game_reward(_user_id(query), REWARD_AMOUNT)
-            text = "🎉 <b>Tabriklaymiz!</b>\nSiz 10 💎 Almaz yutdingiz!"
+            text = f"🎉 <b>Tabriklaymiz!</b>\nSiz {REWARD_AMOUNT} 💎 Almaz yutdingiz!"
         else:
             text = "✅ <b>Siz yutdingiz!</b> 🎉"
     else:
@@ -545,7 +558,7 @@ async def _act_reflex(query, context, mode, rest):
         if won:
             if mode == "paid":
                 db.give_game_reward(_user_id(query), REWARD_AMOUNT)
-                text = prefix + "⚡ <b>Juda tez!</b>\n🎉 Siz 10 💎 Almaz yutdingiz!"
+                text = prefix + f"⚡ <b>Juda tez!</b>\n🎉 Siz {REWARD_AMOUNT} 💎 Almaz yutdingiz!"
             else:
                 text = prefix + "⚡ <b>Juda tez!</b> ✅"
             await query.edit_message_text(text, reply_markup=_result_keyboard(mode, "reflex"), parse_mode="HTML")
@@ -574,7 +587,7 @@ async def _act_number(query, context, mode, rest):
 async def _finish_with_prefix(query, mode, key, won, prefix):
     if mode == "paid" and won:
         db.give_game_reward(_user_id(query), REWARD_AMOUNT)
-        text = prefix + "🎉 <b>Tabriklaymiz!</b>\nSiz 10 💎 Almaz yutdingiz!"
+        text = prefix + f"🎉 <b>Tabriklaymiz!</b>\nSiz {REWARD_AMOUNT} 💎 Almaz yutdingiz!"
     elif won:
         text = prefix + "✅ <b>Siz yutdingiz!</b> 🎉"
     else:
@@ -618,7 +631,7 @@ async def receive_number_guess(update: Update, context: ContextTypes.DEFAULT_TYP
         db.clear_number_game(user_id)
         if mode == "paid":
             db.give_game_reward(user_id, REWARD_AMOUNT)
-            msg = f"🎉 <b>Tabriklaymiz!</b>\nTo'g'ri toptingiz: {target}!\nSiz 10 💎 Almaz yutdingiz!"
+            msg = f"🎉 <b>Tabriklaymiz!</b>\nTo'g'ri toptingiz: {target}!\nSiz {REWARD_AMOUNT} 💎 Almaz yutdingiz!"
         else:
             msg = f"✅ <b>Siz yutdingiz!</b> 🎉\nTo'g'ri son: {target}"
         await update.message.reply_text(msg, reply_markup=_result_keyboard(mode, "number"), parse_mode="HTML")
