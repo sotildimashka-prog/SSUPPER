@@ -117,6 +117,23 @@ BTN_MY_ACCOUNT = "👛 Hisobim"
 BTN_MAIN_RASM = "🖼️ Rasm Yasash"
 BTN_MAIN_VIDEO = "🎬 Video Yasash"
 
+# ---------- 👑 Pro obuna ----------
+
+BTN_PRO_SUB = "👑 Pro obuna"
+
+# ---------- 🔙 Universal "Orqaga" (Reply) tugmasi ----------
+# Ichki bo'limlarning istalgan tugmasi bosilganda pastda shu tugma chiqib,
+# foydalanuvchi asosiy menyuga bir bosishda qaytishi mumkin.
+
+BTN_BACK = "🔙 Orqaga"
+
+
+def back_reply_keyboard() -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        [[_kb(BTN_BACK)]], resize_keyboard=True, is_persistent=True
+    )
+
+
 VIDEO_MIN_BALANCE = 30000
 
 # Har safar pastki (Reply) tugmalar tarkibi o'zgarganda bu raqamni +1
@@ -151,11 +168,11 @@ def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
     # 🛒 Free Fire Do'koni + 🎁 Giftlar - yonma-yon bitta qatorda
     rows.append([_kb(BTN_STORE), _kb(BTN_GIFT_ORDER)])
 
-    # 🏆 Yutiqni chiqarish - alohida qator
-    rows.append([_kb(BTN_WITHDRAW_WIN)])
+    # 🎁 Sovg'alar + 🏆 Yutiqni chiqarish - yonma-yon bitta qatorda
+    rows.append([_kb(BTN_GIFTS), _kb(BTN_WITHDRAW_WIN)])
 
-    # 🎁 Sovg'alar - oddiy matnli tugma (pastda MessageHandler orqali ushlanadi)
-    rows.append([_kb(BTN_GIFTS)])
+    # 👑 Pro obuna - alohida, chiroyli qator
+    rows.append([_kb(BTN_PRO_SUB)])
 
     return ReplyKeyboardMarkup(rows, resize_keyboard=True, is_persistent=True)
 
@@ -876,6 +893,22 @@ def payments_menu_keyboard() -> InlineKeyboardMarkup:
 def payments_back_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [[_ikb("⬅️ Orqaga", callback_data="pay:back")]]
+    )
+
+
+# ---------- 👛 Hisobim -> 💰 To'lov usullari ----------
+
+def my_account_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[_ikb("💰 To'lov usullari", callback_data="myacc:pay")]]
+    )
+
+
+# ---------- 👑 Pro obuna ----------
+
+def pro_sub_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[_ikb("💳 Tarifni sotib olish", callback_data="prosub:buy")]]
     )
 
 
