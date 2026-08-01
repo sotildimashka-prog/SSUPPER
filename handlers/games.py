@@ -3,7 +3,7 @@
 
 Ikki rejim mavjud:
   - free (🎮 Oddiy O'yinlar)      -> mukofotsiz, cheksiz o'ynash mumkin
-  - paid (🏆 Mukofotli O'yinlar)  -> g'alabada 5 💎 Almaz, har bir o'yin
+  - paid (🏆 Mukofotli O'yinlar)  -> g'alabada 3 💎 Almaz, har bir o'yin
                                       foydalanuvchi uchun 24 soatda 1 marta
 """
 
@@ -15,9 +15,35 @@ from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes
 
 import database as db
-from keyboards import BTN_MINI_GAMES  # noqa: F401 (bot.py orqali chaqiriladi)
+from keyboards import (
+    BTN_MINI_GAMES,  # noqa: F401 (bot.py orqali chaqiriladi)
+    my_account_keyboard,
+    back_reply_keyboard,
+)
 
-REWARD_AMOUNT = 5
+REWARD_AMOUNT = 3
+
+
+def _next_quiz_question(context: ContextTypes.DEFAULT_TYPE, user_id: int, questions: list) -> dict:
+    """Foydalanuvchiga savollarni takrorlanmasdan (avval barcha savollar
+    bir marta ko'rsatilmaguncha qayta chiqmaydigan tartibda) beradi.
+    Barcha savollar tugagach, ro'yxat qayta aralashtirilib, oxirgi ko'rilgan
+    savol yana birinchi bo'lib chiqmasligi uchun ehtiyot chorasi ko'riladi."""
+    store = context.bot_data.setdefault("quiz_queues", {})
+    state = store.get(user_id)
+
+    if not state or not state.get("queue"):
+        pool = list(range(len(questions)))
+        random.shuffle(pool)
+        last_idx = state.get("last") if state else None
+        if last_idx is not None and pool and pool[0] == last_idx and len(pool) > 1:
+            pool[0], pool[1] = pool[1], pool[0]
+        state = {"queue": pool, "last": last_idx}
+        store[user_id] = state
+
+    idx = state["queue"].pop(0)
+    state["last"] = idx
+    return questions[idx]
 
 GAMES = [
     ("mine", "💣 Minani top"),
@@ -77,9 +103,32 @@ async def on_my_account_button(update: Update, context: ContextTypes.DEFAULT_TYP
     text = (
         "👛 <b>Hisobim</b>\n\n"
         f"💎 Almaz: <b>{diamonds}</b>\n"
-        f"💵 Pul: <b>{money:,} so'm</b>".replace(",", ".")
+        f"💵 Pul: <b>{money:,} so'm</b>\n\n".replace(",", ".")
+        + "Barcha to'lov usullari haqida ma'lumot olish uchun pastdagi tugmani bosing 👇"
     )
-    await update.message.reply_text(text, parse_mode="HTML")
+    await update.message.reply_text(
+        text, parse_mode="HTML", reply_markup=my_account_keyboard()
+    )
+    await update.message.reply_text(
+        "⬅️ Orqaga qaytish uchun pastdagi tugmani bosing.",
+        reply_markup=back_reply_keyboard(),
+    )
+
+
+async def on_myacc_pay_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """👛 Hisobim ichidagi 💰 To'lov usullari tugmasi."""
+    from keyboards import payments_menu_keyboard
+
+    query = update.callback_query
+    await query.answer()
+    await query.edit_message_text(
+        "💰 <b>To'lov usullari</b>\n\n"
+        "Hisobingizni to'ldirish uchun quyidagi usullardan birini tanlang 👇\n\n"
+        "👤 <b>Admin orqali</b> — admin bilan bog'lanib to'lov qilasiz\n"
+        "💳 <b>Humo/Uzcard orqali</b> — karta orqali to'g'ridan-to'g'ri to'ldirasiz",
+        parse_mode="HTML",
+        reply_markup=payments_menu_keyboard(),
+    )
 
 
 async def on_games_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -91,7 +140,7 @@ async def on_games_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Hech qanday mukofot berilmaydi. Faqat qiziqarli mini o'yinlarni "
         "o'ynab vaqtni maroqli o'tkazing!\n\n"
         "🏆 <b>Mukofotli O'yinlar</b> 🎁\n"
-        "G'olib bo'lsangiz har bir o'yinda 5 💎 Almaz mukofotiga ega bo'lasiz!"
+        "G'olib bo'lsangiz har bir o'yinda " + str(REWARD_AMOUNT) + " 💎 Almaz mukofotiga ega bo'lasiz!"
     )
     keyboard = InlineKeyboardMarkup(
         [
@@ -110,7 +159,7 @@ async def _show_mode_select(query):
         "Hech qanday mukofot berilmaydi. Faqat qiziqarli mini o'yinlarni "
         "o'ynab vaqtni maroqli o'tkazing!\n\n"
         "🏆 <b>Mukofotli O'yinlar</b> 🎁\n"
-        "G'olib bo'lsangiz har bir o'yinda 5 💎 Almaz mukofotiga ega bo'lasiz!"
+        "G'olib bo'lsangiz har bir o'yinda " + str(REWARD_AMOUNT) + " 💎 Almaz mukofotiga ega bo'lasiz!"
     )
     keyboard = InlineKeyboardMarkup(
         [
@@ -134,7 +183,7 @@ async def _show_game_list(query, mode: str):
     rows.append([InlineKeyboardButton("⬅️ Orqaga", callback_data="games:back")])
 
     if mode == "paid":
-        text = "🏆 <b>Mukofotli O'yinlar</b> 🎁\n\nG'olib bo'lsangiz har biridan +5 💎 Almaz!\nHar bir o'yin 24 soatda 1 marta o'ynaladi.\n\nO'yinni tanlang:"
+        text = "🏆 <b>Mukofotli O'yinlar</b> 🎁\n\nG'olib bo'lsangiz har biridan +" + str(REWARD_AMOUNT) + " 💎 Almaz!\nHar bir o'yin 24 soatda 1 marta o'ynaladi.\n\nO'yinni tanlang:"
     else:
         text = "🎮 <b>Oddiy O'yinlar</b> 🎲\n\nMukofotsiz, xohlagancha o'ynang!\n\nO'yinni tanlang:"
 
@@ -351,7 +400,7 @@ async def _open_game(query, context, mode, key):
             return
         from data.quiz_data import QUESTIONS
 
-        q = random.choice(QUESTIONS)
+        q = _next_quiz_question(context, _user_id(query), QUESTIONS)
         options = q["options"]
         correct = q["correct"]
         rows = [
