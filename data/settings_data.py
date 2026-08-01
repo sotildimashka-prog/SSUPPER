@@ -2,207 +2,271 @@
 """
 Har bir telefon modeli uchun Free Fire nastroykalari.
 
-Telefonlar quvvat darajasiga (tier) qarab guruhlangan, va har bir
-model uchun qiymatlar shu model indeksiga qarab tier ichida biroz
-farqlantiriladi - shu sababli hech qanday ikkita telefon bir xil
-qiymatlarga ega bo'lmaydi.
+Bu yerdagi 150 ta telefon modeli va ularning nastroyka qiymatlari
+"150 haqiqiy telefon Free Fire nastroykalari" faylidan olingan haqiqiy
+(tasdiqlangan) nastroykalar bo'lib, barcha modellar uchun bir xil
+tavsiya etilgan qiymatlar qo'llaniladi.
 """
 
 # Brend -> [(model nomi, tier), ...]
 PHONES = {
-    "📱 Samsung": [
-        ("Samsung Galaxy A06", "budget"),
-        ("Samsung Galaxy A30", "budget"),
-        ("Samsung Galaxy A31", "mid"),
-        ("Samsung Galaxy S21", "flagship"),
-        ("Samsung Galaxy S25 Ultra", "flagship_pro"),
-        ("Samsung Galaxy A03", "budget"),
-        ("Samsung Galaxy A04", "budget"),
-        ("Samsung Galaxy A05", "budget"),
-        ("Samsung Galaxy A13", "budget"),
-        ("Samsung Galaxy A14", "budget"),
-        ("Samsung Galaxy A23", "mid"),
-        ("Samsung Galaxy A24", "mid"),
-        ("Samsung Galaxy A34", "mid"),
-        ("Samsung Galaxy A54", "flagship"),
-        ("Samsung Galaxy M14", "mid"),
+    "📱 Xiaomi": [
+        ("Xiaomi Redmi Note 10", "real"),
+        ("Xiaomi Redmi Note 11", "real"),
+        ("Xiaomi Redmi Note 12", "real"),
+        ("Xiaomi Redmi Note 13", "real"),
+        ("Xiaomi Redmi 13C", "real"),
     ],
-    "📱 Redmi": [
-        ("Redmi 9A", "budget"),
-        ("Redmi 12", "mid"),
-        ("Redmi 13", "mid"),
-        ("Redmi 14C", "mid"),
-        ("Redmi 15C", "mid"),
-        ("Redmi 9C", "budget"),
-        ("Redmi 10", "budget"),
-        ("Redmi 10C", "budget"),
-        ("Redmi 12C", "budget"),
-        ("Redmi 13C", "mid"),
-        ("Redmi Note 13", "mid"),
+    "📱 Realme": [
+        ("Realme C33", "real"),
+        ("Realme C51", "real"),
+        ("Realme C55", "real"),
+        ("Realme Note 50", "real"),
+        ("Realme 12", "real"),
     ],
-    "📱 Poco": [
-        ("Poco C71", "budget"),
-        ("Poco C75", "budget"),
-        ("Poco X7 Pro", "mid"),
-        ("Poco F7", "flagship"),
-        ("Poco F7 Pro", "flagship_pro"),
+    "📱 Huawei": [
+        ("Huawei Nova 9", "real"),
+        ("Huawei Nova 10", "real"),
+        ("Huawei Nova 11", "real"),
+        ("Huawei Nova 12", "real"),
+        ("Huawei Y9a", "real"),
     ],
-    "📱 Infinix": [
-        ("Infinix Smart 9", "budget"),
-        ("Infinix Note 40", "mid"),
-        ("Infinix GT 20 Pro", "flagship"),
-        ("Infinix GT 30 Pro", "flagship"),
-        ("Infinix Hot 50 Pro+", "mid"),
-        ("Infinix Hot 10", "budget"),
-        ("Infinix Hot 11", "budget"),
-        ("Infinix Hot 12", "budget"),
-        ("Infinix Hot 20", "mid"),
-        ("Infinix Hot 30", "mid"),
-        ("Infinix Hot 40", "mid"),
-        ("Infinix Note 12", "mid"),
-        ("Infinix Note 30", "mid"),
-        ("Infinix Smart 7", "budget"),
-        ("Infinix Smart 8", "budget"),
+    "📱 OnePlus": [
+        ("OnePlus Nord CE 3", "real"),
+        ("OnePlus Nord 3", "real"),
+        ("OnePlus 11R", "real"),
+        ("OnePlus 12R", "real"),
+        ("OnePlus 12", "real"),
     ],
-    "📱 Honor": [
-        ("Honor X5b", "budget"),
-        ("Honor X6b", "budget"),
-        ("Honor X7c", "mid"),
-        ("Honor 200 Lite", "mid"),
-        ("Honor 400 Lite", "flagship"),
+    "📱 Motorola": [
+        ("Motorola G24", "real"),
+        ("Motorola G34", "real"),
+        ("Motorola G54", "real"),
+        ("Motorola Edge 40", "real"),
+        ("Motorola Edge 50", "real"),
     ],
-    "📱 iPhone": [
-        ("iPhone 11", "mid"),
-        ("iPhone 12", "mid"),
-        ("iPhone 13", "flagship"),
-        ("iPhone 14 Pro Max", "flagship_pro"),
-        ("iPhone 16 Pro Max", "flagship_pro"),
+    "📱 Nokia": [
+        ("Nokia G21", "real"),
+        ("Nokia G42", "real"),
+        ("Nokia G60", "real"),
+        ("Nokia X20", "real"),
+        ("Nokia XR21", "real"),
     ],
-    "📱 ASUS": [
-        ("ASUS ROG Phone 6", "flagship"),
-        ("ASUS ROG Phone 7", "flagship_pro"),
-        ("ASUS ROG Phone 8", "flagship_pro"),
-        ("ASUS ROG Phone 8 Pro", "flagship_pro"),
-        ("ASUS ROG Phone 9 Pro", "flagship_pro"),
+    "📱 Google Pixel": [
+        ("Google Pixel Pixel 6", "real"),
+        ("Google Pixel Pixel 6a", "real"),
+        ("Google Pixel Pixel 7", "real"),
+        ("Google Pixel Pixel 7a", "real"),
+        ("Google Pixel Pixel 8", "real"),
     ],
-    "📱 Oppo": [
-        ("Oppo A5s", "budget"),
-        ("Oppo A12", "budget"),
-        ("Oppo A16", "budget"),
-        ("Oppo A17", "budget"),
-        ("Oppo A38", "mid"),
-        ("Oppo A58", "mid"),
-        ("Oppo A78", "mid"),
-        ("Oppo Reno 8", "flagship"),
-        ("Oppo Reno 10", "flagship"),
-        ("Oppo A98", "flagship"),
+    "📱 Sony Xperia": [
+        ("Sony Xperia 10 IV", "real"),
+        ("Sony Xperia 10 V", "real"),
+        ("Sony Xperia 5 IV", "real"),
+        ("Sony Xperia 5 V", "real"),
+        ("Sony Xperia 1 V", "real"),
     ],
-    "📱 Tecno": [
-        ("Tecno Spark 8", "budget"),
-        ("Tecno Spark 9", "budget"),
-        ("Tecno Spark 10", "budget"),
-        ("Tecno Spark 20", "mid"),
-        ("Tecno Camon 18", "mid"),
-        ("Tecno Camon 19", "mid"),
-        ("Tecno Camon 20", "mid"),
-        ("Tecno Pova 5", "flagship"),
-        ("Tecno Pop 7", "budget"),
-        ("Tecno Pop 8", "budget"),
+    "📱 ZTE": [
+        ("ZTE Blade A52", "real"),
+        ("ZTE Blade A72", "real"),
+        ("ZTE Blade V40", "real"),
+        ("ZTE Nubia Neo", "real"),
+        ("ZTE Blade V50", "real"),
     ],
-    "📱 Vivo": [
-        ("Vivo Y02", "budget"),
-        ("Vivo Y12", "budget"),
-        ("Vivo Y15", "budget"),
-        ("Vivo Y17", "budget"),
-        ("Vivo Y20", "budget"),
-        ("Vivo Y21", "budget"),
-        ("Vivo Y33s", "mid"),
-        ("Vivo Y36", "mid"),
-        ("Vivo V27", "flagship"),
-        ("Vivo V29", "flagship"),
+    "📱 Lenovo": [
+        ("Lenovo K14", "real"),
+        ("Lenovo K15", "real"),
+        ("Lenovo K13", "real"),
+        ("Lenovo Legion Y70", "real"),
+        ("Lenovo Legion Y90", "real"),
+    ],
+    "📱 Nothing Phone": [
+        ("Nothing Phone (1)", "real"),
+        ("Nothing Phone (2)", "real"),
+        ("Nothing Phone (2a)", "real"),
+        ("Nothing Phone (3a)", "real"),
+        ("Nothing Phone CMF Phone 1", "real"),
+    ],
+    "📱 Meizu": [
+        ("Meizu M10", "real"),
+        ("Meizu M20", "real"),
+        ("Meizu Note 21", "real"),
+        ("Meizu 20 Pro", "real"),
+        ("Meizu 21", "real"),
+    ],
+    "📱 iQOO": [
+        ("iQOO Z7", "real"),
+        ("iQOO Z9", "real"),
+        ("iQOO Neo 9", "real"),
+        ("iQOO 12", "real"),
+        ("iQOO 13", "real"),
+    ],
+    "📱 Nubia": [
+        ("Nubia Neo 2", "real"),
+        ("Nubia Z50", "real"),
+        ("Nubia Z60", "real"),
+        ("Nubia Flip", "real"),
+        ("Nubia Focus", "real"),
+    ],
+    "📱 Black Shark": [
+        ("Black Shark 4", "real"),
+        ("Black Shark 4 Pro", "real"),
+        ("Black Shark 5", "real"),
+        ("Black Shark 5 Pro", "real"),
+        ("Black Shark 5 RS", "real"),
+    ],
+    "📱 RedMagic": [
+        ("RedMagic 7", "real"),
+        ("RedMagic 8 Pro", "real"),
+        ("RedMagic 9 Pro", "real"),
+        ("RedMagic 10 Pro", "real"),
+        ("RedMagic 10 Air", "real"),
+    ],
+    "📱 ROG Phone": [
+        ("ROG Phone 5", "real"),
+        ("ROG Phone 6", "real"),
+        ("ROG Phone 7", "real"),
+        ("ROG Phone 8", "real"),
+        ("ROG Phone 9", "real"),
+    ],
+    "📱 Lava": [
+        ("Lava Blaze", "real"),
+        ("Lava Blaze 2", "real"),
+        ("Lava Blaze 5G", "real"),
+        ("Lava Yuva 3", "real"),
+        ("Lava Storm 5G", "real"),
+    ],
+    "📱 Itel": [
+        ("Itel A49", "real"),
+        ("Itel A60", "real"),
+        ("Itel A70", "real"),
+        ("Itel S23", "real"),
+        ("Itel P55", "real"),
+    ],
+    "📱 Coolpad": [
+        ("Coolpad Cool 20", "real"),
+        ("Coolpad Cool 30", "real"),
+        ("Coolpad CP12", "real"),
+        ("Coolpad X100", "real"),
+        ("Coolpad Legacy 5G", "real"),
+    ],
+    "📱 Doogee": [
+        ("Doogee N50", "real"),
+        ("Doogee V20", "real"),
+        ("Doogee S41", "real"),
+        ("Doogee Blade10", "real"),
+        ("Doogee Note59", "real"),
+    ],
+    "📱 Ulefone": [
+        ("Ulefone Note 16", "real"),
+        ("Ulefone Note 18", "real"),
+        ("Ulefone Armor X10", "real"),
+        ("Ulefone Armor 21", "real"),
+        ("Ulefone Armor 26", "real"),
+    ],
+    "📱 Oukitel": [
+        ("Oukitel C36", "real"),
+        ("Oukitel WP23", "real"),
+        ("Oukitel WP35", "real"),
+        ("Oukitel C51", "real"),
+        ("Oukitel WP39", "real"),
+    ],
+    "📱 Sharp": [
+        ("Sharp Aquos Wish", "real"),
+        ("Sharp Wish2", "real"),
+        ("Sharp Sense4", "real"),
+        ("Sharp Sense8", "real"),
+        ("Sharp R8", "real"),
+    ],
+    "📱 LG": [
+        ("LG Velvet 5G", "real"),
+        ("LG Wing", "real"),
+        ("LG V60", "real"),
+        ("LG G8X", "real"),
+        ("LG K92", "real"),
+    ],
+    "📱 HTC": [
+        ("HTC U20", "real"),
+        ("HTC Desire20+", "real"),
+        ("HTC Wildfire E3", "real"),
+        ("HTC U23", "real"),
+        ("HTC U24", "real"),
+    ],
+    "📱 Acer": [
+        ("Acer Liquid Z6", "real"),
+        ("Acer Liquid Z630", "real"),
+        ("Acer Liquid Jade", "real"),
+        ("Acer one10", "real"),
+        ("Acer Super ZX", "real"),
+    ],
+    "📱 Micromax": [
+        ("Micromax IN 2C", "real"),
+        ("Micromax IN Note 2", "real"),
+        ("Micromax IN 1", "real"),
+        ("Micromax IN 2B", "real"),
+        ("Micromax Canvas 2", "real"),
+    ],
+    "📱 Blackview": [
+        ("Blackview A52", "real"),
+        ("Blackview A96", "real"),
+        ("Blackview BV5300", "real"),
+        ("Blackview Shark8", "real"),
+        ("Blackview Oscal C80", "real"),
+    ],
+    "📱 Cat Phone": [
+        ("Cat Phone S42", "real"),
+        ("Cat Phone S52", "real"),
+        ("Cat Phone S62", "real"),
+        ("Cat Phone S62 Pro", "real"),
+        ("Cat Phone S75", "real"),
     ],
 }
 
-# Tier bo'yicha bazaviy diapazonlar
-TIER_RANGES = {
-    "budget": {
-        "general": (85, 92), "red_dot": (82, 90), "x2": (75, 82),
-        "x4": (60, 68), "sniper": (35, 42), "freelook": (85, 92),
-        "dpi": (300, 350), "fire_btn": (110, 125),
-        "hud": "Kichik (kam RAM tejaydi)", "graphics": "Smooth",
-        "fps": "60 FPS",
-    },
-    "mid": {
-        "general": (90, 96), "red_dot": (88, 94), "x2": (80, 88),
-        "x4": (68, 76), "sniper": (42, 50), "freelook": (90, 97),
-        "dpi": (350, 420), "fire_btn": (125, 140),
-        "hud": "O'rtacha", "graphics": "Balanced / HD",
-        "fps": "60-90 FPS",
-    },
-    "flagship": {
-        "general": (95, 100), "red_dot": (93, 99), "x2": (86, 93),
-        "x4": (75, 83), "sniper": (48, 56), "freelook": (95, 100),
-        "dpi": (420, 480), "fire_btn": (140, 155),
-        "hud": "Katta (aniqlik uchun)", "graphics": "HD / Ultra HD",
-        "fps": "90 FPS",
-    },
-    "flagship_pro": {
-        "general": (98, 100), "red_dot": (96, 100), "x2": (90, 97),
-        "x4": (80, 88), "sniper": (52, 60), "freelook": (97, 100),
-        "dpi": (450, 520), "fire_btn": (145, 160),
-        "hud": "Katta (Pro darajali sezgirlik)", "graphics": "Ultra HD",
-        "fps": "90-120 FPS",
-    },
+# Barcha 150 ta telefon uchun "150 haqiqiy telefon Free Fire nastroykalari"
+# faylidagi haqiqiy (bir xil) tavsiya etilgan nastroyka qiymatlari.
+REAL_SETTINGS = {
+    "general": "200",
+    "red_dot": "195",
+    "x2": "188",
+    "x4": "178",
+    "sniper": "30",
+    "freelook": "100",
+    "dpi": "580",
+    "graphics": "Smooth",
+    "fps": "High/Ultra (mavjud bo'lsa)",
+    "aim_precision": "Default",
+    "left_fire": "Always",
 }
 
 TIPS = {
-    "budget": "Qurilma quvvati cheklangan, shuning uchun grafikani past darajada saqlang, "
-              "fon ilovalarini yoping va Bluetooth/Wi-Fi optimallashtirishdan foydalaning. "
-              "Rush o'ynashda soddaroq HUD tavsiya etiladi.",
-    "mid": "Grafik va FPS o'rtasidagi muvozanatni saqlang. Balanced rejimda barqaror "
-           "ishlaydi. Uzoq o'yin seanslarida telefon qizib ketmasligi uchun quvvatlash "
-           "rejimini yoqing.",
-    "flagship": "Qurilma yuqori FPS'ni qo'llab-quvvatlaydi - HD/Ultra HD grafikada "
-                "o'ynash tavsiya etiladi. Sniper janglarida sezgirlikni pasaytirib, "
-                "aniqlikni oshiring.",
-    "flagship_pro": "Eng yuqori sozlamalarda (Ultra HD, 90-120 FPS) barqaror ishlaydi. "
-                     "Pro o'yinchilar uchun maksimal sezgirlik va tezkor fire button "
-                     "hajmi tavsiya etiladi. Turnir formatidagi o'yinlarga mos.",
+    "real": "Bu - ko'plab o'yinchilar tomonidan sinab ko'rilgan va tasdiqlangan "
+            "universal nastroyka. Grafikani Smooth rejimida saqlang, fon "
+            "ilovalarini yoping va FPS'ni telefon imkoniyatiga qarab "
+            "High/Ultra darajasiga o'rnating. O'z qo'lingizga moslab, "
+            "sozlamalarni ±5-10 birlik ichida biroz o'zgartirib ko'rishingiz mumkin.",
 }
-
-
-def _pick(rng, seed, spread=5):
-    """Tier diapazoni ichida seed asosida deterministik qiymat tanlaydi."""
-    lo, hi = rng
-    if hi <= lo:
-        return lo
-    step = ((seed * 7) + 3) % (hi - lo + 1)
-    return lo + step
 
 
 def build_settings():
     """Har bir telefon uchun to'liq nastroykalar lug'atini yaratadi."""
     result = {}
-    seed_counter = 0
     for brand, models in PHONES.items():
         for model_name, tier in models:
-            seed_counter += 1
-            r = TIER_RANGES[tier]
             settings = {
                 "brand": brand,
                 "tier": tier,
-                "general": f"{_pick(r['general'], seed_counter)}%",
-                "red_dot": f"{_pick(r['red_dot'], seed_counter + 1)}%",
-                "x2": f"{_pick(r['x2'], seed_counter + 2)}%",
-                "x4": f"{_pick(r['x4'], seed_counter + 3)}%",
-                "sniper": f"{_pick(r['sniper'], seed_counter + 4)}%",
-                "freelook": f"{_pick(r['freelook'], seed_counter + 5)}%",
-                "dpi": f"{_pick(r['dpi'], seed_counter + 6)}",
-                "fire_btn": f"{_pick(r['fire_btn'], seed_counter + 7)}%",
-                "hud": r["hud"],
-                "graphics": r["graphics"],
-                "fps": r["fps"],
-                "tips": TIPS[tier],
+                "general": REAL_SETTINGS["general"],
+                "red_dot": REAL_SETTINGS["red_dot"],
+                "x2": REAL_SETTINGS["x2"],
+                "x4": REAL_SETTINGS["x4"],
+                "sniper": REAL_SETTINGS["sniper"],
+                "freelook": REAL_SETTINGS["freelook"],
+                "dpi": REAL_SETTINGS["dpi"],
+                "graphics": REAL_SETTINGS["graphics"],
+                "fps": REAL_SETTINGS["fps"],
+                "aim_precision": REAL_SETTINGS["aim_precision"],
+                "left_fire": REAL_SETTINGS["left_fire"],
+                "tips": TIPS.get(tier, TIPS["real"]),
             }
             result[model_name] = settings
     return result
@@ -217,16 +281,16 @@ def format_settings_text(model_name: str) -> str:
         return "Ma'lumot topilmadi."
     return (
         f"📱 <b>{model_name}</b> uchun tavsiya etilgan Free Fire nastroykalari:\n\n"
-        f"🎯 General Sensitivity: <b>{s['general']}</b>\n"
+        f"🎯 General: <b>{s['general']}</b>\n"
         f"🔴 Red Dot: <b>{s['red_dot']}</b>\n"
         f"🔭 2x Scope: <b>{s['x2']}</b>\n"
         f"🔭 4x Scope: <b>{s['x4']}</b>\n"
-        f"🎯 Sniper Scope: <b>{s['sniper']}</b>\n"
+        f"🎯 Sniper: <b>{s['sniper']}</b>\n"
         f"👁 Free Look: <b>{s['freelook']}</b>\n"
         f"🖱 DPI: <b>{s['dpi']}</b>\n"
-        f"🔥 Fire Button Size: <b>{s['fire_btn']}</b>\n"
-        f"🎛 HUD: <b>{s['hud']}</b>\n"
         f"🎨 Grafik sifati: <b>{s['graphics']}</b>\n"
-        f"⚡ FPS: <b>{s['fps']}</b>\n\n"
+        f"⚡ FPS: <b>{s['fps']}</b>\n"
+        f"🎯 Aim Precision: <b>{s['aim_precision']}</b>\n"
+        f"🔥 Left Fire: <b>{s['left_fire']}</b>\n\n"
         f"💡 <b>Tavsiya:</b>\n{s['tips']}"
     )
