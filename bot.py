@@ -63,7 +63,11 @@ from keyboards import (
     BTN_STORE,
     BTN_GIFT_ORDER,
     BTN_WITHDRAW_WIN,
+    BTN_PRO_SUB,
+    BTN_BACK,
 )
+
+from handlers.pro_sub import on_pro_sub_button, on_prosub_buy
 
 from handlers.start import (
     start_command,
@@ -239,6 +243,7 @@ from handlers.games import (
     on_games_root_callback,
     receive_number_guess,
     on_my_account_button,
+    on_myacc_pay_button,
 )
 
 # ---------- Yangi bosh menyu bo'limlari (🎮 Free Fire / 💎 Almaz olish / 🛠️ Xizmatlar / 👤 Profil) ----------
@@ -340,6 +345,15 @@ logger = logging.getLogger(__name__)
 
 def _exact(text: str):
     return filters.Regex(f"^{re.escape(text)}$")
+
+
+async def on_back_to_main(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """🔙 Orqaga - istalgan ichki bo'limdan bosh menyuga qaytaradi."""
+    user = update.effective_user
+    is_admin = user.id == ADMIN_ID
+    await update.message.reply_text(
+        "🏠 Bosh menyu", reply_markup=main_menu_keyboard(is_admin)
+    )
 
 
 AUTO_REACTION_EMOJI = "🔥"
@@ -958,6 +972,14 @@ def build_application() -> Application:
     # ---------- 🎮 Mini O'yinlar ----------
     app.add_handler(MessageHandler(_exact(BTN_MINI_GAMES), on_games_button))
     app.add_handler(MessageHandler(_exact(BTN_MY_ACCOUNT), on_my_account_button))
+    app.add_handler(CallbackQueryHandler(on_myacc_pay_button, pattern="^myacc:pay$"))
+
+    # 👑 Pro obuna
+    app.add_handler(MessageHandler(_exact(BTN_PRO_SUB), on_pro_sub_button))
+    app.add_handler(CallbackQueryHandler(on_prosub_buy, pattern="^prosub:buy$"))
+
+    # 🔙 Universal "Orqaga" - istalgan bo'limdan bosh menyuga qaytaradi
+    app.add_handler(MessageHandler(_exact(BTN_BACK), on_back_to_main))
     app.add_handler(CallbackQueryHandler(on_games_root_callback, pattern="^games:"))
     app.add_handler(CallbackQueryHandler(on_games_root_callback, pattern="^(mine|target|dice|coin|card|slot|chicken|quiz|reflex|number):"))
     # "Sonni top" o'yinida faqat raqamli xabarlar shu yerda ushlanadi; boshqa
