@@ -50,8 +50,8 @@ def _ikb(text, style=None, **kwargs):
     return InlineKeyboardButton(display_text, **kwargs)
 
 
-# Pastki (Reply) klaviatura tugmalari: barchasi doim YASHIL (success) rangda.
-def _kb(text, style="success", **kwargs):
+# Pastki (Reply) klaviatura tugmalari: barchasi doim QIZIL (danger) rangda.
+def _kb(text, style="danger", **kwargs):
     # MUHIM: ReplyKeyboard tugmasi bosilganda uning matni xabar sifatida
     # botga yuboriladi va bot shu matn orqali tugmani aniqlaydi. Shuning
     # uchun bu yerda emoji olib tashlanmaydi (aks holda tugmalar ishlamay qoladi).
