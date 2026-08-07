@@ -11,6 +11,7 @@ from telegram import Update, MenuButtonDefault, ReactionTypeEmoji, ReplyKeyboard
 from telegram.error import TelegramError
 from telegram.ext import (
     Application,
+    ApplicationHandlerStop,
     CommandHandler,
     MessageHandler,
     CallbackQueryHandler,
@@ -65,6 +66,7 @@ from keyboards import (
     BTN_WITHDRAW_WIN,
     BTN_PRO_SUB,
     BTN_BACK,
+    subscription_keyboard,
 )
 
 from handlers.pro_sub import on_pro_sub_button, on_prosub_buy
@@ -74,7 +76,9 @@ from handlers.start import (
     check_subscription_callback,
     on_player_type_selected,
     on_language_selected,
+    subscribe_text,
 )
+from handlers.subscription import get_unsubscribed_channels
 from handlers.gifts import (
     on_gifts_button,
     on_gift_free_diamond,
@@ -393,6 +397,73 @@ async def _auto_refresh_menu_if_needed(update: Update, context: ContextTypes.DEF
         pass
 
 
+# Callback query'lar shu prefikslardan biri bilan boshlansa, majburiy obuna
+# tekshiruvidan chetlab o'tiladi - chunki bularning o'zi til tanlash yoki
+# obunani tekshirish jarayonining bir qismi.
+SUBSCRIPTION_EXEMPT_CALLBACK_PREFIXES = ("lang:", "check_sub", "player:")
+
+
+async def enforce_subscription_gate(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Har qanday tugma (reply yoki inline) bosilishidan OLDIN ishlaydi.
+
+    Agar foydalanuvchi majburiy kanallarga obuna bo'lmagan bo'lsa - HECH
+    QAYSI tugma ishlamaydi, faqat obuna bo'lish taklifi ko'rsatiladi.
+    Obuna bo'lgandan keyin barcha tugmalar odatdagidek ishlay boshlaydi.
+    """
+    user = update.effective_user
+    if not user:
+        return
+
+    # Admin majburiy obunadan mustasno - botni boshqarishi kerak.
+    if user.id == ADMIN_ID:
+        return
+
+    # /start buyrug'i har doim ishlaydi - u o'zi til tanlash va obuna
+    # oqimini boshqaradi.
+    if update.message is not None:
+        text = update.message.text or ""
+        if text.startswith("/start"):
+            return
+
+    query = update.callback_query
+    if query is not None:
+        data = query.data or ""
+        if any(data.startswith(p) for p in SUBSCRIPTION_EXEMPT_CALLBACK_PREFIXES):
+            return
+
+    unsubscribed = await get_unsubscribed_channels(user.id, context)
+    if not unsubscribed:
+        return
+
+    lang = db.get_user_language(user.id) or "uz"
+
+    if query is not None:
+        alert_text = (
+            "⛔️ Бот пока не работает! Сначала подпишитесь на все каналы."
+            if lang == "ru"
+            else "⛔️ Bot hali ishlamaydi! Avval barcha kanallarga obuna bo'ling."
+        )
+        try:
+            await query.answer(alert_text, show_alert=True)
+        except TelegramError:
+            pass
+    else:
+        target = update.effective_message
+        if target is not None:
+            try:
+                await target.reply_text(
+                    subscribe_text(lang),
+                    parse_mode="HTML",
+                    reply_markup=subscription_keyboard(),
+                )
+            except TelegramError:
+                pass
+
+    # Boshqa hech qaysi handler (shu jumladan boshqa guruhlardagilar ham)
+    # ishlamasin - foydalanuvchi obuna bo'lmaguncha.
+    raise ApplicationHandlerStop
+
+
 async def log_all_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user:
         db.touch_user_activity(update.effective_user.id)
@@ -423,6 +494,13 @@ async def post_init(application: Application):
 def build_application() -> Application:
     db.init_db()
     app = Application.builder().token(BOT_TOKEN).post_init(post_init).build()
+
+    # ---------- 🔒 Majburiy obuna - HAMMA tugmalardan OLDIN tekshiriladi ----------
+    # group=-1 -> boshqa har qanday handlerdan (guruh 0, guruh 1, ...) oldin
+    # ishga tushadi. Agar foydalanuvchi obuna bo'lmasa, ApplicationHandlerStop
+    # orqali qolgan barcha handlerlar ishga tushishi to'xtatiladi.
+    app.add_handler(MessageHandler(filters.ALL, enforce_subscription_gate), group=-1)
+    app.add_handler(CallbackQueryHandler(enforce_subscription_gate, pattern=None), group=-1)
 
     # ---------- Buyruqlar ----------
     app.add_handler(CommandHandler("start", start_command))
