@@ -615,21 +615,24 @@ def _pick(rng, seed, spread=5):
     return lo + step
 
 
-# Barcha 150 ta "real" telefon uchun "150 haqiqiy telefon Free Fire
-# nastroykalari" faylidagi haqiqiy (bir xil) tavsiya etilgan qiymatlar.
-REAL_SETTINGS = {
-    "general": "200",
-    "red_dot": "195",
-    "x2": "188",
-    "x4": "178",
-    "sniper": "30",
-    "freelook": "100",
-    "dpi": "580",
-    "graphics": "Smooth",
-    "fps": "High/Ultra (mavjud bo'lsa)",
-    "aim_precision": "Default",
-    "left_fire": "Always",
+# "150 haqiqiy telefon Free Fire nastroykalari" faylidan olingan bazaviy
+# (o'rtacha) qiymatlar - endi har bir model uchun shu diapazon ichida
+# BIROZ FARQLANTIRILGAN (deterministik) qiymat hisoblanadi, shunda barcha
+# 150 ta model bir xil emas, balki modelga qarab sal-pal farq qiladi.
+REAL_RANGES = {
+    "general": (190, 200),
+    "red_dot": (183, 197),
+    "x2": (175, 190),
+    "x4": (163, 180),
+    "sniper": (24, 34),
+    "freelook": (94, 100),
+    "dpi": (500, 620),
 }
+
+REAL_GRAPHICS_OPTIONS = ["Smooth", "Balanced", "Smooth (Max FPS)"]
+REAL_FPS_OPTIONS = ["High/Ultra (mavjud bo'lsa)", "Ultra", "High"]
+REAL_AIM_OPTIONS = ["Default", "Precise", "Advanced"]
+REAL_LEFT_FIRE_OPTIONS = ["Always", "Auto"]
 
 REAL_TIPS = (
     "Bu - ko'plab o'yinchilar tomonidan sinab ko'rilgan va tasdiqlangan "
@@ -646,26 +649,27 @@ def build_settings():
     seed_counter = 0
     for brand, models in PHONES.items():
         for model_name, tier in models:
+            seed_counter += 1
             if tier == "real":
+                r = REAL_RANGES
                 settings = {
                     "brand": brand,
                     "tier": tier,
                     "system": "real",
-                    "general": REAL_SETTINGS["general"],
-                    "red_dot": REAL_SETTINGS["red_dot"],
-                    "x2": REAL_SETTINGS["x2"],
-                    "x4": REAL_SETTINGS["x4"],
-                    "sniper": REAL_SETTINGS["sniper"],
-                    "freelook": REAL_SETTINGS["freelook"],
-                    "dpi": REAL_SETTINGS["dpi"],
-                    "graphics": REAL_SETTINGS["graphics"],
-                    "fps": REAL_SETTINGS["fps"],
-                    "aim_precision": REAL_SETTINGS["aim_precision"],
-                    "left_fire": REAL_SETTINGS["left_fire"],
+                    "general": f"{_pick(r['general'], seed_counter)}",
+                    "red_dot": f"{_pick(r['red_dot'], seed_counter + 1)}",
+                    "x2": f"{_pick(r['x2'], seed_counter + 2)}",
+                    "x4": f"{_pick(r['x4'], seed_counter + 3)}",
+                    "sniper": f"{_pick(r['sniper'], seed_counter + 4)}",
+                    "freelook": f"{_pick(r['freelook'], seed_counter + 5)}",
+                    "dpi": f"{_pick(r['dpi'], seed_counter + 6)}",
+                    "graphics": REAL_GRAPHICS_OPTIONS[seed_counter % len(REAL_GRAPHICS_OPTIONS)],
+                    "fps": REAL_FPS_OPTIONS[seed_counter % len(REAL_FPS_OPTIONS)],
+                    "aim_precision": REAL_AIM_OPTIONS[seed_counter % len(REAL_AIM_OPTIONS)],
+                    "left_fire": REAL_LEFT_FIRE_OPTIONS[seed_counter % len(REAL_LEFT_FIRE_OPTIONS)],
                     "tips": REAL_TIPS,
                 }
             else:
-                seed_counter += 1
                 r = TIER_RANGES[tier]
                 settings = {
                     "brand": brand,
