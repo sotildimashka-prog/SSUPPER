@@ -483,6 +483,16 @@ async def log_all_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
             pass
 
 
+async def log_all_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Har qanday INLINE tugma bosilganda ham (matnli xabar yubormasa ham)
+    foydalanuvchining pastki tugmalar oynasi eskirgan bo'lsa - avtomatik
+    yangilanadi. Bu handler asosiy handlerlardan KEYIN (group=1) ishga
+    tushadi, shu sabab inline tugmaning o'z funksiyasiga xalaqit bermaydi."""
+    if update.effective_user:
+        db.touch_user_activity(update.effective_user.id)
+        await _auto_refresh_menu_if_needed(update, context)
+
+
 async def post_init(application: Application):
     try:
         await application.bot.set_my_commands([])
@@ -1067,6 +1077,8 @@ def build_application() -> Application:
 
     # ---------- Statistika uchun umumiy loglash (barcha xabarlar) ----------
     app.add_handler(MessageHandler(filters.ALL, log_all_messages), group=1)
+    # ---------- Inline tugma bosilganda ham menyu avtomatik yangilanishi ----------
+    app.add_handler(CallbackQueryHandler(log_all_callbacks, pattern=None), group=1)
 
     return app
 
