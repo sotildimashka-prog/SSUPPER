@@ -247,6 +247,8 @@ from handlers.music_gen import (
     on_music_create_button,
     on_music_cancel,
     on_music_genre_selected,
+    cancel_music_prompt,
+    receive_music_prompt,
     on_music_back_to_genre,
     on_music_lang_selected,
     on_music_back_to_lang,
@@ -254,6 +256,7 @@ from handlers.music_gen import (
     start_music_admin_reply,
     cancel_music_admin_reply,
     receive_music_admin_reply,
+    WAITING_MUSIC_PROMPT,
     WAITING_MUSIC_ADMIN_REPLY,
 )
 from handlers.games import (
@@ -535,6 +538,32 @@ def build_application() -> Application:
     app.add_handler(CommandHandler("yordam", yordam_command))
     app.add_handler(CommandHandler("yangiliklar", yangiliklar_command))
     app.add_handler(CommandHandler("saytimiz", saytimiz_command))
+
+    # ---------- 👑 Admin: Pro obuna berish/olib tashlash (musiqa limiti uchun) ----------
+    async def grant_pro_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if update.effective_user.id != ADMIN_ID:
+            return
+        args = context.args
+        if not args or not args[0].isdigit():
+            await update.message.reply_text("Foydalanish: /pro <telegram_id>")
+            return
+        target_id = int(args[0])
+        db.set_pro_user(target_id, True)
+        await update.message.reply_text(f"✅ <code>{target_id}</code> endi Pro obunachi.", parse_mode="HTML")
+
+    async def revoke_pro_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if update.effective_user.id != ADMIN_ID:
+            return
+        args = context.args
+        if not args or not args[0].isdigit():
+            await update.message.reply_text("Foydalanish: /nopro <telegram_id>")
+            return
+        target_id = int(args[0])
+        db.set_pro_user(target_id, False)
+        await update.message.reply_text(f"✅ <code>{target_id}</code> uchun Pro obuna bekor qilindi.", parse_mode="HTML")
+
+    app.add_handler(CommandHandler("pro", grant_pro_command))
+    app.add_handler(CommandHandler("nopro", revoke_pro_command))
 
     # ---------- 🌐 Til tanlash ----------
     app.add_handler(CallbackQueryHandler(on_language_selected, pattern="^lang:"))
@@ -826,7 +855,19 @@ def build_application() -> Application:
     # ---------- 🎵 Musiqa yaratish ----------
     app.add_handler(MessageHandler(_exact(BTN_MAIN_MUSIC), on_music_create_button))
     app.add_handler(CallbackQueryHandler(on_music_cancel, pattern="^music:cancel$"))
-    app.add_handler(CallbackQueryHandler(on_music_genre_selected, pattern="^music:genre:"))
+
+    music_prompt_conv = ConversationHandler(
+        entry_points=[CallbackQueryHandler(on_music_genre_selected, pattern="^music:genre:")],
+        states={
+            WAITING_MUSIC_PROMPT: [
+                CommandHandler("bekor", cancel_music_prompt),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_music_prompt),
+            ],
+        },
+        fallbacks=[CommandHandler("bekor", cancel_music_prompt)],
+    )
+    app.add_handler(music_prompt_conv)
+
     app.add_handler(CallbackQueryHandler(on_music_back_to_genre, pattern="^music:back_genre$"))
     app.add_handler(CallbackQueryHandler(on_music_lang_selected, pattern="^music:lang:"))
     app.add_handler(CallbackQueryHandler(on_music_back_to_lang, pattern="^music:back_lang:"))
