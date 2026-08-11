@@ -199,6 +199,25 @@ def init_db():
             )
             """
         )
+        # ---------- 🎵 Musiqa yaratish (kunlik limit) ----------
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS music_generations (
+                user_id INTEGER PRIMARY KEY,
+                day TEXT,
+                count INTEGER DEFAULT 0
+            )
+            """
+        )
+        # ---------- 👑 Pro obuna (admin tomonidan qo'lda beriladi) ----------
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS pro_users (
+                user_id INTEGER PRIMARY KEY,
+                granted_at TEXT
+            )
+            """
+        )
 
 
 def set_user_language(user_id: int, language: str):
@@ -735,3 +754,60 @@ def create_cash_withdraw_request(user_id: int, amount: int) -> int:
             (user_id, amount, now),
         )
         return cur.lastrowid
+
+
+# ==================== 🎵 Musiqa yaratish (kunlik limit) ====================
+
+def get_music_generated_today(user_id: int) -> int:
+    """Foydalanuvchi BUGUN nechta musiqa so'rovi yuborganini qaytaradi."""
+    today = date.today().isoformat()
+    with get_conn() as conn:
+        cur = conn.execute(
+            "SELECT day, count FROM music_generations WHERE user_id = ?", (user_id,)
+        )
+        row = cur.fetchone()
+        if not row or row["day"] != today:
+            return 0
+        return row["count"]
+
+
+def increment_music_generated(user_id: int):
+    """Foydalanuvchining bugungi musiqa so'rovlar sonini +1 oshiradi."""
+    today = date.today().isoformat()
+    with get_conn() as conn:
+        cur = conn.execute(
+            "SELECT day, count FROM music_generations WHERE user_id = ?", (user_id,)
+        )
+        row = cur.fetchone()
+        if not row or row["day"] != today:
+            conn.execute(
+                "INSERT INTO music_generations (user_id, day, count) VALUES (?, ?, 1) "
+                "ON CONFLICT(user_id) DO UPDATE SET day = excluded.day, count = 1",
+                (user_id, today),
+            )
+        else:
+            conn.execute(
+                "UPDATE music_generations SET count = count + 1 WHERE user_id = ?",
+                (user_id,),
+            )
+
+
+# ==================== 👑 Pro obuna (musiqa limiti uchun) ====================
+
+def is_pro_user(user_id: int) -> bool:
+    with get_conn() as conn:
+        cur = conn.execute("SELECT 1 FROM pro_users WHERE user_id = ?", (user_id,))
+        return cur.fetchone() is not None
+
+
+def set_pro_user(user_id: int, is_pro: bool = True):
+    with get_conn() as conn:
+        if is_pro:
+            now = datetime.utcnow().isoformat()
+            conn.execute(
+                "INSERT INTO pro_users (user_id, granted_at) VALUES (?, ?) "
+                "ON CONFLICT(user_id) DO UPDATE SET granted_at = excluded.granted_at",
+                (user_id, now),
+            )
+        else:
+            conn.execute("DELETE FROM pro_users WHERE user_id = ?", (user_id,))
