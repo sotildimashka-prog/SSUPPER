@@ -50,8 +50,8 @@ def _ikb(text, style=None, **kwargs):
     return InlineKeyboardButton(display_text, **kwargs)
 
 
-# Pastki (Reply) klaviatura tugmalari: barchasi doim QIZIL (danger) rangda.
-def _kb(text, style="danger", **kwargs):
+# Pastki (Reply) klaviatura tugmalari: barchasi doim KO'K (primary) rangda.
+def _kb(text, style="primary", **kwargs):
     # MUHIM: ReplyKeyboard tugmasi bosilganda uning matni xabar sifatida
     # botga yuboriladi va bot shu matn orqali tugmani aniqlaydi. Shuning
     # uchun bu yerda emoji olib tashlanmaydi (aks holda tugmalar ishlamay qoladi).
@@ -116,6 +116,7 @@ BTN_MY_ACCOUNT = "👛 Hisobim"
 
 BTN_MAIN_RASM = "🖼️ Rasm Yasash"
 BTN_MAIN_VIDEO = "🎬 Video Yasash"
+BTN_MAIN_MUSIC = "🎵 Musiqa yaratish"
 
 # ---------- 👑 Pro obuna ----------
 
@@ -141,7 +142,7 @@ VIDEO_MIN_BALANCE = 30000
 # tugmalar oynasi ular botga keyingi safar yozganda YOKI istalgan tugmani
 # (reply yoki inline) bosganda AVTOMATIK yangilanadi — broadcast yuborish
 # shart emas.
-MENU_VERSION = 4
+MENU_VERSION = 5
 
 
 def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
@@ -149,7 +150,7 @@ def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
         [BTN_M2_DIAMONDS, BTN_M2_SERVICES],
         [BTN_M2_SETTINGS, BTN_M2_NICKS],
         [BTN_M2_PAYMENTS, BTN_M2_FAQ],
-        [BTN_MAIN_RASM, BTN_MAIN_VIDEO],
+        [BTN_MAIN_RASM, BTN_MAIN_VIDEO, BTN_MAIN_MUSIC],
     ]
     if is_admin:
         row_texts.append([BTN_STATS, BTN_BROADCAST])
@@ -960,6 +961,59 @@ def video_insufficient_keyboard() -> InlineKeyboardMarkup:
 
 def video_cancel_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([[_ikb("⬅️ Bekor qilish", callback_data="video:cancel")]])
+
+
+# ============================================================================
+# 🎵 Musiqa yaratish (bosh menyu tugmasi)
+# ============================================================================
+
+# key -> (tugma matni/emoji, admin uchun chiroyli nom)
+MUSIC_GENRES = {
+    "jazz": ("🎷 Jazz musiqa", "🎷 Jazz"),
+    "bass": ("🎸 Bass musiqa", "🎸 Bass"),
+    "calm": ("🌙 Sokin musiqa", "🌙 Sokin"),
+    "rap": ("🔥 Rep musiqa", "🔥 Rep"),
+}
+
+MUSIC_LANGS = {
+    "uz": ("🇺🇿 O'zbek tili", "🇺🇿 O'zbekcha"),
+    "ru": ("🇷🇺 Rus tili", "🇷🇺 Ruscha"),
+    "ar": ("🇸🇦 Arab tili", "🇸🇦 Arabcha"),
+    "en": ("🇬🇧 Ingliz tili", "🇬🇧 Inglizcha"),
+}
+
+
+def music_genre_keyboard() -> InlineKeyboardMarkup:
+    rows = [
+        [_ikb(label, style="primary", callback_data=f"music:genre:{key}")]
+        for key, (label, _) in MUSIC_GENRES.items()
+    ]
+    rows.append([_ikb("🔙 Orqaga", callback_data="music:cancel")])
+    return InlineKeyboardMarkup(rows)
+
+
+def music_language_keyboard(genre: str) -> InlineKeyboardMarkup:
+    rows = [
+        [_ikb(label, style="primary", callback_data=f"music:lang:{genre}:{key}")]
+        for key, (label, _) in MUSIC_LANGS.items()
+    ]
+    rows.append([_ikb("🔙 Orqaga", callback_data="music:back_genre")])
+    return InlineKeyboardMarkup(rows)
+
+
+def music_prepare_keyboard(genre: str, lang: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [_ikb("🎧 Musiqa tayyorlash", style="primary", callback_data=f"music:prepare:{genre}:{lang}")],
+            [_ikb("🔙 Orqaga", callback_data=f"music:back_lang:{genre}")],
+        ]
+    )
+
+
+def music_admin_send_keyboard(user_id: int, genre: str, lang: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[_ikb("🎵 Musiqani yuborish", style="primary", callback_data=f"musicsend:{user_id}:{genre}:{lang}")]]
+    )
 
 
 # ============================================================================
