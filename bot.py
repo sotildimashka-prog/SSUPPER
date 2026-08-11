@@ -59,6 +59,7 @@ from keyboards import (
     BTN_GIFTS,
     BTN_MAIN_RASM,
     BTN_MAIN_VIDEO,
+    BTN_MAIN_MUSIC,
     BTN_MINI_GAMES,
     BTN_MY_ACCOUNT,
     BTN_STORE,
@@ -241,6 +242,19 @@ from handlers.video_gen import (
     cancel_video,
     receive_video_prompt,
     WAITING_VIDEO_PROMPT,
+)
+from handlers.music_gen import (
+    on_music_create_button,
+    on_music_cancel,
+    on_music_genre_selected,
+    on_music_back_to_genre,
+    on_music_lang_selected,
+    on_music_back_to_lang,
+    on_music_prepare,
+    start_music_admin_reply,
+    cancel_music_admin_reply,
+    receive_music_admin_reply,
+    WAITING_MUSIC_ADMIN_REPLY,
 )
 from handlers.games import (
     on_games_button,
@@ -808,6 +822,32 @@ def build_application() -> Application:
         ],
     )
     app.add_handler(video_conv)
+
+    # ---------- 🎵 Musiqa yaratish ----------
+    app.add_handler(MessageHandler(_exact(BTN_MAIN_MUSIC), on_music_create_button))
+    app.add_handler(CallbackQueryHandler(on_music_cancel, pattern="^music:cancel$"))
+    app.add_handler(CallbackQueryHandler(on_music_genre_selected, pattern="^music:genre:"))
+    app.add_handler(CallbackQueryHandler(on_music_back_to_genre, pattern="^music:back_genre$"))
+    app.add_handler(CallbackQueryHandler(on_music_lang_selected, pattern="^music:lang:"))
+    app.add_handler(CallbackQueryHandler(on_music_back_to_lang, pattern="^music:back_lang:"))
+    app.add_handler(CallbackQueryHandler(on_music_prepare, pattern="^music:prepare:"))
+
+    music_admin_reply_conv = ConversationHandler(
+        entry_points=[CallbackQueryHandler(start_music_admin_reply, pattern="^musicsend:")],
+        states={
+            WAITING_MUSIC_ADMIN_REPLY: [
+                CommandHandler("bekor", cancel_music_admin_reply),
+                MessageHandler(
+                    (filters.TEXT | filters.PHOTO | filters.VIDEO | filters.AUDIO
+                     | filters.VOICE | filters.Document.ALL)
+                    & ~filters.COMMAND,
+                    receive_music_admin_reply,
+                ),
+            ]
+        },
+        fallbacks=[CommandHandler("bekor", cancel_music_admin_reply)],
+    )
+    app.add_handler(music_admin_reply_conv)
 
     # ---------- Reply tugmalar ----------
     app.add_handler(MessageHandler(_exact(BTN_HELP), on_help_button))
