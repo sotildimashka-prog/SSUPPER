@@ -984,10 +984,13 @@ MUSIC_LANGS = {
 
 
 def music_genre_keyboard() -> InlineKeyboardMarkup:
-    rows = [
-        [_ikb(label, style="primary", callback_data=f"music:genre:{key}")]
-        for key, (label, _) in MUSIC_GENRES.items()
-    ]
+    items = list(MUSIC_GENRES.items())
+    rows = []
+    for i in range(0, len(items), 2):
+        pair = items[i:i + 2]
+        rows.append(
+            [_ikb(label, style="primary", callback_data=f"music:genre:{key}") for key, (label, _) in pair]
+        )
     rows.append([_ikb("🔙 Orqaga", callback_data="music:cancel")])
     return InlineKeyboardMarkup(rows)
 
@@ -1013,6 +1016,12 @@ def music_prepare_keyboard(genre: str, lang: str) -> InlineKeyboardMarkup:
 def music_admin_send_keyboard(user_id: int, genre: str, lang: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [[_ikb("🎵 Musiqani yuborish", style="primary", callback_data=f"musicsend:{user_id}:{genre}:{lang}")]]
+    )
+
+
+def music_limit_reached_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[_ikb("👑 Pro obuna sotib olish", style="primary", callback_data="prosub:buy")]]
     )
 
 
