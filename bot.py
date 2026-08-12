@@ -431,13 +431,6 @@ async def enforce_subscription_gate(update: Update, context: ContextTypes.DEFAUL
     if not user:
         return
 
-    # Guruh/superguruh chatlarida majburiy obuna tekshirilmaydi - bot
-    # guruhda har doim erkin ishlayveradi, faqat botning shaxsiy (private)
-    # chatida obuna talab qilinadi.
-    chat = update.effective_chat
-    if chat is not None and chat.type != "private":
-        return
-
     # Admin majburiy obunadan mustasno - botni boshqarishi kerak.
     if user.id == ADMIN_ID:
         return
@@ -507,27 +500,6 @@ async def log_all_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
             pass
 
 
-async def welcome_new_chat_members(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Guruhga yangi qo'shilgan har bir a'zoga salom beradi."""
-    message = update.effective_message
-    if message is None or not message.new_chat_members:
-        return
-
-    for member in message.new_chat_members:
-        # Botning o'zi guruhga qo'shilganda unga emas, foydalanuvchilarga
-        # salom berish kerak.
-        if member.id == context.bot.id:
-            continue
-        name = member.mention_html(member.full_name or member.first_name or "do'stim")
-        try:
-            await message.reply_text(
-                f"👋 Salom, {name}! Guruhimizga xush kelibsiz!",
-                parse_mode="HTML",
-            )
-        except TelegramError:
-            pass
-
-
 async def log_all_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Har qanday INLINE tugma bosilganda ham (matnli xabar yubormasa ham)
     foydalanuvchining pastki tugmalar oynasi eskirgan bo'lsa - avtomatik
@@ -556,11 +528,6 @@ def build_application() -> Application:
     # orqali qolgan barcha handlerlar ishga tushishi to'xtatiladi.
     app.add_handler(MessageHandler(filters.ALL, enforce_subscription_gate), group=-1)
     app.add_handler(CallbackQueryHandler(enforce_subscription_gate, pattern=None), group=-1)
-
-    # ---------- 👋 Guruhga qo'shilgan yangi a'zolarga salom ----------
-    app.add_handler(
-        MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, welcome_new_chat_members)
-    )
 
     # ---------- Buyruqlar ----------
     app.add_handler(CommandHandler("start", start_command))
