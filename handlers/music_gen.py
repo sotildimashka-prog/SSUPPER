@@ -210,10 +210,22 @@ def _progress_frame(i: int, genre_short: str, lang_short: str, prompt: str) -> s
 
 
 async def _run_loading_animation(bot, chat_id: int, message_id: int, genre_short: str, lang_short: str, prompt: str):
-    """Admin tayyor musiqani yuborguncha son tinmay aylanib turadi."""
+    """Musiqa 'yaratilmoqda' animatsiyasi.
+
+    MUHIM (xavfsizlik): Telegram bir xabarni juda tez-tez tahrirlashni
+    yoqtirmaydi va buzilsa BUTUN BOTNI soatlab bloklab qo'yishi mumkin
+    (flood control). Shu sabab animatsiya CHEKSIZ emas - taxminan 1
+    daqiqa davomida sekin aylanadi, so'ng bitta STATIK "kutmoqdamiz"
+    xabariga o'tadi va admin javob berguncha boshqa tahrirlanmaydi.
+    """
+    # Xavfsiz oraliq: har 2.5 soniyada bitta tahrirlash (Telegram limitidan
+    # ancha past). Taxminan 1 daqiqa davomida faol aylanadi (24 marta).
+    MAX_ACTIVE_EDITS = 24
+    INTERVAL_SECONDS = 2.5
+
     i = 0
     try:
-        while True:
+        while i < MAX_ACTIVE_EDITS:
             try:
                 await bot.edit_message_text(
                     chat_id=chat_id,
@@ -222,9 +234,31 @@ async def _run_loading_animation(bot, chat_id: int, message_id: int, genre_short
                     parse_mode="HTML",
                 )
             except TelegramError:
-                pass
+                # Agar Telegram "flood control" (juda ko'p so'rov) desa -
+                # DARHOL to'xtaymiz, aks holda butun bot bloklanib qolishi
+                # mumkin. Boshqa xatoliklarda ham xavfsizroq - to'xtaymiz.
+                break
             i += 1
-            await asyncio.sleep(1.2)
+            await asyncio.sleep(INTERVAL_SECONDS)
+
+        # Faol animatsiya tugadi - endi bitta STATIK xabarga o'tamiz va
+        # admin javob berguncha boshqa hech qanday tahrirlash qilinmaydi
+        # (bu Telegram flood-limitidan butunlay xoli qiladi).
+        try:
+            await bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=message_id,
+                text=(
+                    "🎶 <b>So'rovingiz qabul qilindi!</b>\n\n"
+                    f"🎧 Janr: {genre_short}\n"
+                    f"🌐 Til: {lang_short}\n"
+                    f"📝 Tavsif: <i>{prompt}</i>\n\n"
+                    "👨‍💻 Admin musiqangizni tayyorlab, tez orada yuboradi. Kuting 🙏"
+                ),
+                parse_mode="HTML",
+            )
+        except TelegramError:
+            pass
     except asyncio.CancelledError:
         pass
 
