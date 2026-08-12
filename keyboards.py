@@ -47,7 +47,14 @@ def _ikb(text, style=None, **kwargs):
     display_text = _apply_emoji_icon(text, kwargs)
     if style:
         kwargs["style"] = style
-    return InlineKeyboardButton(display_text, **kwargs)
+    try:
+        return InlineKeyboardButton(display_text, **kwargs)
+    except TypeError:
+        # Eski python-telegram-bot versiyasida 'style' parametri qo'llab-
+        # quvvatlanmasligi mumkin - shunday holatda uni olib tashlab qayta
+        # urinamiz (butun klaviatura qulab tushmasligi uchun).
+        kwargs.pop("style", None)
+        return InlineKeyboardButton(display_text, **kwargs)
 
 
 # Pastki (Reply) klaviatura tugmalari: barchasi doim KO'K (primary) rangda.
@@ -55,7 +62,14 @@ def _kb(text, style="primary", **kwargs):
     # MUHIM: ReplyKeyboard tugmasi bosilganda uning matni xabar sifatida
     # botga yuboriladi va bot shu matn orqali tugmani aniqlaydi. Shuning
     # uchun bu yerda emoji olib tashlanmaydi (aks holda tugmalar ishlamay qoladi).
-    return KeyboardButton(text, style=style, **kwargs)
+    try:
+        return KeyboardButton(text, style=style, **kwargs)
+    except TypeError:
+        # Eski python-telegram-bot versiyasida 'style' parametri qo'llab-
+        # quvvatlanmasligi mumkin - shunday holatda ranglashtirmasdan oddiy
+        # tugma qaytaramiz (butun menyu qulab tushib, hech narsa
+        # ko'rinmasligining oldini olish uchun MUHIM fallback).
+        return KeyboardButton(text, **kwargs)
 
 # ---------- Asosiy menyu (ReplyKeyboard) ----------
 
