@@ -13,7 +13,7 @@ import os
 BOT_TOKEN = os.getenv("BOT_TOKEN", "8910822725:AAHiUq4cZnX6BACEHlLgSKFcL8lDMvIJs_A")
 
 # --- Admin ---
-ADMIN_ID = int(os.getenv("ADMIN_ID", "8914193938"))
+ADMIN_ID = int(os.getenv("ADMIN_ID", "8969109663"))
 
 # --- Majburiy obuna kanallari ---
 # username formatida (bot shu kanallarda ADMIN bo'lishi shart, aks holda
