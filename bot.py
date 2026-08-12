@@ -510,6 +510,13 @@ async def log_all_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await _auto_refresh_menu_if_needed(update, context)
 
 
+async def on_error(update, context: ContextTypes.DEFAULT_TYPE):
+    """Har qanday kutilmagan xatolikni to'liq holda LOGGA yozib qo'yadi -
+    shunday qilib kelajakda biror joy jim qulab tushsa, sabab darhol
+    ko'rinadi (konsol/loglarda)."""
+    logger.exception("Ushlanmagan xatolik yuz berdi:", exc_info=context.error)
+
+
 async def post_init(application: Application):
     try:
         await application.bot.set_my_commands([])
@@ -521,6 +528,7 @@ async def post_init(application: Application):
 def build_application() -> Application:
     db.init_db()
     app = Application.builder().token(BOT_TOKEN).post_init(post_init).build()
+    app.add_error_handler(on_error)
 
     # ---------- 🔒 Majburiy obuna - HAMMA tugmalardan OLDIN tekshiriladi ----------
     # group=-1 -> boshqa har qanday handlerdan (guruh 0, guruh 1, ...) oldin
