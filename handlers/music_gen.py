@@ -22,13 +22,14 @@ Oqim:
 """
 
 import asyncio
+import html
 
 from telegram import Update
 from telegram.ext import ContextTypes, ConversationHandler
 from telegram.error import TelegramError
 
 import database as db
-from config import ADMIN_ID
+from config import ADMIN_ID, ADMIN_USERNAME
 from keyboards import (
     main_menu_keyboard,
     music_genre_keyboard,
@@ -130,7 +131,7 @@ async def receive_music_prompt(update: Update, context: ContextTypes.DEFAULT_TYP
         )
         return ConversationHandler.END
 
-    context.user_data["music_prompt"] = prompt_text
+    context.user_data["music_prompt"] = html.escape(prompt_text)
 
     await update.message.reply_text(
         "✅ Qabul qilindi!\n\n"
@@ -302,7 +303,7 @@ async def on_music_prepare(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     admin_text = (
         "🎵 <b>Yangi MUSIQA YARATISH so'rovi!</b>\n\n"
-        f"👤 Foydalanuvchi: {user.first_name or '-'} (@{user.username or '—'})\n"
+        f"👤 Foydalanuvchi: {html.escape(user.first_name or '-')} (@{html.escape(user.username or '—')})\n"
         f"🆔 Telegram ID: <code>{user.id}</code>\n\n"
         f"🎧 Janr: {genre_label}\n"
         f"🌐 Til: {lang_label}\n"
@@ -315,8 +316,34 @@ async def on_music_prepare(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="HTML",
             reply_markup=music_admin_send_keyboard(user.id, genre, lang),
         )
-    except TelegramError:
-        pass
+    except TelegramError as e:
+        # Adminga yetib bormasa - foydalanuvchiga jim qolmasdan xabar beramiz
+        # va HTML formatlashsiz, oddiy matn bilan qayta urinib ko'ramiz.
+        try:
+            plain_text = (
+                "🎵 Yangi MUSIQA YARATISH so'rovi!\n\n"
+                f"👤 Foydalanuvchi: {user.first_name or '-'} (@{user.username or '—'})\n"
+                f"🆔 Telegram ID: {user.id}\n\n"
+                f"🎧 Janr: {genre_label}\n"
+                f"🌐 Til: {lang_label}\n"
+                f"📝 Tavsif:\n{html.unescape(prompt)}"
+            )
+            await context.bot.send_message(
+                chat_id=ADMIN_ID,
+                text=plain_text,
+                reply_markup=music_admin_send_keyboard(user.id, genre, lang),
+            )
+        except TelegramError:
+            # Admin bilan chat umuman ochilmagan yoki ADMIN_ID noto'g'ri bo'lishi mumkin.
+            await _stop_animation(
+                user.id,
+                context.bot,
+                final_text=(
+                    "⚠️ <b>Xatolik yuz berdi.</b>\n\n"
+                    "So'rovingiz adminga yetkazilmadi. Iltimos, birozdan so'ng "
+                    f"qaytadan urining yoki to'g'ridan-to'g'ri @{ADMIN_USERNAME} ga yozing."
+                ),
+            )
 
 
 # ---------------------------------------------------------------------------
