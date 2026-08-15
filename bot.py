@@ -1198,7 +1198,12 @@ def build_application() -> Application:
     # 🔙 Universal "Orqaga" - istalgan bo'limdan bosh menyuga qaytaradi
     app.add_handler(MessageHandler(_exact(BTN_BACK), on_back_to_main))
     app.add_handler(CallbackQueryHandler(on_games_root_callback, pattern="^games:"))
-    app.add_handler(CallbackQueryHandler(on_games_root_callback, pattern="^(mine|target|dice|coin|card|slot|chicken|quiz|reflex|number):"))
+    app.add_handler(
+        CallbackQueryHandler(
+            on_games_root_callback,
+            pattern="^(mine|target|dice|coin|coin2|card|slot|chicken|chicken2|quiz|reflex|number|safe|color):",
+        )
+    )
     # "Sonni top" o'yinida faqat raqamli xabarlar shu yerda ushlanadi; boshqa
     # conversationlar (masalan to'lov, FF ID) o'z holatida ustuvor bo'lib
     # qoladi, chunki bu handler ular ro'yxatdan o'tgandan KEYIN qo'shilgan.
