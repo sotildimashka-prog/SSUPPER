@@ -66,7 +66,9 @@ from keyboards import (
     BTN_GIFT_ORDER,
     BTN_WITHDRAW_WIN,
     BTN_PRO_SUB,
+    BTN_ORDERS_CHANNEL,
     BTN_BACK,
+    orders_channel_keyboard,
     subscription_keyboard,
 )
 
@@ -374,6 +376,17 @@ async def on_back_to_main(update: Update, context: ContextTypes.DEFAULT_TYPE):
     is_admin = user.id == ADMIN_ID
     await update.message.reply_text(
         "🏠 Bosh menyu", reply_markup=main_menu_keyboard(is_admin)
+    )
+
+
+async def on_orders_channel_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """📢 Buyurtmalar - foydalanuvchini bajarilgan buyurtmalar kanaliga yo'naltiradi."""
+    await update.message.reply_text(
+        "📢 <b>Buyurtmalar</b>\n\n"
+        "Bajarilgan barcha buyurtmalar shu kanalda e'lon qilinadi. "
+        "Kanalga o'tish uchun pastdagi tugmani bosing 👇",
+        parse_mode="HTML",
+        reply_markup=orders_channel_keyboard(),
     )
 
 
@@ -1154,6 +1167,9 @@ def build_application() -> Application:
     # 👑 Pro obuna
     app.add_handler(MessageHandler(_exact(BTN_PRO_SUB), on_pro_sub_button))
     app.add_handler(CallbackQueryHandler(on_prosub_buy, pattern="^prosub:buy$"))
+
+    # 📢 Buyurtmalar kanali - bosilganda kanalga o'tish tugmasi chiqadi
+    app.add_handler(MessageHandler(_exact(BTN_ORDERS_CHANNEL), on_orders_channel_button))
 
     # 🔙 Universal "Orqaga" - istalgan bo'limdan bosh menyuga qaytaradi
     app.add_handler(MessageHandler(_exact(BTN_BACK), on_back_to_main))
