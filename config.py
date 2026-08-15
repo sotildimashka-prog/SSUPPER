@@ -40,6 +40,10 @@ PREMIUM_CONTACT = "@auwsn"
 # (masalan "auwsn"), aks holda "Admin orqali olish" tugmasi ishlamaydi.
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "auwsn")
 
+# --- 📢 Bajarilgan buyurtmalar avtomatik e'lon qilinadigan kanal ---
+# Bot ushbu kanalda ADMIN bo'lishi shart, aks holda xabar yuborilmaydi.
+ORDERS_CHANNEL_ID = os.getenv("ORDERS_CHANNEL_ID", "@buyurtmalar_ff")
+
 # --- Foydali web sayt ---
 WEBSITE_URL = os.getenv("WEBSITE_URL", "https://freefireuz.netlify.app")
 
