@@ -9,7 +9,14 @@ from telegram import (
     WebAppInfo,
 )
 
-from config import REQUIRED_CHANNELS, ADMIN_ID, WEBSITE_URL, WEBAPP_URL, NEWS_CHANNEL_URL
+from config import (
+    REQUIRED_CHANNELS,
+    ADMIN_ID,
+    WEBSITE_URL,
+    WEBAPP_URL,
+    NEWS_CHANNEL_URL,
+    ORDERS_CHANNEL_ID,
+)
 from data.settings_data import PHONES
 from data.tablet_data import TABLETS
 from data.pc_data import PC_MODELS
@@ -136,6 +143,10 @@ BTN_MAIN_MUSIC = "🎵 Musiqa yaratish"
 
 BTN_PRO_SUB = "👑 Pro obuna"
 
+# ---------- 📢 Buyurtmalar kanali ----------
+
+BTN_ORDERS_CHANNEL = "📢 Buyurtmalar"
+
 # ---------- 🔙 Universal "Orqaga" (Reply) tugmasi ----------
 # Ichki bo'limlarning istalgan tugmasi bosilganda pastda shu tugma chiqib,
 # foydalanuvchi asosiy menyuga bir bosishda qaytishi mumkin.
@@ -151,12 +162,14 @@ def back_reply_keyboard() -> ReplyKeyboardMarkup:
 
 VIDEO_MIN_BALANCE = 30000
 
+ORDERS_CHANNEL_USERNAME = ORDERS_CHANNEL_ID.lstrip("@")
+
 # Har safar pastki (Reply) tugmalar tarkibi yoki rangi o'zgarganda bu
 # raqamni +1 oshiring. Shunda barcha foydalanuvchilarning eski (keshlangan)
 # tugmalar oynasi ular botga keyingi safar yozganda YOKI istalgan tugmani
 # (reply yoki inline) bosganda AVTOMATIK yangilanadi — broadcast yuborish
 # shart emas.
-MENU_VERSION = 5
+MENU_VERSION = 6
 
 
 def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
@@ -189,6 +202,9 @@ def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
 
     # 👑 Pro obuna - alohida, chiroyli qator
     rows.append([_kb(BTN_PRO_SUB)])
+
+    # 📢 Buyurtmalar - bajarilgan buyurtmalar kanaliga o'tish
+    rows.append([_kb(BTN_ORDERS_CHANNEL)])
 
     return ReplyKeyboardMarkup(rows, resize_keyboard=True, is_persistent=True)
 
@@ -544,9 +560,19 @@ def paid_disclaimer_keyboard(key: str) -> InlineKeyboardMarkup:
     )
 
 
-def custom_admin_keyboard(user_id: int) -> InlineKeyboardMarkup:
+def custom_admin_keyboard(
+    user_id: int, label: str = "📤 Nastroyka yuborish", order_kind: str = "nastroyka"
+) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
-        [[_ikb("📤 Nastroyka yuborish", callback_data=f"customreply:{user_id}")]]
+        [[_ikb(label, callback_data=f"customreply:{order_kind}:{user_id}")]]
+    )
+
+
+# ---------- 📢 Buyurtmalar kanali ----------
+
+def orders_channel_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[_ikb("📢 Kanalga o'tish", url=f"https://t.me/{ORDERS_CHANNEL_USERNAME}")]]
     )
 
 
