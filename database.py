@@ -311,6 +311,17 @@ def get_user(user_id: int):
         return cur.fetchone()
 
 
+def get_user_by_username(username: str):
+    """Telegram username (@ belgisiz yoki bilan) bo'yicha foydalanuvchini topadi.
+    Katta-kichik harflarga sezgir emas (case-insensitive)."""
+    clean = username.strip().lstrip("@")
+    with get_conn() as conn:
+        cur = conn.execute(
+            "SELECT * FROM users WHERE LOWER(username) = LOWER(?)", (clean,)
+        )
+        return cur.fetchone()
+
+
 # ---------------- Tahrirlanadigan matnlar (app_settings) ----------------
 
 def get_setting(key: str, default: str = "") -> str:
@@ -401,6 +412,24 @@ def get_quiz_diamonds(user_id: int) -> int:
         cur = conn.execute("SELECT diamonds FROM quiz_diamonds WHERE user_id = ?", (user_id,))
         row = cur.fetchone()
         return row["diamonds"] if row else 0
+
+
+def deduct_quiz_diamonds(user_id: int, amount: int) -> int:
+    """Foydalanuvchining almaz hisobidan 'amount' dona ayiradi (manfiy bo'lib
+    ketmasligi uchun 0 dan pastga tushmaydi). Haqiqatda necha dona ayirilganini
+    qaytaradi."""
+    with get_conn() as conn:
+        cur = conn.execute("SELECT diamonds FROM quiz_diamonds WHERE user_id = ?", (user_id,))
+        row = cur.fetchone()
+        current = row["diamonds"] if row else 0
+        actually_deducted = min(current, amount)
+        new_value = current - actually_deducted
+        conn.execute(
+            "INSERT INTO quiz_diamonds (user_id, diamonds) VALUES (?, ?) "
+            "ON CONFLICT(user_id) DO UPDATE SET diamonds = excluded.diamonds",
+            (user_id, new_value),
+        )
+        return actually_deducted
 
 
 def reset_quiz_diamonds(user_id: int):
