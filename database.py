@@ -792,6 +792,30 @@ def increment_music_generated(user_id: int):
             )
 
 
+# ==================== 📢 Bajarilgan buyurtmalar raqamlash (kanal uchun) ====================
+
+def get_next_order_number() -> int:
+    """@buyurtmalar_ff kanaliga yuboriladigan har bir 'N# buyurtma bajarildi'
+    xabari uchun ketma-ket raqam beradi (app_settings jadvalida saqlanadi,
+    shuning uchun bot qayta ishga tushirilsa ham hisob yo'qolmaydi)."""
+    with get_conn() as conn:
+        cur = conn.execute(
+            "SELECT value FROM app_settings WHERE key = 'order_counter'"
+        )
+        row = cur.fetchone()
+        try:
+            current = int(row["value"]) if row and row["value"] else 0
+        except (TypeError, ValueError):
+            current = 0
+        new_value = current + 1
+        conn.execute(
+            "INSERT INTO app_settings (key, value) VALUES ('order_counter', ?) "
+            "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            (str(new_value),),
+        )
+        return new_value
+
+
 # ==================== 👑 Pro obuna (musiqa limiti uchun) ====================
 
 def is_pro_user(user_id: int) -> bool:
