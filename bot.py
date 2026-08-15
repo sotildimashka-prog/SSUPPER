@@ -46,6 +46,7 @@ from keyboards import (
     BTN_ADMIN_CREDIT,
     BTN_WITHDRAW,
     BTN_GIFT_ALL,
+    BTN_DEDUCT_DIAMOND,
     BTN_FF2017,
     BTN_MAIN_FF,
     BTN_MAIN_DIAMONDS,
@@ -214,6 +215,12 @@ from handlers.admin_credit import (
     on_gift_all_confirm,
     on_gift_all_cancel,
     WAITING_GIFT_AMOUNT,
+    on_deduct_diamond_button,
+    receive_deduct_username,
+    receive_deduct_amount,
+    cancel_deduct,
+    WAITING_DEDUCT_USERNAME,
+    WAITING_DEDUCT_AMOUNT,
 )
 from handlers.withdraw import (
     on_withdraw_button,
@@ -770,6 +777,23 @@ def build_application() -> Application:
     app.add_handler(gift_all_conv)
     app.add_handler(CallbackQueryHandler(on_gift_all_confirm, pattern="^giftall_confirm$"))
     app.add_handler(CallbackQueryHandler(on_gift_all_cancel, pattern="^giftall_cancel$"))
+
+    # ---------- ➖ Almazni ayirish (bitta a'zoning hisobidan, faqat admin) ----------
+    deduct_diamond_conv = ConversationHandler(
+        entry_points=[MessageHandler(_exact(BTN_DEDUCT_DIAMOND), on_deduct_diamond_button)],
+        states={
+            WAITING_DEDUCT_USERNAME: [
+                CommandHandler("bekor", cancel_deduct),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_deduct_username),
+            ],
+            WAITING_DEDUCT_AMOUNT: [
+                CommandHandler("bekor", cancel_deduct),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_deduct_amount),
+            ],
+        },
+        fallbacks=[CommandHandler("bekor", cancel_deduct)],
+    )
+    app.add_handler(deduct_diamond_conv)
 
     # ---------- 💎 Almaz yechish (Tekin almazdan yig'ilganini yechib olish) ----------
     app.add_handler(MessageHandler(_exact(BTN_WITHDRAW), on_withdraw_button))
