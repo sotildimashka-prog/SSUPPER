@@ -22,7 +22,7 @@ from keyboards import (
 )
 
 REWARD_AMOUNT = 3
-PENALTY_AMOUNT = 10  # Yutqazganda hisobdan yechiladigan Almaz miqdori
+PENALTY_AMOUNT = 3  # Yutqazganda hisobdan yechiladigan Almaz miqdori
 
 MINE_TOTAL_CELLS = 50
 MINE_COUNT = 3
