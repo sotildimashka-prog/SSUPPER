@@ -1,198 +1,250 @@
 # -*- coding: utf-8 -*-
-"""🖼️ "Oddiy Rasm" bo'limi uchun yakuniy rasm generatsiya qiluvchi modul.
+"""🖼️ Rasm Yasash bo'limi.
 
-Foydalanuvchi yozgan nom/matn va tanlagan uslubi asosida PIL yordamida
-tayyor rasm (PNG) yaratadi va vaqtincha faylga saqlaydi.
+🔥 Oddiy Rasm: foydalanuvchi nom/matn yozadi -> 10 ta uslubdan birini
+   tanlaydi -> bot avtomatik tayyor natijani yuboradi (PIL orqali generatsiya).
+
+💎 Maxsus Rasm: foydalanuvchi nom va tavsif yozadi -> buyurtma adminga
+   yuboriladi, admin qo'lda tayyor rasmni yuborib javob beradi (mavjud
+   "customreply:" oqimi qayta ishlatiladi).
 """
 
 import os
-import tempfile
 
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from telegram import Update
+from telegram.ext import ContextTypes, ConversationHandler
+from telegram.error import TelegramError
 
-from data.rasm_uslublari_data import STYLES
-
-CANVAS_SIZE = (1080, 1080)
-
-_PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
-_BUNDLED_BOLD = os.path.join(_PROJECT_ROOT, "assets", "fonts", "Poppins-Bold.ttf")
-_BUNDLED_REGULAR = os.path.join(_PROJECT_ROOT, "assets", "fonts", "Poppins-Regular.ttf")
-
-_SYSTEM_BOLD_CANDIDATES = [
-    "/usr/share/fonts/truetype/google-fonts/Poppins-Bold.ttf",
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-]
-_SYSTEM_REGULAR_CANDIDATES = [
-    "/usr/share/fonts/truetype/google-fonts/Poppins-Regular.ttf",
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-]
-
-
-def _first_existing(paths, fallback):
-    for p in paths:
-        if os.path.exists(p):
-            return p
-    return fallback
-
-
-FONT_PATH_BOLD = _first_existing(
-    [_BUNDLED_BOLD] + _SYSTEM_BOLD_CANDIDATES, _BUNDLED_BOLD
+from config import ADMIN_ID
+from keyboards import (
+    main_menu_keyboard,
+    rasm_menu_keyboard,
+    oddiy_rasm_cancel_keyboard,
+    oddiy_rasm_styles_keyboard,
+    oddiy_rasm_result_keyboard,
+    custom_admin_keyboard,
 )
-FONT_PATH_REGULAR = _first_existing(
-    [_BUNDLED_REGULAR] + _SYSTEM_REGULAR_CANDIDATES, _BUNDLED_REGULAR
-)
+from data.rasm_uslublari_data import get_style
+from handlers.subscription import require_subscription
+import imagegen
+
+(
+    WAITING_ODDIY_TEXT,
+    WAITING_MAXSUS_NAME,
+    WAITING_MAXSUS_DESC,
+) = range(3)
 
 
-def _vertical_gradient(size, color_from, color_to):
-    w, h = size
-    base = Image.new("RGB", (1, h), color_from)
-    top = Image.new("RGB", (1, h), color_to)
-    mask = Image.linear_gradient("L").resize((1, h))
-    grad = Image.composite(top, base, mask)
-    return grad.resize((w, h))
+def _is_admin(user_id: int) -> bool:
+    return user_id == ADMIN_ID
 
 
-def _fit_font(draw, text, max_width, start_size=170, min_size=40):
-    size = start_size
-    while size > min_size:
-        font = ImageFont.truetype(FONT_PATH_BOLD, size)
-        bbox = draw.textbbox((0, 0), text, font=font)
-        w = bbox[2] - bbox[0]
-        if w <= max_width:
-            return font, bbox
-        size -= 4
-    font = ImageFont.truetype(FONT_PATH_BOLD, min_size)
-    bbox = draw.textbbox((0, 0), text, font=font)
-    return font, bbox
-
-
-def generate_oddiy_rasm(text: str, style_id: str) -> str:
-    """Berilgan matn va uslub bo'yicha yakuniy rasmni yaratadi.
-
-    Qaytaradi: vaqtinchalik PNG fayl yo'li.
-    """
-    style = None
-    for s in STYLES:
-        if s["id"] == style_id:
-            style = s
-            break
-    if style is None:
-        style = STYLES[0]
-
-    text = (text or "").strip().upper()[:28] or "XONFIRE"
-
-    w, h = CANVAS_SIZE
-    img = _vertical_gradient((w, h), style["bg_from"], style["bg_to"]).convert("RGB")
-
-    # Yengil "vinyet" effekti - chetlarni qorong'ilashtirish
-    vignette = Image.new("L", (w, h), 0)
-    vd = ImageDraw.Draw(vignette)
-    vd.ellipse((-w * 0.3, -h * 0.3, w * 1.3, h * 1.3), fill=180)
-    vignette = vignette.filter(ImageFilter.GaussianBlur(180))
-    dark = Image.new("RGB", (w, h), (0, 0, 0))
-    img = Image.composite(img, dark, vignette)
-
-    draw = ImageDraw.Draw(img)
-
-    accent = style["accent"]
-
-    # Fon bezaklari: ikki nozik gorizontal chiziq
-    draw.line([(w * 0.15, h * 0.34), (w * 0.85, h * 0.34)], fill=accent, width=4)
-    draw.line([(w * 0.15, h * 0.66), (w * 0.85, h * 0.66)], fill=accent, width=4)
-
-    # Asosiy matn (glow effekti bilan)
-    max_text_width = int(w * 0.82)
-    font, bbox = _fit_font(draw, text, max_text_width)
-    tw = bbox[2] - bbox[0]
-    th = bbox[3] - bbox[1]
-    tx = (w - tw) / 2 - bbox[0]
-    ty = (h - th) / 2 - bbox[1]
-
-    glow_layer = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    glow_draw = ImageDraw.Draw(glow_layer)
-    glow_draw.text((tx, ty), text, font=font, fill=accent + (255,))
-    glow_layer = glow_layer.filter(ImageFilter.GaussianBlur(14))
-    img = Image.alpha_composite(img.convert("RGBA"), glow_layer)
-
-    draw = ImageDraw.Draw(img)
-    draw.text(
-        (tx, ty),
-        text,
-        font=font,
-        fill=style["text_color"],
-        stroke_width=3,
-        stroke_fill=accent,
+# ---------------------------------------------------------------------------
+# Kirish nuqtasi
+# ---------------------------------------------------------------------------
+async def on_rasm_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await require_subscription(update, context):
+        return
+    await update.message.reply_text(
+        "🖼️ <b>Rasm Yasash</b>\n\nQuyidagilardan birini tanlang 👇",
+        parse_mode="HTML",
+        reply_markup=rasm_menu_keyboard(),
     )
 
-    # Pastki kichik yorliq
-    tag = "XONFIRE BOT"
-    small_font = ImageFont.truetype(FONT_PATH_REGULAR, 30)
-    tag_bbox = draw.textbbox((0, 0), tag, font=small_font)
-    tag_w = tag_bbox[2] - tag_bbox[0]
-    draw.text(((w - tag_w) / 2, h * 0.88), tag, font=small_font, fill=accent)
 
-    out_dir = tempfile.mkdtemp(prefix="oddiy_rasm_")
-    out_path = os.path.join(out_dir, "natija.png")
-    img.convert("RGB").save(out_path, "PNG")
-    return out_path
-
-
-def generate_style_grid() -> str:
-    """10 ta uslubni 2 ustun x 5 qatorli jadval (kollaj) ko'rinishida birlashtiradi,
-    har bir katakka raqam va nom yozadi. Foydalanuvchi shu rasmga qarab uslub
-    tanlaydi."""
-    cols, rows = 2, 5
-    cell_w, cell_h = 480, 300
-    pad = 14
-    grid_w = cols * cell_w + pad * (cols + 1)
-    grid_h = rows * cell_h + pad * (rows + 1)
-
-    canvas = Image.new("RGB", (grid_w, grid_h), (10, 10, 12))
-    draw = ImageDraw.Draw(canvas)
-    label_font = ImageFont.truetype(FONT_PATH_BOLD, 28)
-
-    for idx, style in enumerate(STYLES):
-        col = idx % cols
-        row = idx // cols
-        x0 = pad + col * (cell_w + pad)
-        y0 = pad + row * (cell_h + pad)
-
-        if style["preview"] and os.path.exists(style["preview"]):
-            thumb = Image.open(style["preview"]).convert("RGB")
-            # markazdan kesib, katakka moslashtirish (cover)
-            tw, th = thumb.size
-            target_ratio = cell_w / cell_h
-            src_ratio = tw / th
-            if src_ratio > target_ratio:
-                new_w = int(th * target_ratio)
-                left = (tw - new_w) // 2
-                thumb = thumb.crop((left, 0, left + new_w, th))
-            else:
-                new_h = int(tw / target_ratio)
-                top = (th - new_h) // 2
-                thumb = thumb.crop((0, top, tw, top + new_h))
-            thumb = thumb.resize((cell_w, cell_h))
-        else:
-            thumb = _vertical_gradient((cell_w, cell_h), style["bg_from"], style["bg_to"])
-
-        canvas.paste(thumb, (x0, y0))
-
-        # Raqam belgisi (chapdan yuqori burchakda)
-        badge_r = 26
-        bx, by = x0 + 18, y0 + 18
-        draw.ellipse((bx, by, bx + badge_r * 2, by + badge_r * 2), fill=(0, 0, 0, 200))
-        num = style["id"]
-        num_bbox = draw.textbbox((0, 0), num, font=label_font)
-        nw = num_bbox[2] - num_bbox[0]
-        nh = num_bbox[3] - num_bbox[1]
-        draw.text(
-            (bx + badge_r - nw / 2 - num_bbox[0], by + badge_r - nh / 2 - num_bbox[1]),
-            num,
-            font=label_font,
-            fill=(255, 255, 255),
+async def on_rasm_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    context.user_data.pop("oddiy_rasm_text", None)
+    try:
+        await query.edit_message_text(
+            "🖼️ <b>Rasm Yasash</b>\n\nQuyidagilardan birini tanlang 👇",
+            parse_mode="HTML",
+            reply_markup=rasm_menu_keyboard(),
         )
+    except TelegramError:
+        pass
+    return ConversationHandler.END
 
-    out_dir = tempfile.mkdtemp(prefix="uslub_grid_")
-    out_path = os.path.join(out_dir, "uslublar.jpg")
-    canvas.save(out_path, "JPEG", quality=90)
-    return out_path
+
+# ---------------------------------------------------------------------------
+# 🔥 Oddiy Rasm
+# ---------------------------------------------------------------------------
+async def on_oddiy_rasm_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    try:
+        await query.edit_message_text(
+            "🔥 <b>Oddiy Rasm</b>\n\n"
+            "✍️ Rasm uchun nom yoki matn yozing (masalan: <i>ISM</i> yoki qisqa "
+            "prompt).\n\nBekor qilish uchun /bekor.",
+            parse_mode="HTML",
+            reply_markup=oddiy_rasm_cancel_keyboard(),
+        )
+    except TelegramError:
+        pass
+    return WAITING_ODDIY_TEXT
+
+
+async def cancel_oddiy(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data.pop("oddiy_rasm_text", None)
+    is_admin = _is_admin(update.effective_user.id)
+    await update.message.reply_text("❌ Bekor qilindi.", reply_markup=main_menu_keyboard(is_admin))
+    return ConversationHandler.END
+
+
+async def receive_oddiy_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = (update.message.text or "").strip()
+    if not text:
+        await update.message.reply_text("⚠️ Iltimos, matn ko'rinishida yozing.")
+        return WAITING_ODDIY_TEXT
+
+    context.user_data["oddiy_rasm_text"] = text
+
+    grid_path = None
+    try:
+        grid_path = imagegen.generate_style_grid()
+        with open(grid_path, "rb") as f:
+            await update.message.reply_photo(
+                photo=f,
+                caption="🎨 <b>Qaysi rasmni tanlaysiz?</b>\n\nYuqoridagi rasmga qarab, raqamiga mos tugmani bosing 👇",
+                parse_mode="HTML",
+                reply_markup=oddiy_rasm_styles_keyboard(),
+            )
+    except Exception:
+        await update.message.reply_text(
+            "🎨 <b>Qaysi rasmni tanlaysiz?</b>\n\nYuqoridagi rasmga qarab, raqamiga mos tugmani bosing 👇",
+            parse_mode="HTML",
+            reply_markup=oddiy_rasm_styles_keyboard(),
+        )
+    finally:
+        if grid_path and os.path.exists(grid_path):
+            try:
+                os.remove(grid_path)
+            except OSError:
+                pass
+
+    return ConversationHandler.END
+
+
+async def on_oddiy_style_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer("⏳ Tayyorlanmoqda...")
+
+    style_id = query.data.split(":", 1)[1]
+    text = context.user_data.get("oddiy_rasm_text")
+
+    if not text:
+        await query.answer("⚠️ Avval matn kiriting. Qaytadan boshlang.", show_alert=True)
+        return
+
+    style = get_style(style_id)
+    result_path = None
+    try:
+        result_path = imagegen.generate_oddiy_rasm(text, style_id)
+        with open(result_path, "rb") as f:
+            await query.message.reply_photo(
+                photo=f,
+                caption=(
+                    "✅ <b>Tayyor natija!</b>\n\n"
+                    f"🎨 Uslub: {style['title'] if style else style_id}\n"
+                    f"✍️ Matn: {text}"
+                ),
+                parse_mode="HTML",
+                reply_markup=oddiy_rasm_result_keyboard(),
+            )
+    except Exception:
+        await query.message.reply_text(
+            "❌ Rasm yaratishda xatolik yuz berdi. Qaytadan urinib ko'ring."
+        )
+    finally:
+        if result_path and os.path.exists(result_path):
+            try:
+                os.remove(result_path)
+            except OSError:
+                pass
+
+    context.user_data.pop("oddiy_rasm_text", None)
+
+
+# ---------------------------------------------------------------------------
+# 💎 Maxsus Rasm
+# ---------------------------------------------------------------------------
+async def on_maxsus_rasm_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    try:
+        await query.edit_message_text(
+            "💎 <b>Maxsus Rasm</b>\n\n"
+            "✍️ Avval rasm uchun <b>nomni</b> yozing.\n\nBekor qilish uchun /bekor.",
+            parse_mode="HTML",
+            reply_markup=oddiy_rasm_cancel_keyboard(),
+        )
+    except TelegramError:
+        pass
+    return WAITING_MAXSUS_NAME
+
+
+async def cancel_maxsus(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data.pop("maxsus_rasm_name", None)
+    is_admin = _is_admin(update.effective_user.id)
+    await update.message.reply_text("❌ Bekor qilindi.", reply_markup=main_menu_keyboard(is_admin))
+    return ConversationHandler.END
+
+
+async def receive_maxsus_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    name = (update.message.text or "").strip()
+    if not name:
+        await update.message.reply_text("⚠️ Iltimos, nomni matn ko'rinishida yozing.")
+        return WAITING_MAXSUS_NAME
+
+    context.user_data["maxsus_rasm_name"] = name
+    await update.message.reply_text(
+        "📝 Endi rasm uchun <b>tavsifni</b> (nima xohlaysiz, batafsil) yozing.\n\n"
+        "Bekor qilish uchun /bekor.",
+        parse_mode="HTML",
+    )
+    return WAITING_MAXSUS_DESC
+
+
+async def receive_maxsus_desc(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    desc = (update.message.text or "").strip()
+    if not desc:
+        await update.message.reply_text("⚠️ Iltimos, tavsifni matn ko'rinishida yozing.")
+        return WAITING_MAXSUS_DESC
+
+    name = context.user_data.pop("maxsus_rasm_name", "-")
+    is_admin = _is_admin(user.id)
+
+    await update.message.reply_text(
+        "✅ Buyurtmangiz qabul qilindi!\n\n"
+        "Admin tez orada sizning maxsus rasmingizni tayyorlab yuboradi.",
+        reply_markup=main_menu_keyboard(is_admin),
+    )
+
+    admin_text = (
+        "💎 <b>Yangi MAXSUS RASM buyurtmasi!</b>\n\n"
+        f"👤 Foydalanuvchi: {user.first_name or '-'} (@{user.username or '—'})\n"
+        f"🆔 Telegram ID: <code>{user.id}</code>\n\n"
+        f"🏷 Nom: {name}\n"
+        f"📝 Tavsif:\n{desc}"
+    )
+    context.bot_data.setdefault("pending_orders", {})[user.id] = {
+        "type_label": "💎 Maxsus rasm",
+        "user_id": user.id,
+        "first_name": user.first_name,
+        "username": user.username,
+        "info": f"🏷 Nom: {name}\n📝 Tavsif: {desc}",
+    }
+    try:
+        await context.bot.send_message(
+            chat_id=ADMIN_ID,
+            text=admin_text,
+            parse_mode="HTML",
+            reply_markup=custom_admin_keyboard(user.id, "📤 Rasm yuborish", order_kind="rasm"),
+        )
+    except TelegramError:
+        pass
+
+    return ConversationHandler.END
