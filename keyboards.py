@@ -170,43 +170,52 @@ ORDERS_CHANNEL_USERNAME = ORDERS_CHANNEL_ID.lstrip("@")
 # tugmalar oynasi ular botga keyingi safar yozganda YOKI istalgan tugmani
 # (reply yoki inline) bosganda AVTOMATIK yangilanadi — broadcast yuborish
 # shart emas.
-MENU_VERSION = 7
+MENU_VERSION = 8
 
 
 def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
-    row_texts = [
-        [BTN_M2_DIAMONDS, BTN_M2_SERVICES],
-        [BTN_M2_SETTINGS, BTN_M2_NICKS],
-        [BTN_M2_PAYMENTS, BTN_M2_FAQ],
-        [BTN_MAIN_RASM, BTN_MAIN_VIDEO, BTN_MAIN_MUSIC],
+    # Barcha tugmalar (matn, qo'shimcha kwarg) tartibida - keyin 3 tadan
+    # qatorlarga bo'linadi. Funksiyalarning o'zi o'zgarmaydi, faqat joylashuvi.
+    buttons: list[tuple[str, dict]] = [
+        (BTN_PORTAL, {"web_app": WebAppInfo(url=WEBAPP_URL)}),
+        (BTN_M2_DIAMONDS, {}),
+        (BTN_M2_SERVICES, {}),
+        (BTN_M2_SETTINGS, {}),
+        (BTN_M2_NICKS, {}),
+        (BTN_M2_PAYMENTS, {}),
+        (BTN_M2_FAQ, {}),
+        (BTN_MAIN_RASM, {}),
+        (BTN_MAIN_VIDEO, {}),
+        (BTN_MAIN_MUSIC, {}),
+        (BTN_MINI_GAMES, {}),
+        (BTN_MY_ACCOUNT, {}),
+        (BTN_STORE, {}),
+        (BTN_GIFT_ORDER, {}),
+        (BTN_GIFTS, {}),
+        (BTN_WITHDRAW_WIN, {}),
+        (BTN_PRO_SUB, {}),
+        (BTN_ORDERS_CHANNEL, {}),
     ]
+
     if is_admin:
-        row_texts.append([BTN_STATS, BTN_BROADCAST])
-        row_texts.append([BTN_POST, BTN_EDIT_TEXTS])
-        row_texts.append([BTN_ADMIN_CREDIT, BTN_GIFT_ALL])
-        row_texts.append([BTN_DEDUCT_DIAMOND])
+        buttons.extend(
+            [
+                (BTN_STATS, {}),
+                (BTN_BROADCAST, {}),
+                (BTN_POST, {}),
+                (BTN_EDIT_TEXTS, {}),
+                (BTN_ADMIN_CREDIT, {}),
+                (BTN_GIFT_ALL, {}),
+                (BTN_DEDUCT_DIAMOND, {}),
+            ]
+        )
 
-    # Barcha qatorlar faqat YASHIL (success) rangda.
-    rows = [[_kb(text) for text in row] for row in row_texts]
-
-    # 🗺 Free Fire Portal - alohida, birinchi qatorda, to'g'ridan-to'g'ri
-    # Web App'ni ochadigan tugma.
-    rows.insert(0, [_kb(BTN_PORTAL, web_app=WebAppInfo(url=WEBAPP_URL))])
-
-    # 🎮 Mini O'yinlar + 👛 Hisobim - yonma-yon bitta qatorda
-    rows.append([_kb(BTN_MINI_GAMES), _kb(BTN_MY_ACCOUNT)])
-
-    # 🛒 Free Fire Do'koni + 🎁 Giftlar - yonma-yon bitta qatorda
-    rows.append([_kb(BTN_STORE), _kb(BTN_GIFT_ORDER)])
-
-    # 🎁 Sovg'alar + 🏆 Yutiqni chiqarish - yonma-yon bitta qatorda
-    rows.append([_kb(BTN_GIFTS), _kb(BTN_WITHDRAW_WIN)])
-
-    # 👑 Pro obuna - alohida, chiroyli qator
-    rows.append([_kb(BTN_PRO_SUB)])
-
-    # 📢 Buyurtmalar - bajarilgan buyurtmalar kanaliga o'tish
-    rows.append([_kb(BTN_ORDERS_CHANNEL)])
+    # 3 tadan qilib qatorlarga bo'lish (funksiyalarga tegilmaydi, faqat
+    # joylashuv o'zgaradi).
+    rows = []
+    for i in range(0, len(buttons), 3):
+        chunk = buttons[i:i + 3]
+        rows.append([_kb(text, **kwargs) for text, kwargs in chunk])
 
     return ReplyKeyboardMarkup(rows, resize_keyboard=True, is_persistent=True)
 
