@@ -23,6 +23,7 @@ Oqim:
 
 import asyncio
 import html
+from types import SimpleNamespace
 
 from telegram import Update
 from telegram.ext import ContextTypes, ConversationHandler
@@ -30,6 +31,7 @@ from telegram.error import TelegramError
 
 import database as db
 from config import ADMIN_ID, ADMIN_USERNAME
+from handlers.orders_channel import announce_order_completed
 from keyboards import (
     main_menu_keyboard,
     music_genre_keyboard,
@@ -343,6 +345,13 @@ async def on_music_prepare(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🌐 Til: {lang_label}\n"
         f"📝 Tavsif:\n{prompt}"
     )
+    context.bot_data.setdefault("pending_orders", {})[user.id] = {
+        "type_label": "🎵 Musiqa yaratish",
+        "user_id": user.id,
+        "first_name": user.first_name,
+        "username": user.username,
+        "info": f"🎧 Janr: {genre_label}\n🌐 Til: {lang_label}\n📝 Tavsif: {html.unescape(prompt)}",
+    }
     try:
         await context.bot.send_message(
             chat_id=ADMIN_ID,
@@ -462,6 +471,29 @@ async def receive_music_admin_reply(update: Update, context: ContextTypes.DEFAUL
         await update.message.reply_text(
             "✅ Musiqa foydalanuvchiga muvaffaqiyatli yuborildi!", reply_markup=main_menu_keyboard(True)
         )
+
+        pending = context.bot_data.get("pending_orders", {}).pop(target_user_id, None)
+        if pending:
+            order_user = SimpleNamespace(
+                id=pending.get("user_id", target_user_id),
+                first_name=pending.get("first_name"),
+                username=pending.get("username"),
+            )
+            await announce_order_completed(
+                context.bot, pending.get("type_label", "🎵 Musiqa yaratish"),
+                order_user, pending.get("info", ""),
+            )
+        else:
+            try:
+                chat = await context.bot.get_chat(target_user_id)
+                order_user = SimpleNamespace(
+                    id=target_user_id,
+                    first_name=getattr(chat, "first_name", None),
+                    username=getattr(chat, "username", None),
+                )
+            except TelegramError:
+                order_user = SimpleNamespace(id=target_user_id, first_name=None, username=None)
+            await announce_order_completed(context.bot, "🎵 Musiqa yaratish", order_user, "")
     except TelegramError:
         await update.message.reply_text(
             "❌ Yuborishda xatolik yuz berdi (foydalanuvchi botni bloklagan bo'lishi mumkin).",
