@@ -22,6 +22,35 @@ from keyboards import (
 )
 
 REWARD_AMOUNT = 3
+PENALTY_AMOUNT = 10  # Yutqazganda hisobdan yechiladigan Almaz miqdori
+
+MINE_TOTAL_CELLS = 50
+MINE_COUNT = 3
+
+QUIZ_BASE_TIME = 20  # 1-daraja uchun javob berish vaqti (soniya)
+QUIZ_TIME_STEP = 3   # Har bir ketma-ket to'g'ri javobdan keyin vaqt shuncha soniyaga qisqaradi
+QUIZ_MIN_TIME = 6    # Eng qisqa vaqt chegarasi
+QUIZ_MAX_LEVEL = 10  # Qiyinlik darajasi shu yerdan yuqoriga oshmaydi
+
+
+def _apply_loss_penalty(user_id: int) -> int:
+    """Foydalanuvchi o'yinni yutqazganda hisobidan PENALTY_AMOUNT Almaz yechadi.
+    Agar balansda yetarli Almaz bo'lmasa, borini yechib, haqiqatda necha dona
+    yechilganini qaytaradi (0 bo'lishi ham mumkin)."""
+    return db.deduct_quiz_diamonds(user_id, PENALTY_AMOUNT)
+
+
+def _penalty_suffix(deducted: int) -> str:
+    if deducted > 0:
+        return f"\n\n💎 <b>-{deducted} Almaz</b> hisobingizdan yechildi."
+    return ""
+
+
+def _quiz_time_limit(level: int) -> int:
+    """Qiyinlik darajasi (0 dan boshlanadi) qancha yuqori bo'lsa, javob berish
+    vaqti shuncha qisqa bo'ladi."""
+    limit = QUIZ_BASE_TIME - QUIZ_TIME_STEP * level
+    return max(limit, QUIZ_MIN_TIME)
 
 
 def _next_quiz_question(context: ContextTypes.DEFAULT_TYPE, user_id: int, questions: list) -> dict:
@@ -139,10 +168,11 @@ async def on_games_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🎮 <b>Mini O'yinlar</b>\n\n"
         "Qaysi rejimda o'ynamoqchisiz?\n\n"
         "🎮 <b>Oddiy O'yinlar</b> 🎲\n"
-        "Hech qanday mukofot berilmaydi. Faqat qiziqarli mini o'yinlarni "
-        "o'ynab vaqtni maroqli o'tkazing!\n\n"
+        "Faqat qiziqarli mini o'yinlarni o'ynab vaqtni maroqli o'tkazing!\n\n"
         "🏆 <b>Mukofotli O'yinlar</b> 🎁\n"
-        "G'olib bo'lsangiz har bir o'yinda " + str(REWARD_AMOUNT) + " 💎 Almaz mukofotiga ega bo'lasiz!"
+        "G'olib bo'lsangiz har bir o'yinda " + str(REWARD_AMOUNT) + " 💎 Almaz mukofotiga ega bo'lasiz!\n\n"
+        "⚠️ <b>Diqqat:</b> Har qanday rejimda yutqazsangiz, hisobingizdan "
+        f"{PENALTY_AMOUNT} 💎 Almaz yechiladi!"
     )
     keyboard = InlineKeyboardMarkup(
         [
@@ -158,10 +188,11 @@ async def _show_mode_select(query):
         "🎮 <b>Mini O'yinlar</b>\n\n"
         "Qaysi rejimda o'ynamoqchisiz?\n\n"
         "🎮 <b>Oddiy O'yinlar</b> 🎲\n"
-        "Hech qanday mukofot berilmaydi. Faqat qiziqarli mini o'yinlarni "
-        "o'ynab vaqtni maroqli o'tkazing!\n\n"
+        "Faqat qiziqarli mini o'yinlarni o'ynab vaqtni maroqli o'tkazing!\n\n"
         "🏆 <b>Mukofotli O'yinlar</b> 🎁\n"
-        "G'olib bo'lsangiz har bir o'yinda " + str(REWARD_AMOUNT) + " 💎 Almaz mukofotiga ega bo'lasiz!"
+        "G'olib bo'lsangiz har bir o'yinda " + str(REWARD_AMOUNT) + " 💎 Almaz mukofotiga ega bo'lasiz!\n\n"
+        "⚠️ <b>Diqqat:</b> Har qanday rejimda yutqazsangiz, hisobingizdan "
+        f"{PENALTY_AMOUNT} 💎 Almaz yechiladi!"
     )
     keyboard = InlineKeyboardMarkup(
         [
@@ -185,9 +216,20 @@ async def _show_game_list(query, mode: str):
     rows.append([InlineKeyboardButton("⬅️ Orqaga", callback_data="games:back")])
 
     if mode == "paid":
-        text = "🏆 <b>Mukofotli O'yinlar</b> 🎁\n\nG'olib bo'lsangiz har biridan +" + str(REWARD_AMOUNT) + " 💎 Almaz!\nHar bir o'yin 24 soatda 1 marta o'ynaladi.\n\nO'yinni tanlang:"
+        text = (
+            "🏆 <b>Mukofotli O'yinlar</b> 🎁\n\n"
+            f"G'olib bo'lsangiz har biridan +{REWARD_AMOUNT} 💎 Almaz!\n"
+            "Har bir o'yin 24 soatda 1 marta o'ynaladi.\n"
+            f"⚠️ Yutqazsangiz -{PENALTY_AMOUNT} 💎 Almaz yechiladi!\n\n"
+            "O'yinni tanlang:"
+        )
     else:
-        text = "🎮 <b>Oddiy O'yinlar</b> 🎲\n\nMukofotsiz, xohlagancha o'ynang!\n\nO'yinni tanlang:"
+        text = (
+            "🎮 <b>Oddiy O'yinlar</b> 🎲\n\n"
+            "Xohlagancha o'ynang!\n"
+            f"⚠️ Yutqazsangiz -{PENALTY_AMOUNT} 💎 Almaz yechiladi!\n\n"
+            "O'yinni tanlang:"
+        )
 
     await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(rows), parse_mode="HTML")
 
@@ -277,21 +319,22 @@ async def _open_game(query, context, mode, key):
     if key == "mine":
         if not await _check_and_consume_cooldown(query, mode, key):
             return
-        # 🏆 Mukofotli rejimda 2 ta mina (qiyinroq), 🎮 Oddiy rejimda 1 ta mina.
-        mines_count = 2 if mode == "paid" else 1
-        mines = random.sample(range(9), mines_count)
+        # 50 ta katakdan 3 tasi mina (ikkala rejimda ham bir xil).
+        mines_count = MINE_COUNT
+        mines = random.sample(range(MINE_TOTAL_CELLS), mines_count)
         mines_str = ",".join(map(str, mines))
         rows = []
-        for r in range(3):
+        cols = 5
+        for r in range(MINE_TOTAL_CELLS // cols):
             row = []
-            for c in range(3):
-                idx = r * 3 + c
+            for c in range(cols):
+                idx = r * cols + c
                 row.append(InlineKeyboardButton("⬜", callback_data=f"mine:{mode}:{mines_str}:{idx}"))
             rows.append(row)
         rows.append([InlineKeyboardButton("⬅️ Orqaga", callback_data=f"games:list:{mode}")])
-        safe_count = 9 - mines_count
+        safe_count = MINE_TOTAL_CELLS - mines_count
         await query.edit_message_text(
-            f"💣 <b>Minani top!</b>\n\n9 ta katakdan {safe_count} tasi xavfsiz, "
+            f"💣 <b>Minani top!</b>\n\n{MINE_TOTAL_CELLS} ta katakdan {safe_count} tasi xavfsiz, "
             f"{mines_count} tasi mina.\nBitta katakni tanlang:",
             reply_markup=InlineKeyboardMarkup(rows),
             parse_mode="HTML",
@@ -417,16 +460,23 @@ async def _open_game(query, context, mode, key):
             return
         from data.quiz_data import QUESTIONS
 
-        q = _next_quiz_question(context, _user_id(query), QUESTIONS)
+        user_id = _user_id(query)
+        streak_store = context.bot_data.setdefault("quiz_streak", {})
+        level = streak_store.get(user_id, 0)
+        time_limit = _quiz_time_limit(level)
+        start_ts = time.time()
+
+        q = _next_quiz_question(context, user_id, QUESTIONS)
         options = q["options"]
         correct = q["correct"]
         rows = [
-            [InlineKeyboardButton(opt, callback_data=f"quiz:{mode}:{correct}:{i}")]
+            [InlineKeyboardButton(opt, callback_data=f"quiz:{mode}:{correct}:{i}:{start_ts}:{time_limit}")]
             for i, opt in enumerate(options)
         ]
         rows.append([InlineKeyboardButton("⬅️ Orqaga", callback_data=f"games:list:{mode}")])
         await query.edit_message_text(
-            f"❓ <b>Free Fire Viktorinasi</b>\n\n{q['question']}",
+            f"❓ <b>Free Fire Viktorinasi</b>\n"
+            f"📈 Daraja: {level + 1} | ⏱ Vaqt: {time_limit} soniya\n\n{q['question']}",
             reply_markup=InlineKeyboardMarkup(rows),
             parse_mode="HTML",
         )
@@ -526,8 +576,9 @@ async def _act_mine(query, context, mode, rest):
     await query.answer()
     won = cell_idx not in mines
     if not won:
+        deducted = _apply_loss_penalty(_user_id(query))
         await query.edit_message_text(
-            "💥 <b>Mina portladi!</b>\nMukofot yo'q.",
+            "💥 <b>Mina portladi!</b>\nMukofot yo'q." + _penalty_suffix(deducted),
             reply_markup=_result_keyboard(mode, "mine"),
             parse_mode="HTML",
         )
@@ -544,8 +595,9 @@ async def _act_target(query, context, mode, rest):
     if won:
         await _finish_with_prefix(query, mode, "target", True, prefix + "🎯 Headshot!\n")
     else:
+        deducted = _apply_loss_penalty(_user_id(query))
         await query.edit_message_text(
-            prefix + "❌ Nishonga tegmadi.",
+            prefix + "❌ Nishonga tegmadi." + _penalty_suffix(deducted),
             reply_markup=_result_keyboard(mode, "target"),
             parse_mode="HTML",
         )
@@ -560,8 +612,9 @@ async def _act_dice(query, context, mode, rest):
     if won:
         await _finish_with_prefix(query, mode, "dice", True, prefix)
     else:
+        deducted = _apply_loss_penalty(_user_id(query))
         await query.edit_message_text(
-            prefix + "😔 Omad kelmadi.",
+            prefix + "😔 Omad kelmadi." + _penalty_suffix(deducted),
             reply_markup=_result_keyboard(mode, "dice"),
             parse_mode="HTML",
         )
@@ -576,8 +629,9 @@ async def _act_coin(query, context, mode, rest):
     prefix = f"1-tashlash natijasi: {result_label}\n\n"
 
     if not won:
+        deducted = _apply_loss_penalty(_user_id(query))
         await query.edit_message_text(
-            prefix + "😔 Bu safar omad kelmadi.\nYana urinib ko'ring!",
+            prefix + "😔 Bu safar omad kelmadi.\nYana urinib ko'ring!" + _penalty_suffix(deducted),
             reply_markup=_result_keyboard(mode, "coin"),
             parse_mode="HTML",
         )
@@ -617,8 +671,9 @@ async def _act_coin2(query, context, mode, rest):
     if won:
         await _finish_with_prefix(query, mode, "coin", True, prefix)
     else:
+        deducted = _apply_loss_penalty(_user_id(query))
         await query.edit_message_text(
-            prefix + "😔 Ikkinchi safar omad kelmadi.\nYana urinib ko'ring!",
+            prefix + "😔 Ikkinchi safar omad kelmadi.\nYana urinib ko'ring!" + _penalty_suffix(deducted),
             reply_markup=_result_keyboard(mode, "coin"),
             parse_mode="HTML",
         )
@@ -631,8 +686,9 @@ async def _act_card(query, context, mode, rest):
     if won:
         await _finish_with_prefix(query, mode, "card", True, "🎁 To'g'ri karta!\n\n")
     else:
+        deducted = _apply_loss_penalty(_user_id(query))
         await query.edit_message_text(
-            "😔 Bu safar omad kelmadi.\nYana urinib ko'ring!",
+            "😔 Bu safar omad kelmadi.\nYana urinib ko'ring!" + _penalty_suffix(deducted),
             reply_markup=_result_keyboard(mode, "card"),
             parse_mode="HTML",
         )
@@ -648,8 +704,9 @@ async def _act_slot(query, context, mode, rest):
     if won:
         await _finish_with_prefix(query, mode, "slot", True, prefix)
     else:
+        deducted = _apply_loss_penalty(_user_id(query))
         await query.edit_message_text(
-            prefix + "😔 Yutqazdingiz.",
+            prefix + "😔 Yutqazdingiz." + _penalty_suffix(deducted),
             reply_markup=_result_keyboard(mode, "slot"),
             parse_mode="HTML",
         )
@@ -664,8 +721,9 @@ async def _act_chicken(query, context, mode, rest):
     prefix = f"1-tanlov natijasi: {label}\n\n"
 
     if not won:
+        deducted = _apply_loss_penalty(_user_id(query))
         await query.edit_message_text(
-            prefix + "😔 Bu safar omad kelmadi.\nYana urinib ko'ring!",
+            prefix + "😔 Bu safar omad kelmadi.\nYana urinib ko'ring!" + _penalty_suffix(deducted),
             reply_markup=_result_keyboard(mode, "chicken"),
             parse_mode="HTML",
         )
@@ -703,8 +761,9 @@ async def _act_chicken2(query, context, mode, rest):
     if won:
         await _finish_with_prefix(query, mode, "chicken", True, prefix)
     else:
+        deducted = _apply_loss_penalty(_user_id(query))
         await query.edit_message_text(
-            prefix + "😔 Ikkinchi safar omad kelmadi.\nYana urinib ko'ring!",
+            prefix + "😔 Ikkinchi safar omad kelmadi.\nYana urinib ko'ring!" + _penalty_suffix(deducted),
             reply_markup=_result_keyboard(mode, "chicken"),
             parse_mode="HTML",
         )
@@ -717,8 +776,9 @@ async def _act_safe(query, context, mode, rest):
     if won:
         await _finish_with_prefix(query, mode, "safe", True, "🔓 Seyf ochildi!\n\n")
     else:
+        deducted = _apply_loss_penalty(_user_id(query))
         await query.edit_message_text(
-            "🔒 Noto'g'ri kombinatsiya. Seyf ochilmadi.\nYana urinib ko'ring!",
+            "🔒 Noto'g'ri kombinatsiya. Seyf ochilmadi.\nYana urinib ko'ring!" + _penalty_suffix(deducted),
             reply_markup=_result_keyboard(mode, "safe"),
             parse_mode="HTML",
         )
@@ -731,8 +791,9 @@ async def _act_color(query, context, mode, rest):
     if won:
         await _finish_with_prefix(query, mode, "color", True, "🎉 Baxtli rangni topdingiz!\n\n")
     else:
+        deducted = _apply_loss_penalty(_user_id(query))
         await query.edit_message_text(
-            "❌ Bu baxtli rang emas edi.\nYana urinib ko'ring!",
+            "❌ Bu baxtli rang emas edi.\nYana urinib ko'ring!" + _penalty_suffix(deducted),
             reply_markup=_result_keyboard(mode, "color"),
             parse_mode="HTML",
         )
@@ -740,13 +801,31 @@ async def _act_color(query, context, mode, rest):
 
 async def _act_quiz(query, context, mode, rest):
     correct, chosen = int(rest[0]), int(rest[1])
+    start_ts, time_limit = float(rest[2]), float(rest[3])
+    elapsed = time.time() - start_ts
     await query.answer()
-    won = correct == chosen
+
+    user_id = _user_id(query)
+    streak_store = context.bot_data.setdefault("quiz_streak", {})
+    level = streak_store.get(user_id, 0)
+
+    answered_correctly = correct == chosen
+    in_time = elapsed <= time_limit
+    won = answered_correctly and in_time
+
     if won:
-        await _finish_with_prefix(query, mode, "quiz", True, "✅ To'g'ri javob!\n\n")
+        streak_store[user_id] = min(level + 1, QUIZ_MAX_LEVEL)
+        prefix = f"⏱ Javob vaqti: {elapsed:.1f}s | 📈 Keyingi daraja: {streak_store[user_id] + 1}\n\n"
+        await _finish_with_prefix(query, mode, "quiz", True, prefix + "✅ To'g'ri javob!\n\n")
     else:
+        streak_store[user_id] = 0
+        deducted = _apply_loss_penalty(user_id)
+        if answered_correctly and not in_time:
+            reason = "⏱ Vaqt tugadi! Javob to'g'ri edi, lekin kechikdingiz."
+        else:
+            reason = "❌ Noto'g'ri javob."
         await query.edit_message_text(
-            "❌ Noto'g'ri javob.\nYana urinib ko'ring!",
+            reason + "\nYana urinib ko'ring!" + _penalty_suffix(deducted),
             reply_markup=_result_keyboard(mode, "quiz"),
             parse_mode="HTML",
         )
@@ -784,8 +863,9 @@ async def _act_reflex(query, context, mode, rest):
                 text = prefix + "⚡ <b>Juda tez!</b> ✅"
             await query.edit_message_text(text, reply_markup=_result_keyboard(mode, "reflex"), parse_mode="HTML")
         else:
+            deducted = _apply_loss_penalty(_user_id(query))
             await query.edit_message_text(
-                prefix + "😔 Sekin bosdingiz. Yana urinib ko'ring!",
+                prefix + "😔 Sekin bosdingiz. Yana urinib ko'ring!" + _penalty_suffix(deducted),
                 reply_markup=_result_keyboard(mode, "reflex"),
                 parse_mode="HTML",
             )
@@ -865,8 +945,9 @@ async def receive_number_guess(update: Update, context: ContextTypes.DEFAULT_TYP
     tries_left = db.decrement_number_game_try(user_id)
     if tries_left <= 0:
         db.clear_number_game(user_id)
+        deducted = _apply_loss_penalty(user_id)
         await update.message.reply_text(
-            f"😔 Urinishlar tugadi. Maxfiy son: {target} edi.\nYana urinib ko'ring!",
+            f"😔 Urinishlar tugadi. Maxfiy son: {target} edi.\nYana urinib ko'ring!" + _penalty_suffix(deducted),
             reply_markup=_result_keyboard(mode, "number"),
             parse_mode="HTML",
         )
