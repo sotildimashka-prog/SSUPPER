@@ -56,6 +56,8 @@ GAMES = [
     ("quiz", "❓ FF Viktorina"),
     ("reflex", "⚡ Refleks testi"),
     ("chicken", "🐔 Tovuqmi yoki tuxummi"),
+    ("safe", "🔐 Seyf kodi"),
+    ("color", "🎨 Baxtli rang"),
 ]
 GAME_TITLES = dict(GAMES)
 
@@ -275,17 +277,22 @@ async def _open_game(query, context, mode, key):
     if key == "mine":
         if not await _check_and_consume_cooldown(query, mode, key):
             return
-        mine_idx = random.randint(0, 8)
+        # 🏆 Mukofotli rejimda 2 ta mina (qiyinroq), 🎮 Oddiy rejimda 1 ta mina.
+        mines_count = 2 if mode == "paid" else 1
+        mines = random.sample(range(9), mines_count)
+        mines_str = ",".join(map(str, mines))
         rows = []
         for r in range(3):
             row = []
             for c in range(3):
                 idx = r * 3 + c
-                row.append(InlineKeyboardButton("⬜", callback_data=f"mine:{mode}:{mine_idx}:{idx}"))
+                row.append(InlineKeyboardButton("⬜", callback_data=f"mine:{mode}:{mines_str}:{idx}"))
             rows.append(row)
         rows.append([InlineKeyboardButton("⬅️ Orqaga", callback_data=f"games:list:{mode}")])
+        safe_count = 9 - mines_count
         await query.edit_message_text(
-            "💣 <b>Minani top!</b>\n\n9 ta katakdan 8 tasi xavfsiz, 1 tasi mina.\nBitta katakni tanlang:",
+            f"💣 <b>Minani top!</b>\n\n9 ta katakdan {safe_count} tasi xavfsiz, "
+            f"{mines_count} tasi mina.\nBitta katakni tanlang:",
             reply_markup=InlineKeyboardMarkup(rows),
             parse_mode="HTML",
         )
@@ -300,8 +307,9 @@ async def _open_game(query, context, mode, key):
                 [InlineKeyboardButton("⬅️ Orqaga", callback_data=f"games:list:{mode}")],
             ]
         )
+        threshold = 90 if mode == "paid" else 80
         await query.edit_message_text(
-            "🎯 <b>Nishonni ur!</b>\n\n80-100 ball headshot hisoblanadi. Omad!",
+            f"🎯 <b>Nishonni ur!</b>\n\n{threshold}-100 ball headshot hisoblanadi. Omad!",
             reply_markup=kb,
             parse_mode="HTML",
         )
@@ -335,8 +343,13 @@ async def _open_game(query, context, mode, key):
                 [InlineKeyboardButton("⬅️ Orqaga", callback_data=f"games:list:{mode}")],
             ]
         )
+        extra = (
+            "\n\n🏆 Mukofotli rejimda g'alaba uchun 2 marta ketma-ket to'g'ri topish kerak!"
+            if mode == "paid"
+            else ""
+        )
         await query.edit_message_text(
-            "🪙 <b>Tanga tashlash</b>\n\nGerb yoki Raqamni tanlang:",
+            "🪙 <b>Tanga tashlash</b>\n\nGerb yoki Raqamni tanlang:" + extra,
             reply_markup=kb,
             parse_mode="HTML",
         )
@@ -345,19 +358,20 @@ async def _open_game(query, context, mode, key):
     if key == "card":
         if not await _check_and_consume_cooldown(query, mode, key):
             return
-        prize_idx = random.randint(0, 2)
+        # 🏆 Mukofotli rejimda 5 ta karta (qiyinroq), 🎮 Oddiy rejimda 3 ta karta.
+        card_count = 5 if mode == "paid" else 3
+        prize_idx = random.randint(0, card_count - 1)
+        card_row = [
+            InlineKeyboardButton(f"🃏 {i + 1}", callback_data=f"card:{mode}:{prize_idx}:{i}")
+            for i in range(card_count)
+        ]
+        # Ko'p karta bo'lsa, 2 qatorga bo'lib chiqaramiz (chiroyli ko'rinishi uchun).
+        card_rows = [card_row[i:i + 3] for i in range(0, len(card_row), 3)]
         kb = InlineKeyboardMarkup(
-            [
-                [
-                    InlineKeyboardButton("🃏 1", callback_data=f"card:{mode}:{prize_idx}:0"),
-                    InlineKeyboardButton("🃏 2", callback_data=f"card:{mode}:{prize_idx}:1"),
-                    InlineKeyboardButton("🃏 3", callback_data=f"card:{mode}:{prize_idx}:2"),
-                ],
-                [InlineKeyboardButton("⬅️ Orqaga", callback_data=f"games:list:{mode}")],
-            ]
+            card_rows + [[InlineKeyboardButton("⬅️ Orqaga", callback_data=f"games:list:{mode}")]]
         )
         await query.edit_message_text(
-            "🃏 <b>Kartani tanla</b>\n\n3 ta kartadan faqat bittasida sovrin bor:",
+            f"🃏 <b>Kartani tanla</b>\n\n{card_count} ta kartadan faqat bittasida sovrin bor:",
             reply_markup=kb,
             parse_mode="HTML",
         )
@@ -372,8 +386,9 @@ async def _open_game(query, context, mode, key):
                 [InlineKeyboardButton("⬅️ Orqaga", callback_data=f"games:list:{mode}")],
             ]
         )
+        note = "\n\n🏆 Mukofotli rejimda ko'proq emoji bor - qiyinroq!" if mode == "paid" else ""
         await query.edit_message_text(
-            "🎰 <b>Slot mashina</b>\n\n3 ta emoji bir xil chiqsa - yutasiz!",
+            "🎰 <b>Slot mashina</b>\n\n3 ta emoji bir xil chiqsa - yutasiz!" + note,
             reply_markup=kb,
             parse_mode="HTML",
         )
@@ -382,13 +397,15 @@ async def _open_game(query, context, mode, key):
     if key == "number":
         if not await _check_and_consume_cooldown(query, mode, key):
             return
-        target = random.randint(1, 100)
+        # 🏆 Mukofotli rejimda 1-150 (qiyinroq), 🎮 Oddiy rejimda 1-100.
+        max_range = 150 if mode == "paid" else 100
+        target = random.randint(1, max_range)
         db.start_number_game(_user_id(query), target, 5, mode)
         kb = InlineKeyboardMarkup(
             [[InlineKeyboardButton("❌ Bekor qilish", callback_data=f"number:{mode}:cancel")]]
         )
         await query.edit_message_text(
-            "🔢 <b>Sonni top!</b>\n\nMen 1 dan 100 gacha son o'yladim.\n"
+            f"🔢 <b>Sonni top!</b>\n\nMen 1 dan {max_range} gacha son o'yladim.\n"
             "5 ta taxmin huquqingiz bor. Raqamni yozib yuboring 👇",
             reply_markup=kb,
             parse_mode="HTML",
@@ -424,9 +441,10 @@ async def _open_game(query, context, mode, key):
                 [InlineKeyboardButton("⬅️ Orqaga", callback_data=f"games:list:{mode}")],
             ]
         )
+        limit = 0.7 if mode == "paid" else 1.0
         await query.edit_message_text(
             "⚡ <b>Refleks testi</b>\n\n\"Tayyorman\" tugmasini bosing, so'ng "
-            "tasodifiy vaqtda \"🔴 BOS!\" tugmasi chiqadi. 1 soniyadan tez bosing!",
+            f"tasodifiy vaqtda \"🔴 BOS!\" tugmasi chiqadi. {limit:.1f} soniyadan tez bosing!",
             reply_markup=kb,
             parse_mode="HTML",
         )
@@ -444,9 +462,53 @@ async def _open_game(query, context, mode, key):
                 [InlineKeyboardButton("⬅️ Orqaga", callback_data=f"games:list:{mode}")],
             ]
         )
+        extra = (
+            "\n\n🏆 Mukofotli rejimda g'alaba uchun 2 marta ketma-ket to'g'ri topish kerak!"
+            if mode == "paid"
+            else ""
+        )
         await query.edit_message_text(
-            "🐔 <b>Tovuqmi yoki tuxummi?</b> 🥚\n\nBirini tanlang, omad tilaymiz!",
+            "🐔 <b>Tovuqmi yoki tuxummi?</b> 🥚\n\nBirini tanlang, omad tilaymiz!" + extra,
             reply_markup=kb,
+            parse_mode="HTML",
+        )
+        return
+
+    if key == "safe":
+        if not await _check_and_consume_cooldown(query, mode, key):
+            return
+        # 🔐 Seyf kodi - 8 ta tugmadan faqat bittasi seyfni ochadi (1/8 ehtimol).
+        prize_idx = random.randint(0, 7)
+        buttons = [
+            InlineKeyboardButton(f"🔢 {i + 1}", callback_data=f"safe:{mode}:{prize_idx}:{i}")
+            for i in range(8)
+        ]
+        rows = [buttons[i:i + 4] for i in range(0, len(buttons), 4)]
+        rows.append([InlineKeyboardButton("⬅️ Orqaga", callback_data=f"games:list:{mode}")])
+        await query.edit_message_text(
+            "🔐 <b>Seyf kodi</b>\n\n8 ta tugmadan faqat bittasi seyfni ochadi. "
+            "To'g'ri kombinatsiyani toping!",
+            reply_markup=InlineKeyboardMarkup(rows),
+            parse_mode="HTML",
+        )
+        return
+
+    if key == "color":
+        if not await _check_and_consume_cooldown(query, mode, key):
+            return
+        # 🎨 Baxtli rang - 6 ta rangdan faqat bittasi "baxtli rang" (1/6 ehtimol).
+        colors = ["🔴", "🟠", "🟡", "🟢", "🔵", "🟣"]
+        prize_idx = random.randint(0, len(colors) - 1)
+        buttons = [
+            InlineKeyboardButton(colors[i], callback_data=f"color:{mode}:{prize_idx}:{i}")
+            for i in range(len(colors))
+        ]
+        rows = [buttons[i:i + 3] for i in range(0, len(buttons), 3)]
+        rows.append([InlineKeyboardButton("⬅️ Orqaga", callback_data=f"games:list:{mode}")])
+        await query.edit_message_text(
+            "🎨 <b>Baxtli rang</b>\n\n6 ta rangdan faqat bittasi \"baxtli rang\". "
+            "To'g'ri rangni tanlang!",
+            reply_markup=InlineKeyboardMarkup(rows),
             parse_mode="HTML",
         )
         return
@@ -459,9 +521,10 @@ async def _open_game(query, context, mode, key):
 # ---------------------------------------------------------------------------
 
 async def _act_mine(query, context, mode, rest):
-    mine_idx, cell_idx = int(rest[0]), int(rest[1])
+    mines_str, cell_idx = rest[0], int(rest[1])
+    mines = {int(x) for x in mines_str.split(",")}
     await query.answer()
-    won = cell_idx != mine_idx
+    won = cell_idx not in mines
     if not won:
         await query.edit_message_text(
             "💥 <b>Mina portladi!</b>\nMukofot yo'q.",
@@ -475,7 +538,8 @@ async def _act_mine(query, context, mode, rest):
 async def _act_target(query, context, mode, rest):
     await query.answer()
     score = random.randint(0, 100)
-    won = score >= 80
+    threshold = 90 if mode == "paid" else 80
+    won = score >= threshold
     prefix = f"🎯 Natija: {score} ball\n\n"
     if won:
         await _finish_with_prefix(query, mode, "target", True, prefix + "🎯 Headshot!\n")
@@ -509,12 +573,52 @@ async def _act_coin(query, context, mode, rest):
     result = random.choice(["gerb", "raqam"])
     won = choice == result
     result_label = "🪙 Gerb" if result == "gerb" else "🪙 Raqam"
-    prefix = f"Natija: {result_label}\n\n"
+    prefix = f"1-tashlash natijasi: {result_label}\n\n"
+
+    if not won:
+        await query.edit_message_text(
+            prefix + "😔 Bu safar omad kelmadi.\nYana urinib ko'ring!",
+            reply_markup=_result_keyboard(mode, "coin"),
+            parse_mode="HTML",
+        )
+        return
+
+    if mode != "paid":
+        # 🎮 Oddiy rejimda 1 marta to'g'ri topish yetarli.
+        await _finish_with_prefix(query, mode, "coin", True, prefix)
+        return
+
+    # 🏆 Mukofotli rejimda g'alaba uchun yana 1 marta to'g'ri topish kerak.
+    kb = InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton("🪙 Gerb", callback_data=f"coin2:{mode}:gerb"),
+                InlineKeyboardButton("🪙 Raqam", callback_data=f"coin2:{mode}:raqam"),
+            ],
+            [InlineKeyboardButton("⬅️ Orqaga", callback_data=f"games:list:{mode}")],
+        ]
+    )
+    await query.edit_message_text(
+        prefix + "✅ Birinchi safar to'g'ri toptingiz!\n"
+        "Yutuq uchun yana bir marta to'g'ri toping 👇",
+        reply_markup=kb,
+        parse_mode="HTML",
+    )
+
+
+async def _act_coin2(query, context, mode, rest):
+    choice = rest[0]
+    await query.answer()
+    result = random.choice(["gerb", "raqam"])
+    won = choice == result
+    result_label = "🪙 Gerb" if result == "gerb" else "🪙 Raqam"
+    prefix = f"2-tashlash natijasi: {result_label}\n\n"
+
     if won:
         await _finish_with_prefix(query, mode, "coin", True, prefix)
     else:
         await query.edit_message_text(
-            prefix + "😔 Bu safar omad kelmadi.\nYana urinib ko'ring!",
+            prefix + "😔 Ikkinchi safar omad kelmadi.\nYana urinib ko'ring!",
             reply_markup=_result_keyboard(mode, "coin"),
             parse_mode="HTML",
         )
@@ -536,7 +640,8 @@ async def _act_card(query, context, mode, rest):
 
 async def _act_slot(query, context, mode, rest):
     await query.answer()
-    emojis = ["🍒", "🍋", "🔔", "💎", "⭐"]
+    # 🏆 Mukofotli rejimda ko'proq emoji (qiyinroq), 🎮 Oddiy rejimda kamroq.
+    emojis = ["🍒", "🍋", "🔔", "💎", "⭐", "🍇", "🍀"] if mode == "paid" else ["🍒", "🍋", "🔔", "💎", "⭐"]
     spin = [random.choice(emojis) for _ in range(3)]
     prefix = f"{' '.join(spin)}\n\n"
     won = spin[0] == spin[1] == spin[2]
@@ -556,13 +661,79 @@ async def _act_chicken(query, context, mode, rest):
     result = random.choice(["tovuq", "tuxum"])
     won = choice == result
     label = "🐔 Tovuq" if result == "tovuq" else "🥚 Tuxum"
-    prefix = f"Chiqdi: {label}\n\n"
+    prefix = f"1-tanlov natijasi: {label}\n\n"
+
+    if not won:
+        await query.edit_message_text(
+            prefix + "😔 Bu safar omad kelmadi.\nYana urinib ko'ring!",
+            reply_markup=_result_keyboard(mode, "chicken"),
+            parse_mode="HTML",
+        )
+        return
+
+    if mode != "paid":
+        await _finish_with_prefix(query, mode, "chicken", True, prefix)
+        return
+
+    kb = InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton("🐔", callback_data=f"chicken2:{mode}:tovuq"),
+                InlineKeyboardButton("🥚", callback_data=f"chicken2:{mode}:tuxum"),
+            ],
+            [InlineKeyboardButton("⬅️ Orqaga", callback_data=f"games:list:{mode}")],
+        ]
+    )
+    await query.edit_message_text(
+        prefix + "✅ Birinchi safar to'g'ri toptingiz!\n"
+        "Yutuq uchun yana bir marta to'g'ri toping 👇",
+        reply_markup=kb,
+        parse_mode="HTML",
+    )
+
+
+async def _act_chicken2(query, context, mode, rest):
+    choice = rest[0]
+    await query.answer()
+    result = random.choice(["tovuq", "tuxum"])
+    won = choice == result
+    label = "🐔 Tovuq" if result == "tovuq" else "🥚 Tuxum"
+    prefix = f"2-tanlov natijasi: {label}\n\n"
+
     if won:
         await _finish_with_prefix(query, mode, "chicken", True, prefix)
     else:
         await query.edit_message_text(
-            prefix + "😔 Bu safar omad kelmadi.\nYana urinib ko'ring!",
+            prefix + "😔 Ikkinchi safar omad kelmadi.\nYana urinib ko'ring!",
             reply_markup=_result_keyboard(mode, "chicken"),
+            parse_mode="HTML",
+        )
+
+
+async def _act_safe(query, context, mode, rest):
+    prize_idx, chosen_idx = int(rest[0]), int(rest[1])
+    await query.answer()
+    won = chosen_idx == prize_idx
+    if won:
+        await _finish_with_prefix(query, mode, "safe", True, "🔓 Seyf ochildi!\n\n")
+    else:
+        await query.edit_message_text(
+            "🔒 Noto'g'ri kombinatsiya. Seyf ochilmadi.\nYana urinib ko'ring!",
+            reply_markup=_result_keyboard(mode, "safe"),
+            parse_mode="HTML",
+        )
+
+
+async def _act_color(query, context, mode, rest):
+    prize_idx, chosen_idx = int(rest[0]), int(rest[1])
+    await query.answer()
+    won = chosen_idx == prize_idx
+    if won:
+        await _finish_with_prefix(query, mode, "color", True, "🎉 Baxtli rangni topdingiz!\n\n")
+    else:
+        await query.edit_message_text(
+            "❌ Bu baxtli rang emas edi.\nYana urinib ko'ring!",
+            reply_markup=_result_keyboard(mode, "color"),
             parse_mode="HTML",
         )
 
@@ -602,7 +773,8 @@ async def _act_reflex(query, context, mode, rest):
         start_ts = float(rest[1])
         elapsed = time.time() - start_ts
         await query.answer()
-        won = elapsed < 1.0
+        limit = 0.7 if mode == "paid" else 1.0
+        won = elapsed < limit
         prefix = f"⏱ Reaksiya vaqtingiz: {elapsed:.2f} soniya\n\n"
         if won:
             if mode == "paid":
@@ -649,12 +821,16 @@ _ACTION_HANDLERS = {
     "target": _act_target,
     "dice": _act_dice,
     "coin": _act_coin,
+    "coin2": _act_coin2,
     "card": _act_card,
     "slot": _act_slot,
     "chicken": _act_chicken,
+    "chicken2": _act_chicken2,
     "quiz": _act_quiz,
     "reflex": _act_reflex,
     "number": _act_number,
+    "safe": _act_safe,
+    "color": _act_color,
 }
 
 
