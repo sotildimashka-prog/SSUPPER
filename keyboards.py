@@ -104,6 +104,7 @@ BTN_WITHDRAW = "💎 Almaz yechish"
 
 BTN_ADMIN_CREDIT = "🛠 Admin buyrug'i"
 BTN_GIFT_ALL = "🎁 Hammaga sovg'a"
+BTN_DEDUCT_DIAMOND = "➖ Almazni ayirish"
 
 # ---------- 🛒 Free Fire Do'koni / 🎁 Giftlar / 🏆 Yutiqni chiqarish ----------
 BTN_STORE = "🛒 Free Fire Do'koni"
@@ -169,7 +170,7 @@ ORDERS_CHANNEL_USERNAME = ORDERS_CHANNEL_ID.lstrip("@")
 # tugmalar oynasi ular botga keyingi safar yozganda YOKI istalgan tugmani
 # (reply yoki inline) bosganda AVTOMATIK yangilanadi — broadcast yuborish
 # shart emas.
-MENU_VERSION = 6
+MENU_VERSION = 7
 
 
 def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
@@ -183,6 +184,7 @@ def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
         row_texts.append([BTN_STATS, BTN_BROADCAST])
         row_texts.append([BTN_POST, BTN_EDIT_TEXTS])
         row_texts.append([BTN_ADMIN_CREDIT, BTN_GIFT_ALL])
+        row_texts.append([BTN_DEDUCT_DIAMOND])
 
     # Barcha qatorlar faqat YASHIL (success) rangda.
     rows = [[_kb(text) for text in row] for row in row_texts]
