@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-"""🎮 Nik yaratish - foydalanuvchi ism yuboradi, bot shu ismga 20+ ta chiroyli
-Free Fire nik yaratadi."""
+"""🎮 Nik yaratish - foydalanuvchi ism yuboradi, bot shu ismga avtomatik
+100 ta chiroyli Free Fire nik yaratadi."""
 
 from telegram import Update
 from telegram.ext import ContextTypes, ConversationHandler
@@ -13,8 +13,8 @@ WAITING_NICK_NAME = 70
 
 ASK_NAME_TEXT = (
     "🎮 <b>Nik yaratish</b>\n\n"
-    "Ismingizni (yoki istalgan so'zni) yuboring, men shu asosda 20+ ta "
-    "chiroyli Free Fire nik yarataman.\n\n"
+    "Ismingizni (yoki istalgan so'zni, hatto g'ayrioddiy ismlarni ham) yuboring, "
+    "men shu asosda avtomatik <b>100 ta</b> chiroyli Free Fire nik yarataman.\n\n"
     "Bekor qilish uchun /bekor yozing."
 )
 
@@ -38,13 +38,30 @@ async def receive_nick_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     nicks = generate_custom_nicknames(name)
     lines = [f"<code>{n}</code>" for n in nicks]
-    text = (
-        f"🎮 <b>\"{name}\"</b> uchun nikneymlar tayyor!\n\n" + "\n".join(lines) +
-        "\n\n👆 Ustiga bosib nusxa olishingiz mumkin."
-    )
-    await update.message.reply_text(
-        text, parse_mode="HTML", reply_markup=main_menu_keyboard(is_admin)
-    )
+
+    header = f"🎮 <b>\"{name}\"</b> uchun {len(nicks)} ta nikneym tayyor!\n\n"
+    footer = "\n\n👆 Ustiga bosib nusxa olishingiz mumkin."
+
+    # Telegram xabar chegarasi (4096) dan chiqib ketmasligi uchun, agar juda
+    # uzun ism kelsa, natijani bir necha xabarga bo'lib yuboramiz.
+    max_len = 3500
+    chunks = []
+    current = header
+    for line in lines:
+        if len(current) + len(line) + 1 > max_len:
+            chunks.append(current)
+            current = ""
+        current += line + "\n"
+    current += footer
+    chunks.append(current)
+
+    for i, chunk in enumerate(chunks):
+        is_last = i == len(chunks) - 1
+        await update.message.reply_text(
+            chunk,
+            parse_mode="HTML",
+            reply_markup=main_menu_keyboard(is_admin) if is_last else None,
+        )
     return ConversationHandler.END
 
 
