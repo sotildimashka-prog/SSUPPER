@@ -125,12 +125,19 @@ async def receive_video_prompt(update: Update, context: ContextTypes.DEFAULT_TYP
         f"💰 To'langan: {_fmt(VIDEO_MIN_BALANCE)} so'm\n\n"
         f"📝 So'rov:\n{prompt_text}"
     )
+    context.bot_data.setdefault("pending_orders", {})[user.id] = {
+        "type_label": "🎬 Video yasash",
+        "user_id": user.id,
+        "first_name": user.first_name,
+        "username": user.username,
+        "info": f"📝 So'rov: {prompt_text}\n💰 To'langan: {_fmt(VIDEO_MIN_BALANCE)} so'm",
+    }
     try:
         await context.bot.send_message(
             chat_id=ADMIN_ID,
             text=admin_text,
             parse_mode="HTML",
-            reply_markup=custom_admin_keyboard(user.id),
+            reply_markup=custom_admin_keyboard(user.id, "📤 Video yuborish", order_kind="video"),
         )
     except TelegramError:
         pass
