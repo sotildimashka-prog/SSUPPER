@@ -56,6 +56,33 @@ FEMALE_NICKNAMES = [
 ]
 
 
+# ---------- 👑 Pro obuna: "Super nik" (hech kimda yo'q, noyob niklar) ----------
+# Faqat Pro obuna sotib olgan foydalanuvchilarga ko'rsatiladigan, boshqa
+# hech qaysi bo'limda takrorlanmaydigan maxsus/noyob Free Fire niklar ro'yxati.
+SUPER_NICKNAMES = [
+    "꧁☠︎ＳＵＰＥＲ࿐",
+    "『NØ_LIMIT』👑",
+    "★彡ＧＯＤＭＯＤＥ彡★",
+    "≪ＵＮＴΘUCHΛBLE≫",
+    "࿐ＬＥＧＥＮＤ𓆩𓆪",
+    "☬ＥＸＣＬUＳＩＶＥ☬",
+    "『๖ۣۜᏦingッＲＥＡＬ』",
+    "亗ＮＯＢΘＤＹ亗",
+    "★彡ＲＡＲＥ᭄彡★",
+    "꧁༒ＦＡＮＴΘＭ༒꧂",
+    "≪ＩＭＭΘＲＴＡＬ≫",
+    "☯ＵＮＩＱＵＥ𓅓☯",
+    "『ＯＮＥ_ΘＦ_ΘＮＥ』",
+    "࿐ＰＲＥＭＩＵＭ✓࿐",
+    "★彡ＳＥＣＲＥＴ彡★",
+    "꧁☬ＶＩＰ_ΘＮＬＹ☬꧂",
+    "≪ＥＬＩＴＥ_ＰＲΘ≫",
+    "亗ＮΘ_ＣΘＰＹ亗",
+    "『ＦＩＲＳＴ_ΘＦ_ＵＺ』",
+    "☠ＵＮＴΘＵＣＨＥＤ☠",
+]
+
+
 # ---------- 🎮 Foydalanuvchi ismi asosida chiroyli nik generatsiyasi ----------
 
 # {name} o'rniga foydalanuvchi yuborgan ism qo'yiladi. 100 ta shablon - avtomatik
