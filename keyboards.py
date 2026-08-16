@@ -965,6 +965,43 @@ def pro_sub_keyboard() -> InlineKeyboardMarkup:
     )
 
 
+# ---------- 👑 Pro obuna FAOLLASHGANDAN KEYINGI maxsus bo'lim ----------
+# Barcha tugmalar QIZIL (danger/red) rangda chiqadi.
+
+def pro_sub_active_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [_ikb("🇧🇷 Brazillian nastroyka", style="danger", callback_data="prosec:brazilian")],
+            [_ikb("✨ Super nik", style="danger", callback_data="prosec:superik")],
+            [_ikb("🎁 Sirli sovg'a", style="danger", callback_data="prosec:sirli")],
+            [_ikb("🏆 Mukofot", style="danger", callback_data="prosec:mukofot")],
+            [_ikb("🎬 AI video yasash", style="danger", callback_data="prosec:aivideo")],
+            [_ikb("🖼️ AI rasm yasash", style="danger", callback_data="prosec:airasm")],
+        ]
+    )
+
+
+def pro_section_back_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[_ikb("⬅️ Pro obuna bo'limi", style="danger", callback_data="prosec:back")]]
+    )
+
+
+def pro_section_cancel_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[_ikb("⬅️ Bekor qilish", style="danger", callback_data="prosec:back")]]
+    )
+
+
+def pro_secret_gift_keyboard(admin_username: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [_ikb("💬 Admin bilan bog'lanish", url=f"https://t.me/{admin_username}")],
+            [_ikb("⬅️ Pro obuna bo'limi", style="danger", callback_data="prosec:back")],
+        ]
+    )
+
+
 # ---------- 🖼️ Rasm Yasash ----------
 
 def rasm_menu_keyboard() -> InlineKeyboardMarkup:
