@@ -249,6 +249,7 @@ async def start_custom_admin_reply(update: Update, context: ContextTypes.DEFAULT
     _PROMPTS = {
         "rasm": "✍️ Ushbu foydalanuvchi uchun tayyor rasmni yuboring.\n\nBekor qilish uchun /bekor.",
         "video": "✍️ Ushbu foydalanuvchi uchun tayyor videoni yuboring.\n\nBekor qilish uchun /bekor.",
+        "brazilian": "✍️ Ushbu foydalanuvchi uchun Brazillian nastroykani yuboring.\n\nBekor qilish uchun /bekor.",
     }
     prompt_text = _PROMPTS.get(
         order_kind,
@@ -283,6 +284,7 @@ async def receive_custom_admin_reply(update: Update, context: ContextTypes.DEFAU
         "nastroyka": "🎯 <b>Sizning individual nastroykangiz tayyor!</b>\n\n",
         "rasm": "💎 <b>Sizning maxsus rasmingiz tayyor!</b>\n\n",
         "video": "🎬 <b>Sizning videongiz tayyor!</b>\n\n",
+        "brazilian": "🇧🇷 <b>Sizning Brazillian nastroykangiz tayyor!</b>\n\n",
     }
     caption_prefix = _CAPTION_PREFIXES.get(order_kind, "🎯 <b>Sizning individual nastroykangiz tayyor!</b>\n\n")
 
@@ -331,6 +333,7 @@ _ORDER_KIND_LABELS = {
     "nastroyka": "📲 Shaxsiy nastroyka",
     "rasm": "💎 Maxsus rasm",
     "video": "🎬 Video yasash",
+    "brazilian": "🇧🇷 Brazillian nastroyka",
 }
 
 
