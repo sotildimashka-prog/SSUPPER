@@ -74,6 +74,24 @@ from keyboards import (
 )
 
 from handlers.pro_sub import on_pro_sub_button, on_prosub_buy
+from handlers.pro_section import (
+    on_prosec_back,
+    on_prosec_brazilian,
+    cancel_pro_brazilian,
+    receive_pro_brazilian_model,
+    on_prosec_superik,
+    on_prosec_sirli,
+    on_prosec_mukofot,
+    on_prosec_aivideo,
+    cancel_pro_aivideo,
+    receive_pro_video_prompt,
+    on_prosec_airasm,
+    cancel_pro_airasm,
+    receive_pro_rasm_prompt,
+    WAITING_PRO_BRAZIL_MODEL,
+    WAITING_PRO_VIDEO_PROMPT,
+    WAITING_PRO_RASM_PROMPT,
+)
 
 from handlers.start import (
     start_command,
@@ -1191,6 +1209,60 @@ def build_application() -> Application:
     # 👑 Pro obuna
     app.add_handler(MessageHandler(_exact(BTN_PRO_SUB), on_pro_sub_button))
     app.add_handler(CallbackQueryHandler(on_prosub_buy, pattern="^prosub:buy$"))
+
+    # 👑 Pro obuna FAOLLASHGANDAN KEYINGI maxsus bo'lim (qizil tugmalar)
+    app.add_handler(CallbackQueryHandler(on_prosec_back, pattern="^prosec:back$"))
+    app.add_handler(CallbackQueryHandler(on_prosec_superik, pattern="^prosec:superik$"))
+    app.add_handler(CallbackQueryHandler(on_prosec_sirli, pattern="^prosec:sirli$"))
+    app.add_handler(CallbackQueryHandler(on_prosec_mukofot, pattern="^prosec:mukofot$"))
+
+    pro_brazilian_conv = ConversationHandler(
+        entry_points=[CallbackQueryHandler(on_prosec_brazilian, pattern="^prosec:brazilian$")],
+        states={
+            WAITING_PRO_BRAZIL_MODEL: [
+                CommandHandler("bekor", cancel_pro_brazilian),
+                CallbackQueryHandler(on_prosec_back, pattern="^prosec:back$"),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_pro_brazilian_model),
+            ],
+        },
+        fallbacks=[
+            CommandHandler("bekor", cancel_pro_brazilian),
+            CallbackQueryHandler(on_prosec_back, pattern="^prosec:back$"),
+        ],
+    )
+    app.add_handler(pro_brazilian_conv)
+
+    pro_aivideo_conv = ConversationHandler(
+        entry_points=[CallbackQueryHandler(on_prosec_aivideo, pattern="^prosec:aivideo$")],
+        states={
+            WAITING_PRO_VIDEO_PROMPT: [
+                CommandHandler("bekor", cancel_pro_aivideo),
+                CallbackQueryHandler(on_prosec_back, pattern="^prosec:back$"),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_pro_video_prompt),
+            ],
+        },
+        fallbacks=[
+            CommandHandler("bekor", cancel_pro_aivideo),
+            CallbackQueryHandler(on_prosec_back, pattern="^prosec:back$"),
+        ],
+    )
+    app.add_handler(pro_aivideo_conv)
+
+    pro_airasm_conv = ConversationHandler(
+        entry_points=[CallbackQueryHandler(on_prosec_airasm, pattern="^prosec:airasm$")],
+        states={
+            WAITING_PRO_RASM_PROMPT: [
+                CommandHandler("bekor", cancel_pro_airasm),
+                CallbackQueryHandler(on_prosec_back, pattern="^prosec:back$"),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_pro_rasm_prompt),
+            ],
+        },
+        fallbacks=[
+            CommandHandler("bekor", cancel_pro_airasm),
+            CallbackQueryHandler(on_prosec_back, pattern="^prosec:back$"),
+        ],
+    )
+    app.add_handler(pro_airasm_conv)
 
     # 📢 Buyurtmalar kanali - bosilganda kanalga o'tish tugmasi chiqadi
     app.add_handler(MessageHandler(_exact(BTN_ORDERS_CHANNEL), on_orders_channel_button))
