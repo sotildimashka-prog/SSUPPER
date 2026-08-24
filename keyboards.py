@@ -64,18 +64,22 @@ def _ikb(text, style=None, **kwargs):
         return InlineKeyboardButton(display_text, **kwargs)
 
 
-# Pastki (Reply) klaviatura tugmalari: barchasi doim KO'K (primary) rangda.
-def _kb(text, style="primary", **kwargs):
-    # MUHIM: ReplyKeyboard tugmasi bosilganda uning matni xabar sifatida
-    # botga yuboriladi va bot shu matn orqali tugmani aniqlaydi. Shuning
-    # uchun bu yerda emoji olib tashlanmaydi (aks holda tugmalar ishlamay qoladi).
+# Pastki (Reply) klaviatura tugmalari: standart holatda RANGSIZ (oddiy).
+def _kb(text, style=None, **kwargs):
+    # MUHIM: ReplyKeyboard tugmasi bosilganda uning YANGI (icon qo'shilgandan
+    # keyingi) matni xabar sifatida botga yuboriladi. Agar emojiga
+    # custom_emoji_id topilsa, matn boshidagi native emoji olib tashlanadi
+    # (icon uni almashtiradi) - shuning uchun bot.py dagi _exact() filtri
+    # ham emoji bor/yo'qligidan qat'i nazar mos kelishi uchun moslashtirilgan.
+    display_text = _apply_emoji_icon(text, kwargs)
     try:
-        return KeyboardButton(text, style=style, **kwargs)
+        return KeyboardButton(display_text, style=style, **kwargs)
     except TypeError:
         # Eski python-telegram-bot versiyasida 'style' parametri qo'llab-
         # quvvatlanmasligi mumkin - shunday holatda ranglashtirmasdan oddiy
         # tugma qaytaramiz (butun menyu qulab tushib, hech narsa
         # ko'rinmasligining oldini olish uchun MUHIM fallback).
+        kwargs.pop("icon_custom_emoji_id", None)
         return KeyboardButton(text, **kwargs)
 
 # ---------- Asosiy menyu (ReplyKeyboard) ----------
@@ -210,11 +214,11 @@ def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
             ]
         )
 
-    # 3 tadan qilib qatorlarga bo'lish (funksiyalarga tegilmaydi, faqat
+    # 2 tadan qilib qatorlarga bo'lish (funksiyalarga tegilmaydi, faqat
     # joylashuv o'zgaradi).
     rows = []
-    for i in range(0, len(buttons), 3):
-        chunk = buttons[i:i + 3]
+    for i in range(0, len(buttons), 2):
+        chunk = buttons[i:i + 2]
         rows.append([_kb(text, **kwargs) for text, kwargs in chunk])
 
     return ReplyKeyboardMarkup(rows, resize_keyboard=True, is_persistent=True)
