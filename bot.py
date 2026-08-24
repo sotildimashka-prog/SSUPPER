@@ -69,6 +69,7 @@ from keyboards import (
     BTN_PRO_SUB,
     BTN_ORDERS_CHANNEL,
     BTN_BACK,
+    BTN_PORTAL,
     orders_channel_keyboard,
     subscription_keyboard,
 )
