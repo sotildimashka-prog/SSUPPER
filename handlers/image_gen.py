@@ -235,7 +235,9 @@ async def receive_maxsus_desc(update: Update, context: ContextTypes.DEFAULT_TYPE
             chat_id=ADMIN_ID,
             text=admin_text,
             parse_mode="HTML",
-            reply_markup=custom_admin_keyboard(user.id),
+            reply_markup=custom_admin_keyboard(
+                user.id, label="🖼 Rasm yuborish", order_kind="rasm"
+            ),
         )
     except TelegramError:
         pass
