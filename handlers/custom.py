@@ -282,7 +282,10 @@ async def receive_custom_admin_reply(update: Update, context: ContextTypes.DEFAU
         "nastroyka_free": "🎯 <b>Sizning individual nastroykangiz tayyor!</b>\n\n",
         "nastroyka_paid": "🎯 <b>Sizning individual nastroykangiz tayyor!</b>\n\n",
         "nastroyka": "🎯 <b>Sizning individual nastroykangiz tayyor!</b>\n\n",
-        "rasm": "💎 <b>Sizning maxsus rasmingiz tayyor!</b>\n\n",
+        "rasm": (
+            "🎉 <b>Logotipingiz tayyor bo'ldi!</b>\n\n"
+            "✨ Bemalol DP (profil rasmi) sifatida yoki istalgan joyda ishlatishingiz mumkin!\n\n"
+        ),
         "video": "🎬 <b>Sizning videongiz tayyor!</b>\n\n",
         "brazilian": "🇧🇷 <b>Sizning Brazillian nastroykangiz tayyor!</b>\n\n",
     }
