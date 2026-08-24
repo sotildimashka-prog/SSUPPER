@@ -230,14 +230,19 @@ async def receive_maxsus_desc(update: Update, context: ContextTypes.DEFAULT_TYPE
         f"🏷 Nom: {name}\n"
         f"📝 Tavsif:\n{desc}"
     )
+    context.bot_data.setdefault("pending_orders", {})[user.id] = {
+        "type_label": "💎 Maxsus rasm",
+        "user_id": user.id,
+        "first_name": user.first_name,
+        "username": user.username,
+        "info": f"🏷 Nom: {name}\n📝 Tavsif: {desc}",
+    }
     try:
         await context.bot.send_message(
             chat_id=ADMIN_ID,
             text=admin_text,
             parse_mode="HTML",
-            reply_markup=custom_admin_keyboard(
-                user.id, label="🖼 Rasm yuborish", order_kind="rasm"
-            ),
+            reply_markup=custom_admin_keyboard(user.id, "📤 Rasm yuborish", order_kind="rasm"),
         )
     except TelegramError:
         pass
