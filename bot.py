@@ -412,6 +412,44 @@ def _exact(text: str):
     return filters.Regex(pattern)
 
 
+# Barcha pastki (reply) menyu tugmalari matni - admin kutilayotgan
+# suhbat (masalan "rasm/nastroyka yuboring") ichida bo'lganda, agar u
+# tasodifan boshqa bir menyu tugmasini bossa, bot buni "javob matni"
+# sifatida noto'g'ri yubormasligi uchun ishlatiladi.
+_ALL_MENU_BUTTON_TEXTS = [
+    BTN_SETTINGS, BTN_TABLET, BTN_NICKS, BTN_HACK, BTN_CUSTOM, BTN_WEBSITE,
+    BTN_NEWS, BTN_MUSIC, BTN_QUIZ, BTN_DIAMONDS, BTN_ACCOUNT, BTN_HELP,
+    BTN_GUIDES, BTN_FAQ, BTN_STATS, BTN_BROADCAST, BTN_POST, BTN_EDIT_TEXTS,
+    BTN_ADMIN_CREDIT, BTN_WITHDRAW, BTN_GIFT_ALL, BTN_DEDUCT_DIAMOND,
+    BTN_FF2017, BTN_MAIN_FF, BTN_MAIN_DIAMONDS, BTN_MAIN_SERVICES,
+    BTN_MAIN_PROFILE, BTN_M2_DIAMONDS, BTN_M2_SERVICES, BTN_M2_SETTINGS,
+    BTN_M2_NICKS, BTN_M2_PAYMENTS, BTN_GIFTS, BTN_MAIN_RASM, BTN_MAIN_VIDEO,
+    BTN_MAIN_MUSIC, BTN_MINI_GAMES, BTN_MY_ACCOUNT, BTN_STORE,
+    BTN_GIFT_ORDER, BTN_WITHDRAW_WIN, BTN_PRO_SUB, BTN_ORDERS_CHANNEL,
+    BTN_BACK, BTN_PORTAL,
+]
+
+
+def _any_menu_button_filter():
+    combined = None
+    for text in dict.fromkeys(_ALL_MENU_BUTTON_TEXTS):  # noyob qilib
+        f = _exact(text)
+        combined = f if combined is None else (combined | f)
+    return combined
+
+
+async def on_stray_menu_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin kutilayotgan suhbat (rasm/video/nastroyka yuborish va h.k.)
+    ichida bo'lsa-yu, tasodifan boshqa menyu tugmasini bossa: suhbatni
+    xavfsiz bekor qilamiz va bosilgan tugmani DARHOL, qaytadan bosishga
+    hojat qoldirmay normal ishlaydigan qilib qayta yuboramiz - bot
+    "yangilanganday" bo'ladi."""
+    context.user_data.pop("custom_target_uid", None)
+    context.user_data.pop("custom_target_kind", None)
+    await context.application.process_update(update)
+    return ConversationHandler.END
+
+
 async def on_back_to_main(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """🔙 Orqaga - istalgan ichki bo'limdan bosh menyuga qaytaradi."""
     user = update.effective_user
@@ -709,6 +747,7 @@ def build_application() -> Application:
         states={
             WAITING_CUSTOM_ADMIN_REPLY: [
                 CommandHandler("bekor", cancel_custom_admin_reply),
+                MessageHandler(_any_menu_button_filter(), on_stray_menu_button),
                 MessageHandler(
                     (filters.TEXT | filters.PHOTO | filters.VIDEO | filters.Document.ALL)
                     & ~filters.COMMAND,
