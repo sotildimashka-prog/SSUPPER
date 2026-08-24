@@ -391,8 +391,25 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+_LEADING_EMOJI_RE = re.compile(
+    r"^([\U0001F000-\U0001FFFF\u2600-\u27BF\u2B00-\u2BFF]\uFE0F?)\s*"
+)
+
+
 def _exact(text: str):
-    return filters.Regex(f"^{re.escape(text)}$")
+    # Pastki (Reply) tugmalarga premium custom emoji ikonkasi qo'yilganda,
+    # tugma matnidan boshidagi native emoji olib tashlanadi (keyboards.py
+    # ichidagi _kb/_apply_emoji_icon). Shu sababli bu yerda ham emoji
+    # bor ("🔙 Orqaga") ham yo'q ("Orqaga") holatlarning ikkalasi ham mos
+    # kelishi uchun boshidagi emoji ixtiyoriy qilib belgilanadi.
+    match = _LEADING_EMOJI_RE.match(text)
+    if match:
+        emoji = re.escape(match.group(1))
+        rest = re.escape(text[match.end():])
+        pattern = f"^(?:{emoji}\\s*)?{rest}$"
+    else:
+        pattern = f"^{re.escape(text)}$"
+    return filters.Regex(pattern)
 
 
 async def on_back_to_main(update: Update, context: ContextTypes.DEFAULT_TYPE):
