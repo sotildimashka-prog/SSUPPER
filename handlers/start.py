@@ -2,6 +2,7 @@
 """/start buyrug'i, majburiy obuna tekshiruvi va pro/bot o'yinchi savoli."""
 
 from datetime import datetime
+from types import SimpleNamespace
 
 from telegram import Update, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
@@ -19,6 +20,7 @@ from keyboards import (
     language_keyboard,
     portal_button_row,
     start_inline_keyboard,
+    all_services_inline_keyboard,
     NEWS_CHANNEL_USERNAME,
 )
 from handlers.subscription import get_unsubscribed_channels
@@ -275,12 +277,12 @@ async def on_start_account_callback(update: Update, context: ContextTypes.DEFAUL
 
 async def on_start_services_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """/start rasmi ostidagi "🛠️ Barcha xizmatlar" inline tugmasi -
-    avval yashirilgan BARCHA pastki (reply) tugmalarni qaytadan chiqaradi."""
+    avval yashirilgan BARCHA bo'limlarni TO'LIQ INLINE ro'yxat qilib
+    ko'rsatadi (birorta ham pastki/reply tugma chiqmaydi)."""
     query = update.callback_query
     user = query.from_user
     await query.answer()
 
-    is_admin = user.id == ADMIN_ID
     await context.bot.send_message(
         chat_id=user.id,
         text=(
@@ -289,8 +291,115 @@ async def on_start_services_callback(update: Update, context: ContextTypes.DEFAU
             "foydalanishingiz mumkin 👇"
         ),
         parse_mode="HTML",
-        reply_markup=full_menu_keyboard(is_admin),
+        reply_markup=all_services_inline_keyboard(),
     )
+
+
+# ---------- 🆕 "Barcha xizmatlar" ro'yxatidagi har bir band ----------
+# MUHIM: Quyidagi handlerlar eski (pastki/reply tugma bilan ishlaydigan)
+# funksiyalarni HECH QANDAY o'zgartirmasdan, faqat "soxta" (shim) Update
+# obyekti orqali chaqiradi. Shu sababli har bir bo'limning ichki mantig'i
+# (balans tekshiruvi, obuna tekshiruvi va h.k.) 100% avvalgidek ishlayveradi -
+# faqat natija endi pastki tugma o'rniga inline xabar ko'rinishida yuboriladi.
+
+def _shim_update_from_callback(query):
+    """ConversationHandler holatini talab qilmaydigan oddiy "reply tugma"
+    handlerlarini xavfsiz chaqirish uchun yengil "soxta" Update.
+    .message => query.message (haqiqiy Message, shu sabab .reply_text(),
+    .reply_photo() va h.k. to'g'ri ishlaydi), .effective_user => tugmani
+    haqiqatda bosgan foydalanuvchi (bot emas)."""
+    return SimpleNamespace(
+        message=query.message,
+        effective_user=query.from_user,
+        effective_chat=query.message.chat if query.message else None,
+        effective_message=query.message,
+        callback_query=None,
+    )
+
+
+async def _dispatch_via_shim(handler_fn, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Callback orqali kelsa - shim yasab, funksiyani chaqiradi va uning
+    natijasini (masalan ConversationHandler holati) qaytaradi."""
+    query = update.callback_query
+    if query is not None:
+        fake_update = _shim_update_from_callback(query)
+        return await handler_fn(fake_update, context)
+    return await handler_fn(update, context)
+
+
+_ALL_SERVICES_HANDLERS = None
+
+
+def _load_all_services_handlers():
+    """Doiraviy import (circular import)ning oldini olish uchun barcha
+    handlerlar FAQAT birinchi chaqiruvda, funksiya ichida import qilinadi."""
+    global _ALL_SERVICES_HANDLERS
+    if _ALL_SERVICES_HANDLERS is not None:
+        return _ALL_SERVICES_HANDLERS
+
+    from handlers.newflow import (
+        on_m2_services_button,
+        on_m2_settings_button,
+        on_m2_nicks_button,
+        on_m2_payments_button,
+        on_m2_diamonds_button,
+    )
+    from handlers.image_gen import on_rasm_button
+    from handlers.music_gen import on_music_create_button
+    from handlers.store import on_store_button
+    from handlers.games import on_games_button
+    from handlers.gifts import on_gifts_button
+    from handlers.pro_sub import on_pro_sub_button
+    from handlers.withdraw_win import on_withdraw_win_button
+    from handlers.gift_order import on_gift_order_button
+    from bot import on_orders_channel_button
+
+    _ALL_SERVICES_HANDLERS = {
+        "services": on_m2_services_button,
+        "settings": on_m2_settings_button,
+        "nicks": on_m2_nicks_button,
+        "rasm": on_rasm_button,
+        # "video" bu yerda YO'Q - u alohida (ConversationHandler holatini
+        # to'g'ri saqlash uchun) on_video_button_from_services orqali
+        # ishlaydi, pastga qarang.
+        "music": on_music_create_button,
+        "store": on_store_button,
+        "payments": on_m2_payments_button,
+        "games": on_games_button,
+        "gifts": on_gifts_button,
+        "prosub": on_pro_sub_button,
+        "withdrawwin": on_withdraw_win_button,
+        "orders": on_orders_channel_button,
+        "giftorder": on_gift_order_button,
+        "diamonds": on_m2_diamonds_button,
+    }
+    return _ALL_SERVICES_HANDLERS
+
+
+async def on_all_services_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """"🛠️ Barcha xizmatlar" ro'yxatidagi (svcall:<key>) har qanday band."""
+    query = update.callback_query
+    await query.answer()
+
+    key = query.data.split(":", 1)[1] if query.data and ":" in query.data else ""
+    handler_fn = _load_all_services_handlers().get(key)
+    if handler_fn is None:
+        return
+
+    await _dispatch_via_shim(handler_fn, update, context)
+
+
+async def on_video_button_from_services(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """"🎬 Video Yasash" - "Barcha xizmatlar" ro'yxatidan bosilganda.
+    video_conv ConversationHandler'ga ALOHIDA entry_point sifatida
+    qo'shiladi (bot.py), shunda PTB navbatdagi holatni (WAITING_VIDEO_PROMPT)
+    to'g'ri saqlaydi va foydalanuvchi keyingi xabarini kutish ishlayveradi."""
+    from handlers.video_gen import on_video_button
+
+    query = update.callback_query
+    if query is not None:
+        await query.answer()
+    return await _dispatch_via_shim(on_video_button, update, context)
 
 
 async def on_language_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
