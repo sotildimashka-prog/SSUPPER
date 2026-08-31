@@ -234,14 +234,63 @@ START_SERVICES_CB = "start:services"
 
 def start_inline_keyboard() -> InlineKeyboardMarkup:
     """/start bosilganda rasm ostiga chiqadigan 3 ta inline tugma:
-    👛 Hisobim | 🛠️ Barcha xizmatlar | 📰 Yangiliklar (kanalga to'g'ridan-to'g'ri)."""
+    tepada 🛠️ Barcha xizmatlar (yagona, kattaroq), pastda 👛 Hisobim va
+    📰 Yangiliklar (ikkitasi yonma-yon)."""
     return InlineKeyboardMarkup(
         [
-            [_ikb(BTN_MY_ACCOUNT, callback_data=START_ACCOUNT_CB)],
             [_ikb("🛠️ Barcha xizmatlar", callback_data=START_SERVICES_CB)],
-            [_ikb("📰 Yangiliklar", url=f"https://t.me/{NEWS_CHANNEL_USERNAME}")],
+            [
+                _ikb(BTN_MY_ACCOUNT, callback_data=START_ACCOUNT_CB),
+                _ikb("📰 Yangiliklar", url=f"https://t.me/{NEWS_CHANNEL_USERNAME}"),
+            ],
         ]
     )
+
+
+# ---------- 🆕 "🛠️ Barcha xizmatlar" - TO'LIQ INLINE ro'yxat ----------
+# MUHIM: bu klaviaturada BIRORTA HAM pastki (Reply) tugma yo'q - hammasi
+# inline. Har bir band bosilganda eski (reply tugmali) handlerlar hech
+# o'zgartirilmasdan ("shim" orqali) chaqiriladi - shu sabab funksiyalarning
+# o'zi ishlashda 100% avvalgidek qoladi.
+SVC_ALL_PREFIX = "svcall"
+
+_ALL_SERVICES_ITEMS = [
+    (BTN_M2_SERVICES, f"{SVC_ALL_PREFIX}:services"),
+    (BTN_M2_SETTINGS, f"{SVC_ALL_PREFIX}:settings"),
+    (BTN_M2_NICKS, f"{SVC_ALL_PREFIX}:nicks"),
+    (BTN_MAIN_RASM, f"{SVC_ALL_PREFIX}:rasm"),
+    (BTN_MAIN_VIDEO, f"{SVC_ALL_PREFIX}:video"),
+    (BTN_MAIN_MUSIC, f"{SVC_ALL_PREFIX}:music"),
+    (BTN_STORE, f"{SVC_ALL_PREFIX}:store"),
+    (BTN_M2_PAYMENTS, f"{SVC_ALL_PREFIX}:payments"),
+    (BTN_MINI_GAMES, f"{SVC_ALL_PREFIX}:games"),
+    (BTN_GIFTS, f"{SVC_ALL_PREFIX}:gifts"),
+    (BTN_PRO_SUB, f"{SVC_ALL_PREFIX}:prosub"),
+    (BTN_WITHDRAW_WIN, f"{SVC_ALL_PREFIX}:withdrawwin"),
+    (BTN_ORDERS_CHANNEL, f"{SVC_ALL_PREFIX}:orders"),
+    (BTN_GIFT_ORDER, f"{SVC_ALL_PREFIX}:giftorder"),
+    (BTN_M2_DIAMONDS, f"{SVC_ALL_PREFIX}:diamonds"),
+]
+
+
+def all_services_inline_keyboard() -> InlineKeyboardMarkup:
+    rows = [[_ikb(BTN_PORTAL, web_app=WebAppInfo(url=WEBAPP_URL))]]
+
+    pair: list = []
+    for text, cb in _ALL_SERVICES_ITEMS:
+        pair.append(_ikb(text, callback_data=cb))
+        if len(pair) == 2:
+            rows.append(pair)
+            pair = []
+    if pair:
+        rows.append(pair)
+
+    # 📬 Savollar (FAQ) - allaqachon mavjud "svc:faq" pattern'i orqali
+    # ishlaydigan conversation handler bor, shu sabab shu callback_data
+    # qayta ishlatiladi (qo'shimcha handler shart emas).
+    rows.append([_ikb(BTN_M2_FAQ, callback_data="svc:faq")])
+
+    return InlineKeyboardMarkup(rows)
 
 
 def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
