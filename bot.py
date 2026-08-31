@@ -102,6 +102,8 @@ from handlers.start import (
     subscribe_text,
     on_start_account_callback,
     on_start_services_callback,
+    on_all_services_item,
+    on_video_button_from_services,
 )
 from handlers.subscription import get_unsubscribed_channels
 from handlers.gifts import (
@@ -963,7 +965,10 @@ def build_application() -> Application:
 
     # ---------- 🎬 Video Yasash (faqat pullik, kamida 30 000 so'm) ----------
     video_conv = ConversationHandler(
-        entry_points=[MessageHandler(_exact(BTN_MAIN_VIDEO), on_video_button)],
+        entry_points=[
+            MessageHandler(_exact(BTN_MAIN_VIDEO), on_video_button),
+            CallbackQueryHandler(on_video_button_from_services, pattern="^svcall:video$"),
+        ],
         states={
             WAITING_VIDEO_PROMPT: [
                 CommandHandler("bekor", cancel_video),
@@ -1332,6 +1337,12 @@ def build_application() -> Application:
 
     # 🔙 Universal "Orqaga" - istalgan bo'limdan bosh menyuga qaytaradi
     app.add_handler(MessageHandler(_exact(BTN_BACK), on_back_to_main))
+
+    # ---------- 🆕 "🛠️ Barcha xizmatlar" ro'yxatidagi umumiy handler ----------
+    # MUHIM: bu handler video_conv'dan (va boshqa aniqroq "^svcall:video$"
+    # pattern'idan) KEYIN qo'shilishi SHART - aks holda video uchun maxsus
+    # ConversationHandler entry_point'i ishlamay qolib, holat saqlanmaydi.
+    app.add_handler(CallbackQueryHandler(on_all_services_item, pattern="^svcall:"))
     app.add_handler(CallbackQueryHandler(on_games_root_callback, pattern="^games:"))
     app.add_handler(
         CallbackQueryHandler(
