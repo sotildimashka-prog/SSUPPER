@@ -100,6 +100,8 @@ from handlers.start import (
     on_player_type_selected,
     on_language_selected,
     subscribe_text,
+    on_start_account_callback,
+    on_start_services_callback,
 )
 from handlers.subscription import get_unsubscribed_channels
 from handlers.gifts import (
@@ -673,6 +675,10 @@ def build_application() -> Application:
     # ---------- Majburiy obuna tekshiruvi ----------
     app.add_handler(CallbackQueryHandler(check_subscription_callback, pattern="^check_sub$"))
     app.add_handler(CallbackQueryHandler(on_player_type_selected, pattern="^player:"))
+
+    # ---------- 🆕 /start rasmi ostidagi 3 ta inline tugma ----------
+    app.add_handler(CallbackQueryHandler(on_start_account_callback, pattern="^start:account$"))
+    app.add_handler(CallbackQueryHandler(on_start_services_callback, pattern="^start:services$"))
 
     # ---------- 🔓 Maxsus xizmat (Proxy/Cheat/FF ID) ----------
     hack_ffid_conv = ConversationHandler(
