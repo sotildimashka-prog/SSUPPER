@@ -174,7 +174,74 @@ ORDERS_CHANNEL_USERNAME = ORDERS_CHANNEL_ID.lstrip("@")
 # tugmalar oynasi ular botga keyingi safar yozganda YOKI istalgan tugmani
 # (reply yoki inline) bosganda AVTOMATIK yangilanadi — broadcast yuborish
 # shart emas.
-MENU_VERSION = 9
+MENU_VERSION = 10
+
+
+def full_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
+    """Barcha xizmatlar ochilgan TO'LIQ pastki menyu (eski asosiy menyu).
+    "🛠️ Barcha xizmatlar" inline tugmasi bosilganda shu klaviatura
+    yuboriladi - hech qanday handler o'zgarmagani uchun barcha eski
+    tugmalar oldingidek to'liq ishlayveradi."""
+    buttons: list[tuple[str, dict]] = [
+        (BTN_PORTAL, {"web_app": WebAppInfo(url=WEBAPP_URL)}),
+        (BTN_M2_SERVICES, {}),
+        (BTN_M2_SETTINGS, {}),
+        (BTN_M2_NICKS, {}),
+        (BTN_MAIN_RASM, {}),
+        (BTN_MAIN_VIDEO, {}),
+        (BTN_MAIN_MUSIC, {}),
+        (BTN_STORE, {}),
+        (BTN_MY_ACCOUNT, {}),
+        (BTN_M2_PAYMENTS, {}),
+        (BTN_MINI_GAMES, {}),
+        (BTN_GIFTS, {}),
+        (BTN_PRO_SUB, {}),
+        (BTN_WITHDRAW_WIN, {}),
+        (BTN_ORDERS_CHANNEL, {}),
+        (BTN_GIFT_ORDER, {}),
+        (BTN_M2_FAQ, {}),
+        (BTN_M2_DIAMONDS, {}),
+    ]
+
+    if is_admin:
+        buttons.extend(
+            [
+                (BTN_STATS, {}),
+                (BTN_BROADCAST, {}),
+                (BTN_POST, {}),
+                (BTN_EDIT_TEXTS, {}),
+                (BTN_ADMIN_CREDIT, {}),
+                (BTN_GIFT_ALL, {}),
+                (BTN_DEDUCT_DIAMOND, {}),
+            ]
+        )
+
+    rows = []
+    for i in range(0, len(buttons), 2):
+        chunk = buttons[i:i + 2]
+        rows.append([_kb(text, **kwargs) for text, kwargs in chunk])
+
+    return ReplyKeyboardMarkup(rows, resize_keyboard=True, is_persistent=True)
+
+
+# ---------- 🆕 /start xabari (rasm + 3 ta inline tugma) ----------
+
+NEWS_CHANNEL_USERNAME = "xonfirestream"
+
+START_ACCOUNT_CB = "start:account"
+START_SERVICES_CB = "start:services"
+
+
+def start_inline_keyboard() -> InlineKeyboardMarkup:
+    """/start bosilganda rasm ostiga chiqadigan 3 ta inline tugma:
+    👛 Hisobim | 🛠️ Barcha xizmatlar | 📰 Yangiliklar (kanalga to'g'ridan-to'g'ri)."""
+    return InlineKeyboardMarkup(
+        [
+            [_ikb(BTN_MY_ACCOUNT, callback_data=START_ACCOUNT_CB)],
+            [_ikb("🛠️ Barcha xizmatlar", callback_data=START_SERVICES_CB)],
+            [_ikb("📰 Yangiliklar", url=f"https://t.me/{NEWS_CHANNEL_USERNAME}")],
+        ]
+    )
 
 
 def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
