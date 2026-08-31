@@ -190,25 +190,31 @@ def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
     #   👑 Pro obuna         | 🏆 Yutiqni chiqarish
     #   📢 Buyurtmalar       | 🎁 Giftlar
     #   📬 Savollar (FAQ)    | 💎 Almaz olish
+    # MUHIM: Foydalanuvchi so'rovi bo'yicha asosiy menyudagi barcha
+    # tugmalar vaqtincha o'chirilgan - faqat "👛 Hisobim" tugmasi qoladi.
+    # Boshqa tugmalarning kodlari (BTN_PORTAL, BTN_M2_SERVICES va h.k.)
+    # va ularga tegishli handlerlar/ma'lumotlar hech qanday o'chirilmadi -
+    # ular shunchaki quyidagi ro'yxatdan olib tashlandi. Kerak bo'lsa,
+    # pastdagi qatorlarni qayta izohdan chiqarib qaytarish mumkin.
     buttons: list[tuple[str, dict]] = [
-        (BTN_PORTAL, {"web_app": WebAppInfo(url=WEBAPP_URL)}),
-        (BTN_M2_SERVICES, {}),
-        (BTN_M2_SETTINGS, {}),
-        (BTN_M2_NICKS, {}),
-        (BTN_MAIN_RASM, {}),
-        (BTN_MAIN_VIDEO, {}),
-        (BTN_MAIN_MUSIC, {}),
-        (BTN_STORE, {}),
         (BTN_MY_ACCOUNT, {}),
-        (BTN_M2_PAYMENTS, {}),
-        (BTN_MINI_GAMES, {}),
-        (BTN_GIFTS, {}),
-        (BTN_PRO_SUB, {}),
-        (BTN_WITHDRAW_WIN, {}),
-        (BTN_ORDERS_CHANNEL, {}),
-        (BTN_GIFT_ORDER, {}),
-        (BTN_M2_FAQ, {}),
-        (BTN_M2_DIAMONDS, {}),
+        # (BTN_PORTAL, {"web_app": WebAppInfo(url=WEBAPP_URL)}),
+        # (BTN_M2_SERVICES, {}),
+        # (BTN_M2_SETTINGS, {}),
+        # (BTN_M2_NICKS, {}),
+        # (BTN_MAIN_RASM, {}),
+        # (BTN_MAIN_VIDEO, {}),
+        # (BTN_MAIN_MUSIC, {}),
+        # (BTN_STORE, {}),
+        # (BTN_M2_PAYMENTS, {}),
+        # (BTN_MINI_GAMES, {}),
+        # (BTN_GIFTS, {}),
+        # (BTN_PRO_SUB, {}),
+        # (BTN_WITHDRAW_WIN, {}),
+        # (BTN_ORDERS_CHANNEL, {}),
+        # (BTN_GIFT_ORDER, {}),
+        # (BTN_M2_FAQ, {}),
+        # (BTN_M2_DIAMONDS, {}),
     ]
 
     if is_admin:
