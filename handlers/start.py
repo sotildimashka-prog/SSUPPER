@@ -12,10 +12,14 @@ from config import ADMIN_ID, BOT_NAME
 from keyboards import (
     subscription_keyboard,
     main_menu_keyboard,
+    full_menu_keyboard,
+    my_account_keyboard,
     player_type_keyboard,
     add_to_group_keyboard,
     language_keyboard,
     portal_button_row,
+    start_inline_keyboard,
+    NEWS_CHANNEL_USERNAME,
 )
 from handlers.subscription import get_unsubscribed_channels
 
@@ -185,6 +189,47 @@ async def _continue_after_language(update: Update, context: ContextTypes.DEFAULT
     await _send_official_site_message(context, user.id, lang)
 
 
+# ---------- 🆕 /start uchun rasm + 3 ta inline tugma ----------
+# MUHIM: Foydalanuvchi so'rovi bo'yicha /start bosilganda chiqadigan barcha
+# eski xabarlar (til tanlash, salomlashuv, majburiy obuna taklifi, pro/bot
+# savoli, guruhga qo'shish taklifi, rasmiy sayt xabari) OLIB TASHLANDI.
+# Ular hali ham shu faylda funksiya sifatida saqlanmoqda (hech narsa
+# o'chirilmagan) - faqat start_command ichidan chaqirilmayapti.
+#
+# Rasm manzili: assets/start_banner.jpg. Botni ishga tushirishdan oldin
+# shu nomdagi rasmni "assets" papkasiga qo'ying (yoki quyidagi
+# START_PHOTO_PATH ni o'zgartiring). Agar rasm topilmasa, bot xatoga
+# tushmaydi - shunchaki oddiy matnli xabar + tugmalar yuboriladi.
+START_PHOTO_PATH = "assets/start_banner.jpg"
+
+START_CAPTION_TEXT = (
+    "👋 <b>Xush kelibsiz!</b>\n\n"
+    "🤖 Men Free Fire o'yini uchun mukammal xizmat ko'rsatadigan botman.\n\n"
+    "👇 Kerakli bo'limni tanlang:"
+)
+
+
+async def _send_start_message(context: ContextTypes.DEFAULT_TYPE, chat_id: int):
+    try:
+        with open(START_PHOTO_PATH, "rb") as photo_file:
+            await context.bot.send_photo(
+                chat_id=chat_id,
+                photo=photo_file,
+                caption=START_CAPTION_TEXT,
+                parse_mode="HTML",
+                reply_markup=start_inline_keyboard(),
+            )
+    except (FileNotFoundError, OSError, TelegramError):
+        # Rasm topilmasa yoki yuborib bo'lmasa - hech bo'lmasa tugmalar
+        # bilan matnli xabar chiqadi (bot to'xtab qolmasligi uchun).
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=START_CAPTION_TEXT,
+            parse_mode="HTML",
+            reply_markup=start_inline_keyboard(),
+        )
+
+
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     is_new = db.add_user_if_new(user.id, user.first_name or "", user.username or "")
@@ -202,11 +247,49 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except TelegramError:
             pass
 
-    # 0) Har safar /start bosilganda avval til tanlash so'raladi
-    await update.message.reply_text(
-        LANGUAGE_PROMPT_TEXT,
+    await _send_start_message(context, user.id)
+
+
+async def on_start_account_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """/start rasmi ostidagi "👛 Hisobim" inline tugmasi - eski pastki
+    tugmadagi (👛 Hisobim) xuddi shu funksiyani inline ko'rinishda beradi."""
+    query = update.callback_query
+    user = query.from_user
+    await query.answer()
+
+    diamonds = db.get_quiz_diamonds(user.id)
+    money = db.get_balance(user.id)
+    text = (
+        "👛 <b>Hisobim</b>\n\n"
+        f"💎 Almaz: <b>{diamonds}</b>\n"
+        f"💵 Pul: <b>{money:,} so'm</b>\n\n".replace(",", ".")
+        + "Barcha to'lov usullari haqida ma'lumot olish uchun pastdagi tugmani bosing 👇"
+    )
+    await context.bot.send_message(
+        chat_id=user.id,
+        text=text,
         parse_mode="HTML",
-        reply_markup=language_keyboard(),
+        reply_markup=my_account_keyboard(),
+    )
+
+
+async def on_start_services_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """/start rasmi ostidagi "🛠️ Barcha xizmatlar" inline tugmasi -
+    avval yashirilgan BARCHA pastki (reply) tugmalarni qaytadan chiqaradi."""
+    query = update.callback_query
+    user = query.from_user
+    await query.answer()
+
+    is_admin = user.id == ADMIN_ID
+    await context.bot.send_message(
+        chat_id=user.id,
+        text=(
+            "🛠️ <b>Barcha xizmatlar</b>\n\n"
+            "Quyidagi tugmalar orqali botning barcha imkoniyatlaridan "
+            "foydalanishingiz mumkin 👇"
+        ),
+        parse_mode="HTML",
+        reply_markup=full_menu_keyboard(is_admin),
     )
 
 
