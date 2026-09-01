@@ -3,6 +3,7 @@
 
 from telegram import (
     ReplyKeyboardMarkup,
+    ReplyKeyboardRemove,
     KeyboardButton,
     InlineKeyboardMarkup,
     InlineKeyboardButton,
@@ -254,21 +255,27 @@ def start_inline_keyboard() -> InlineKeyboardMarkup:
 # o'zi ishlashda 100% avvalgidek qoladi.
 SVC_ALL_PREFIX = "svcall"
 
+# MUHIM: Foydalanuvchi so'rovi bo'yicha "🛠️ Barcha xizmatlar" ro'yxatidan
+# quyidagi bandlar OLIB TASHLANDI: 🎵 Musiqa yaratish, 🖼️ Rasm Yasash,
+# 🎬 Video Yasash, 🎁 Giftlar va 🛒 Free Fire Do'koni. Ularning kodi
+# (BTN_MAIN_RASM, BTN_MAIN_VIDEO va h.k.) va tegishli handlerlar hech
+# narsa o'chirilmagan - faqat shu ro'yxatdan olib tashlandi, kerak bo'lsa
+# pastdagi izohlangan qatorlarni qaytarish mumkin.
 _ALL_SERVICES_ITEMS = [
     (BTN_M2_SERVICES, f"{SVC_ALL_PREFIX}:services"),
     (BTN_M2_SETTINGS, f"{SVC_ALL_PREFIX}:settings"),
     (BTN_M2_NICKS, f"{SVC_ALL_PREFIX}:nicks"),
-    (BTN_MAIN_RASM, f"{SVC_ALL_PREFIX}:rasm"),
-    (BTN_MAIN_VIDEO, f"{SVC_ALL_PREFIX}:video"),
-    (BTN_MAIN_MUSIC, f"{SVC_ALL_PREFIX}:music"),
-    (BTN_STORE, f"{SVC_ALL_PREFIX}:store"),
+    # (BTN_MAIN_RASM, f"{SVC_ALL_PREFIX}:rasm"),
+    # (BTN_MAIN_VIDEO, f"{SVC_ALL_PREFIX}:video"),
+    # (BTN_MAIN_MUSIC, f"{SVC_ALL_PREFIX}:music"),
+    # (BTN_STORE, f"{SVC_ALL_PREFIX}:store"),
     (BTN_M2_PAYMENTS, f"{SVC_ALL_PREFIX}:payments"),
     (BTN_MINI_GAMES, f"{SVC_ALL_PREFIX}:games"),
     (BTN_GIFTS, f"{SVC_ALL_PREFIX}:gifts"),
     (BTN_PRO_SUB, f"{SVC_ALL_PREFIX}:prosub"),
     (BTN_WITHDRAW_WIN, f"{SVC_ALL_PREFIX}:withdrawwin"),
     (BTN_ORDERS_CHANNEL, f"{SVC_ALL_PREFIX}:orders"),
-    (BTN_GIFT_ORDER, f"{SVC_ALL_PREFIX}:giftorder"),
+    # (BTN_GIFT_ORDER, f"{SVC_ALL_PREFIX}:giftorder"),
     (BTN_M2_DIAMONDS, f"{SVC_ALL_PREFIX}:diamonds"),
 ]
 
@@ -276,14 +283,17 @@ _ALL_SERVICES_ITEMS = [
 def all_services_inline_keyboard() -> InlineKeyboardMarkup:
     rows = [[_ikb(BTN_PORTAL, web_app=WebAppInfo(url=WEBAPP_URL))]]
 
-    pair: list = []
+    # Foydalanuvchi so'rovi bo'yicha - 2 tadan emas, 4 tadan yonma-yon
+    # (bitta qatorda 4 ta tugma) qilib joylanadi.
+    chunk_size = 4
+    row: list = []
     for text, cb in _ALL_SERVICES_ITEMS:
-        pair.append(_ikb(text, callback_data=cb))
-        if len(pair) == 2:
-            rows.append(pair)
-            pair = []
-    if pair:
-        rows.append(pair)
+        row.append(_ikb(text, callback_data=cb))
+        if len(row) == chunk_size:
+            rows.append(row)
+            row = []
+    if row:
+        rows.append(row)
 
     # 📬 Savollar (FAQ) - allaqachon mavjud "svc:faq" pattern'i orqali
     # ishlaydigan conversation handler bor, shu sabab shu callback_data
@@ -313,8 +323,13 @@ def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
     # ular shunchaki quyidagi ro'yxatdan olib tashlandi. Kerak bo'lsa,
     # pastdagi qatorlarni qayta izohdan chiqarib qaytarish mumkin.
     buttons: list[tuple[str, dict]] = [
-        (BTN_MY_ACCOUNT, {}),
-        (BTN_PORTAL, {"web_app": WebAppInfo(url=WEBAPP_URL)}),
+        # MUHIM: Foydalanuvchi so'rovi bo'yicha "👛 Hisobim" pastki (reply)
+        # tugmasi ham olib tashlandi - endi asosiy pastki menyuda (admin
+        # bo'lmagan foydalanuvchilar uchun) hech qanday tugma qolmaydi.
+        # Kodning o'zi (BTN_MY_ACCOUNT va h.k.) o'chirilmagan - kerak
+        # bo'lsa pastdagi qatorni qayta izohdan chiqarib qaytarish mumkin.
+        # (BTN_MY_ACCOUNT, {}),
+        # (BTN_PORTAL, {"web_app": WebAppInfo(url=WEBAPP_URL)}),
         # (BTN_M2_SERVICES, {}),
         # (BTN_M2_SETTINGS, {}),
         # (BTN_M2_NICKS, {}),
@@ -352,6 +367,14 @@ def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
     for i in range(0, len(buttons), 2):
         chunk = buttons[i:i + 2]
         rows.append([_kb(text, **kwargs) for text, kwargs in chunk])
+
+    # MUHIM: Foydalanuvchi so'rovi bo'yicha - agar chiqadigan pastki (reply)
+    # tugma umuman bo'lmasa (admin bo'lmagan foydalanuvchilar uchun), bo'sh
+    # ReplyKeyboardMarkup o'rniga ReplyKeyboardRemove qaytariladi - shunda
+    # ekranda "bo'sh"/qulaysiz klaviatura paneli ko'rinmaydi, u butunlay
+    # OLIB TASHLANADI (hech qanday tugma qolmaydi).
+    if not rows:
+        return ReplyKeyboardRemove()
 
     return ReplyKeyboardMarkup(rows, resize_keyboard=True, is_persistent=True)
 
@@ -788,6 +811,31 @@ def gift_all_confirm_keyboard() -> InlineKeyboardMarkup:
 def withdraw_amount_keyboard(amount: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [[_ikb(f"💎 {amount}", callback_data=f"withdraw_confirm:{amount}")]]
+    )
+
+
+# ---------- 💎 Almaz yechish (🆕 yangi oqim: avval "Hisobim", pastida "Yechish") ----------
+
+def withdraw_account_keyboard() -> InlineKeyboardMarkup:
+    """"Hisobim" (joriy almaz balansi) matni ostida chiqadigan yagona
+    "💎 Yechish" inline tugmasi."""
+    return InlineKeyboardMarkup(
+        [[_ikb("💎 Yechish", callback_data="withdraw:start")]]
+    )
+
+
+def withdraw_not_enough_back_keyboard() -> InlineKeyboardMarkup:
+    """Almaz yetarli bo'lmaganda "Hisobim" ko'rinishiga qaytish tugmasi."""
+    return InlineKeyboardMarkup(
+        [[_ikb("⬅️ Orqaga", callback_data="withdraw:back")]]
+    )
+
+
+def withdraw_admin_review_keyboard(user_id: int, amount: int, ff_id: str) -> InlineKeyboardMarkup:
+    """Adminga boradigan xabar ostidagi "✅ Yubordim" tugmasi - admin buni
+    bosgach, foydalanuvchiga "almazlaringiz yuborildi" xabari boradi."""
+    return InlineKeyboardMarkup(
+        [[_ikb("✅ Yubordim", callback_data=f"withdrawsent:{user_id}:{amount}:{ff_id}")]]
     )
 
 
