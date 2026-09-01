@@ -272,16 +272,24 @@ _ALL_SERVICES_ITEMS = [
     (BTN_M2_PAYMENTS, f"{SVC_ALL_PREFIX}:payments"),
     (BTN_MINI_GAMES, f"{SVC_ALL_PREFIX}:games"),
     (BTN_GIFTS, f"{SVC_ALL_PREFIX}:gifts"),
-    (BTN_PRO_SUB, f"{SVC_ALL_PREFIX}:prosub"),
+    # MUHIM: Foydalanuvchi so'rovi bo'yicha "👑 Pro obuna" ro'yxatdan olib
+    # tashlandi. Kodi (BTN_PRO_SUB va tegishli handlerlar) o'chirilmagan -
+    # kerak bo'lsa quyidagi qatorni qayta izohdan chiqarib qaytarish mumkin.
+    # (BTN_PRO_SUB, f"{SVC_ALL_PREFIX}:prosub"),
     (BTN_WITHDRAW_WIN, f"{SVC_ALL_PREFIX}:withdrawwin"),
     (BTN_ORDERS_CHANNEL, f"{SVC_ALL_PREFIX}:orders"),
     # (BTN_GIFT_ORDER, f"{SVC_ALL_PREFIX}:giftorder"),
     (BTN_M2_DIAMONDS, f"{SVC_ALL_PREFIX}:diamonds"),
+    (BTN_WITHDRAW, f"{SVC_ALL_PREFIX}:withdraw"),
 ]
 
 
 def all_services_inline_keyboard() -> InlineKeyboardMarkup:
-    rows = [[_ikb(BTN_PORTAL, web_app=WebAppInfo(url=WEBAPP_URL))]]
+    # MUHIM: Foydalanuvchi so'rovi bo'yicha "🗺 Free Fire Portal 🚀" tugmasi
+    # ro'yxatdan olib tashlandi. Kodi (BTN_PORTAL, WEBAPP_URL) o'chirilmagan -
+    # kerak bo'lsa quyidagi qatorni qayta izohdan chiqarib qaytarish mumkin.
+    rows = []
+    # rows = [[_ikb(BTN_PORTAL, web_app=WebAppInfo(url=WEBAPP_URL))]]
 
     # Foydalanuvchi so'rovi bo'yicha - 2 tadan emas, 4 tadan yonma-yon
     # (bitta qatorda 4 ta tugma) qilib joylanadi.
