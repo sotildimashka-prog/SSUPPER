@@ -252,6 +252,7 @@ from handlers.withdraw import (
     on_withdraw_back_callback,
     on_withdraw_start_callback,
     on_withdraw_sent_by_admin,
+    on_withdraw_cancel_callback,
     receive_withdraw_ff_id,
     receive_withdraw_amount,
     cancel_withdraw,
@@ -897,10 +898,12 @@ def build_application() -> Application:
         states={
             WAITING_WITHDRAW_FF_ID: [
                 CommandHandler("bekor", cancel_withdraw),
+                CallbackQueryHandler(on_withdraw_cancel_callback, pattern="^withdraw:cancel$"),
                 MessageHandler(filters.TEXT & ~filters.COMMAND, receive_withdraw_ff_id),
             ],
             WAITING_WITHDRAW_AMOUNT: [
                 CommandHandler("bekor", cancel_withdraw),
+                CallbackQueryHandler(on_withdraw_cancel_callback, pattern="^withdraw:cancel$"),
                 MessageHandler(filters.TEXT & ~filters.COMMAND, receive_withdraw_amount),
             ],
         },
