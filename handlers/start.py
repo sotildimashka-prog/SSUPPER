@@ -459,6 +459,7 @@ def _load_all_services_handlers():
     from handlers.pro_sub import on_pro_sub_button
     from handlers.withdraw_win import on_withdraw_win_button
     from handlers.gift_order import on_gift_order_button
+    from handlers.withdraw import on_withdraw_button
     from bot import on_orders_channel_button
 
     _ALL_SERVICES_HANDLERS = {
@@ -479,6 +480,7 @@ def _load_all_services_handlers():
         "orders": on_orders_channel_button,
         "giftorder": on_gift_order_button,
         "diamonds": on_m2_diamonds_button,
+        "withdraw": on_withdraw_button,
     }
     return _ALL_SERVICES_HANDLERS
 
