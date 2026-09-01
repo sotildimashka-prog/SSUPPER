@@ -27,6 +27,7 @@ from keyboards import (
     withdraw_account_keyboard,
     withdraw_not_enough_back_keyboard,
     withdraw_admin_review_keyboard,
+    withdraw_cancel_keyboard,
 )
 
 WAITING_WITHDRAW_FF_ID = 40
@@ -115,8 +116,9 @@ async def on_withdraw_start_callback(update: Update, context: ContextTypes.DEFAU
         return ConversationHandler.END
 
     await safe_edit_message(query,
-        "🆔 Free Fire UID (ID) raqamingizni yuboring:\n\nBekor qilish uchun /bekor.",
+        "🆔 Free Fire UID (ID) raqamingizni yuboring:\n\nBekor qilish uchun /bekor yozing yoki pastdagi tugmani bosing.",
         parse_mode="HTML",
+        reply_markup=withdraw_cancel_keyboard(),
     )
     return WAITING_WITHDRAW_FF_ID
 
@@ -126,7 +128,8 @@ async def receive_withdraw_ff_id(update: Update, context: ContextTypes.DEFAULT_T
 
     if not ff_id.isdigit():
         await update.message.reply_text(
-            "⚠️ Noto'g'ri format. Faqat raqamlardan iborat Free Fire UID yuboring."
+            "⚠️ Noto'g'ri format. Faqat raqamlardan iborat Free Fire UID yuboring.",
+            reply_markup=withdraw_cancel_keyboard(),
         )
         return WAITING_WITHDRAW_FF_ID
 
@@ -136,7 +139,8 @@ async def receive_withdraw_ff_id(update: Update, context: ContextTypes.DEFAULT_T
     await update.message.reply_text(
         "💎 Necha dona almaz yechmoqchisiz?\n\n"
         f"(Kamida {MIN_WITHDRAW}, hisobingizda {amount} dona bor)\n\n"
-        "Bekor qilish uchun /bekor.",
+        "Bekor qilish uchun /bekor yozing yoki pastdagi tugmani bosing.",
+        reply_markup=withdraw_cancel_keyboard(),
     )
     return WAITING_WITHDRAW_AMOUNT
 
@@ -148,7 +152,8 @@ async def receive_withdraw_amount(update: Update, context: ContextTypes.DEFAULT_
 
     if not raw.isdigit():
         await update.message.reply_text(
-            "⚠️ Noto'g'ri format. Faqat raqam kiriting (masalan: 500)."
+            "⚠️ Noto'g'ri format. Faqat raqam kiriting (masalan: 500).",
+            reply_markup=withdraw_cancel_keyboard(),
         )
         return WAITING_WITHDRAW_AMOUNT
 
@@ -157,13 +162,15 @@ async def receive_withdraw_amount(update: Update, context: ContextTypes.DEFAULT_
 
     if amount < MIN_WITHDRAW:
         await update.message.reply_text(
-            f"⚠️ Kamida {MIN_WITHDRAW} dona almaz yechishingiz kerak. Qaytadan kiriting:"
+            f"⚠️ Kamida {MIN_WITHDRAW} dona almaz yechishingiz kerak. Qaytadan kiriting:",
+            reply_markup=withdraw_cancel_keyboard(),
         )
         return WAITING_WITHDRAW_AMOUNT
 
     if amount > current:
         await update.message.reply_text(
-            f"⚠️ Sizda faqat {current} dona almaz bor. Qaytadan kiriting:"
+            f"⚠️ Sizda faqat {current} dona almaz bor. Qaytadan kiriting:",
+            reply_markup=withdraw_cancel_keyboard(),
         )
         return WAITING_WITHDRAW_AMOUNT
 
@@ -246,4 +253,14 @@ async def cancel_withdraw(update: Update, context: ContextTypes.DEFAULT_TYPE):
     is_admin = update.effective_user.id == ADMIN_ID
     context.user_data.pop("withdraw_ff_id", None)
     await update.message.reply_text("❌ Bekor qilindi.", reply_markup=main_menu_keyboard(is_admin))
+    return ConversationHandler.END
+
+
+async def on_withdraw_cancel_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """ID/miqdor so'ralayotgan paytda "❌ Bekor qilish" inline tugmasi
+    bosilganda - /bekor bilan bir xil, lekin tugma orqali."""
+    query = update.callback_query
+    await query.answer()
+    context.user_data.pop("withdraw_ff_id", None)
+    await _show_account(query, edit=True)
     return ConversationHandler.END
