@@ -22,6 +22,7 @@ from keyboards import (
     start_inline_keyboard,
     all_services_inline_keyboard,
     NEWS_CHANNEL_USERNAME,
+    START_SERVICES_CB,
 )
 from handlers.subscription import get_unsubscribed_channels
 
