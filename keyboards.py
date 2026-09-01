@@ -3,6 +3,7 @@
 
 from telegram import (
     ReplyKeyboardMarkup,
+    ReplyKeyboardRemove,
     KeyboardButton,
     InlineKeyboardMarkup,
     InlineKeyboardButton,
@@ -282,14 +283,17 @@ _ALL_SERVICES_ITEMS = [
 def all_services_inline_keyboard() -> InlineKeyboardMarkup:
     rows = [[_ikb(BTN_PORTAL, web_app=WebAppInfo(url=WEBAPP_URL))]]
 
-    pair: list = []
+    # Foydalanuvchi so'rovi bo'yicha - 2 tadan emas, 4 tadan yonma-yon
+    # (bitta qatorda 4 ta tugma) qilib joylanadi.
+    chunk_size = 4
+    row: list = []
     for text, cb in _ALL_SERVICES_ITEMS:
-        pair.append(_ikb(text, callback_data=cb))
-        if len(pair) == 2:
-            rows.append(pair)
-            pair = []
-    if pair:
-        rows.append(pair)
+        row.append(_ikb(text, callback_data=cb))
+        if len(row) == chunk_size:
+            rows.append(row)
+            row = []
+    if row:
+        rows.append(row)
 
     # 📬 Savollar (FAQ) - allaqachon mavjud "svc:faq" pattern'i orqali
     # ishlaydigan conversation handler bor, shu sabab shu callback_data
@@ -363,6 +367,14 @@ def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
     for i in range(0, len(buttons), 2):
         chunk = buttons[i:i + 2]
         rows.append([_kb(text, **kwargs) for text, kwargs in chunk])
+
+    # MUHIM: Foydalanuvchi so'rovi bo'yicha - agar chiqadigan pastki (reply)
+    # tugma umuman bo'lmasa (admin bo'lmagan foydalanuvchilar uchun), bo'sh
+    # ReplyKeyboardMarkup o'rniga ReplyKeyboardRemove qaytariladi - shunda
+    # ekranda "bo'sh"/qulaysiz klaviatura paneli ko'rinmaydi, u butunlay
+    # OLIB TASHLANADI (hech qanday tugma qolmaydi).
+    if not rows:
+        return ReplyKeyboardRemove()
 
     return ReplyKeyboardMarkup(rows, resize_keyboard=True, is_persistent=True)
 
