@@ -102,6 +102,7 @@ from handlers.start import (
     subscribe_text,
     on_start_account_callback,
     on_start_services_callback,
+    on_start_back_callback,
     on_all_services_item,
     on_video_button_from_services,
 )
@@ -248,10 +249,14 @@ from handlers.admin_credit import (
 from handlers.withdraw import (
     on_withdraw_button,
     on_withdraw_button_callback,
-    on_withdraw_amount_confirm,
+    on_withdraw_back_callback,
+    on_withdraw_start_callback,
+    on_withdraw_sent_by_admin,
     receive_withdraw_ff_id,
+    receive_withdraw_amount,
     cancel_withdraw,
     WAITING_WITHDRAW_FF_ID,
+    WAITING_WITHDRAW_AMOUNT,
 )
 from handlers.image_gen import (
     on_rasm_button,
@@ -681,6 +686,7 @@ def build_application() -> Application:
     # ---------- 🆕 /start rasmi ostidagi 3 ta inline tugma ----------
     app.add_handler(CallbackQueryHandler(on_start_account_callback, pattern="^start:account$"))
     app.add_handler(CallbackQueryHandler(on_start_services_callback, pattern="^start:services$"))
+    app.add_handler(CallbackQueryHandler(on_start_back_callback, pattern="^start:back$"))
 
     # ---------- 🔓 Maxsus xizmat (Proxy/Cheat/FF ID) ----------
     hack_ffid_conv = ConversationHandler(
@@ -879,13 +885,23 @@ def build_application() -> Application:
     app.add_handler(deduct_diamond_conv)
 
     # ---------- 💎 Almaz yechish (Tekin almazdan yig'ilganini yechib olish) ----------
+    # 🆕 Oqim: "profile:withdraw" / "winwd:diamond" -> avval "Hisobim" ko'rsatiladi
+    # (on_withdraw_button_callback, pastda ro'yxatga olingan) -> "💎 Yechish"
+    # tugmasi (withdraw:start) bosilsa balans tekshiriladi -> ID -> Miqdor ->
+    # adminga "✅ Yubordim" tugmali xabar.
     app.add_handler(MessageHandler(_exact(BTN_WITHDRAW), on_withdraw_button))
+    app.add_handler(CallbackQueryHandler(on_withdraw_back_callback, pattern="^withdraw:back$"))
+    app.add_handler(CallbackQueryHandler(on_withdraw_sent_by_admin, pattern="^withdrawsent:"))
     withdraw_conv = ConversationHandler(
-        entry_points=[CallbackQueryHandler(on_withdraw_amount_confirm, pattern="^withdraw_confirm:")],
+        entry_points=[CallbackQueryHandler(on_withdraw_start_callback, pattern="^withdraw:start$")],
         states={
             WAITING_WITHDRAW_FF_ID: [
                 CommandHandler("bekor", cancel_withdraw),
                 MessageHandler(filters.TEXT & ~filters.COMMAND, receive_withdraw_ff_id),
+            ],
+            WAITING_WITHDRAW_AMOUNT: [
+                CommandHandler("bekor", cancel_withdraw),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_withdraw_amount),
             ],
         },
         fallbacks=[CommandHandler("bekor", cancel_withdraw)],
