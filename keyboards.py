@@ -825,10 +825,21 @@ def withdraw_amount_keyboard(amount: int) -> InlineKeyboardMarkup:
 # ---------- 💎 Almaz yechish (🆕 yangi oqim: avval "Hisobim", pastida "Yechish") ----------
 
 def withdraw_account_keyboard() -> InlineKeyboardMarkup:
-    """"Hisobim" (joriy almaz balansi) matni ostida chiqadigan yagona
-    "💎 Yechish" inline tugmasi."""
+    """"Hisobim" (joriy almaz balansi) matni ostida chiqadigan
+    "💎 Yechish" va "⬅️ Orqaga" inline tugmalari."""
     return InlineKeyboardMarkup(
-        [[_ikb("💎 Yechish", callback_data="withdraw:start")]]
+        [
+            [_ikb("💎 Yechish", callback_data="withdraw:start")],
+            [_ikb("⬅️ Orqaga", callback_data=START_SERVICES_CB)],
+        ]
+    )
+
+
+def withdraw_cancel_keyboard() -> InlineKeyboardMarkup:
+    """Free Fire ID / miqdor so'ralayotganda chiqadigan "❌ Bekor qilish"
+    tugmasi - foydalanuvchi /bekor yozmasdan ham orqaga qaytishi mumkin."""
+    return InlineKeyboardMarkup(
+        [[_ikb("❌ Bekor qilish", callback_data="withdraw:cancel")]]
     )
 
 
