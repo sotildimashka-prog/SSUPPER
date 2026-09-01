@@ -254,21 +254,27 @@ def start_inline_keyboard() -> InlineKeyboardMarkup:
 # o'zi ishlashda 100% avvalgidek qoladi.
 SVC_ALL_PREFIX = "svcall"
 
+# MUHIM: Foydalanuvchi so'rovi bo'yicha "🛠️ Barcha xizmatlar" ro'yxatidan
+# quyidagi bandlar OLIB TASHLANDI: 🎵 Musiqa yaratish, 🖼️ Rasm Yasash,
+# 🎬 Video Yasash, 🎁 Giftlar va 🛒 Free Fire Do'koni. Ularning kodi
+# (BTN_MAIN_RASM, BTN_MAIN_VIDEO va h.k.) va tegishli handlerlar hech
+# narsa o'chirilmagan - faqat shu ro'yxatdan olib tashlandi, kerak bo'lsa
+# pastdagi izohlangan qatorlarni qaytarish mumkin.
 _ALL_SERVICES_ITEMS = [
     (BTN_M2_SERVICES, f"{SVC_ALL_PREFIX}:services"),
     (BTN_M2_SETTINGS, f"{SVC_ALL_PREFIX}:settings"),
     (BTN_M2_NICKS, f"{SVC_ALL_PREFIX}:nicks"),
-    (BTN_MAIN_RASM, f"{SVC_ALL_PREFIX}:rasm"),
-    (BTN_MAIN_VIDEO, f"{SVC_ALL_PREFIX}:video"),
-    (BTN_MAIN_MUSIC, f"{SVC_ALL_PREFIX}:music"),
-    (BTN_STORE, f"{SVC_ALL_PREFIX}:store"),
+    # (BTN_MAIN_RASM, f"{SVC_ALL_PREFIX}:rasm"),
+    # (BTN_MAIN_VIDEO, f"{SVC_ALL_PREFIX}:video"),
+    # (BTN_MAIN_MUSIC, f"{SVC_ALL_PREFIX}:music"),
+    # (BTN_STORE, f"{SVC_ALL_PREFIX}:store"),
     (BTN_M2_PAYMENTS, f"{SVC_ALL_PREFIX}:payments"),
     (BTN_MINI_GAMES, f"{SVC_ALL_PREFIX}:games"),
     (BTN_GIFTS, f"{SVC_ALL_PREFIX}:gifts"),
     (BTN_PRO_SUB, f"{SVC_ALL_PREFIX}:prosub"),
     (BTN_WITHDRAW_WIN, f"{SVC_ALL_PREFIX}:withdrawwin"),
     (BTN_ORDERS_CHANNEL, f"{SVC_ALL_PREFIX}:orders"),
-    (BTN_GIFT_ORDER, f"{SVC_ALL_PREFIX}:giftorder"),
+    # (BTN_GIFT_ORDER, f"{SVC_ALL_PREFIX}:giftorder"),
     (BTN_M2_DIAMONDS, f"{SVC_ALL_PREFIX}:diamonds"),
 ]
 
@@ -313,7 +319,12 @@ def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
     # ular shunchaki quyidagi ro'yxatdan olib tashlandi. Kerak bo'lsa,
     # pastdagi qatorlarni qayta izohdan chiqarib qaytarish mumkin.
     buttons: list[tuple[str, dict]] = [
-        (BTN_MY_ACCOUNT, {}),
+        # MUHIM: Foydalanuvchi so'rovi bo'yicha "👛 Hisobim" pastki (reply)
+        # tugmasi ham olib tashlandi - endi asosiy pastki menyuda (admin
+        # bo'lmagan foydalanuvchilar uchun) hech qanday tugma qolmaydi.
+        # Kodning o'zi (BTN_MY_ACCOUNT va h.k.) o'chirilmagan - kerak
+        # bo'lsa pastdagi qatorni qayta izohdan chiqarib qaytarish mumkin.
+        # (BTN_MY_ACCOUNT, {}),
         # (BTN_PORTAL, {"web_app": WebAppInfo(url=WEBAPP_URL)}),
         # (BTN_M2_SERVICES, {}),
         # (BTN_M2_SETTINGS, {}),
@@ -788,6 +799,31 @@ def gift_all_confirm_keyboard() -> InlineKeyboardMarkup:
 def withdraw_amount_keyboard(amount: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [[_ikb(f"💎 {amount}", callback_data=f"withdraw_confirm:{amount}")]]
+    )
+
+
+# ---------- 💎 Almaz yechish (🆕 yangi oqim: avval "Hisobim", pastida "Yechish") ----------
+
+def withdraw_account_keyboard() -> InlineKeyboardMarkup:
+    """"Hisobim" (joriy almaz balansi) matni ostida chiqadigan yagona
+    "💎 Yechish" inline tugmasi."""
+    return InlineKeyboardMarkup(
+        [[_ikb("💎 Yechish", callback_data="withdraw:start")]]
+    )
+
+
+def withdraw_not_enough_back_keyboard() -> InlineKeyboardMarkup:
+    """Almaz yetarli bo'lmaganda "Hisobim" ko'rinishiga qaytish tugmasi."""
+    return InlineKeyboardMarkup(
+        [[_ikb("⬅️ Orqaga", callback_data="withdraw:back")]]
+    )
+
+
+def withdraw_admin_review_keyboard(user_id: int, amount: int, ff_id: str) -> InlineKeyboardMarkup:
+    """Adminga boradigan xabar ostidagi "✅ Yubordim" tugmasi - admin buni
+    bosgach, foydalanuvchiga "almazlaringiz yuborildi" xabari boradi."""
+    return InlineKeyboardMarkup(
+        [[_ikb("✅ Yubordim", callback_data=f"withdrawsent:{user_id}:{amount}:{ff_id}")]]
     )
 
 
