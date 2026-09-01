@@ -18,6 +18,8 @@ from telegram import Update
 from telegram.ext import ContextTypes, ConversationHandler
 from telegram.error import TelegramError
 
+from handlers.message_utils import safe_edit_message
+
 import database as db
 from config import ADMIN_ID
 from keyboards import (
@@ -63,7 +65,7 @@ async def _show_account(update_or_query, edit: bool):
         query = update_or_query
         user_id = query.from_user.id
         amount = db.get_quiz_diamonds(user_id)
-        await query.edit_message_text(
+        await safe_edit_message(query,
             _account_text(amount), parse_mode="HTML", reply_markup=withdraw_account_keyboard()
         )
     else:
@@ -105,14 +107,14 @@ async def on_withdraw_start_callback(update: Update, context: ContextTypes.DEFAU
     amount = db.get_quiz_diamonds(user_id)
 
     if amount < MIN_WITHDRAW:
-        await query.edit_message_text(
+        await safe_edit_message(query,
             _not_enough_text(amount),
             parse_mode="HTML",
             reply_markup=withdraw_not_enough_back_keyboard(),
         )
         return ConversationHandler.END
 
-    await query.edit_message_text(
+    await safe_edit_message(query,
         "🆔 Free Fire UID (ID) raqamingizni yuboring:\n\nBekor qilish uchun /bekor.",
         parse_mode="HTML",
     )
