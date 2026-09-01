@@ -4,7 +4,7 @@
 from datetime import datetime
 from types import SimpleNamespace
 
-from telegram import Update, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
 from telegram.ext import ContextTypes
 from telegram.error import TelegramError
 
@@ -252,9 +252,44 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await _send_start_message(context, user.id)
 
 
+# ---------- 🔙 /start xabariga qaytish ----------
+START_BACK_CB = "start:back"
+
+
+async def _edit_in_place(query, text: str, reply_markup) -> None:
+    """Callback tugma bosilganda YANGI xabar yubormasdan, ASL xabarni
+    (rasm bo'lsa - caption'ini, bo'lmasa - matnini) TAHRIRLAB qo'yadi.
+    Shu bilan foydalanuvchining ekrani pastga qarab surilib ketmaydi -
+    hammasi bitta "forma" (xabar) ichida o'zgarib turadi."""
+    msg = query.message
+    try:
+        if msg is not None and msg.photo:
+            await query.edit_message_caption(caption=text, parse_mode="HTML", reply_markup=reply_markup)
+        else:
+            await query.edit_message_text(text=text, parse_mode="HTML", reply_markup=reply_markup)
+    except TelegramError:
+        # Xabarni tahrirlab bo'lmasa (masalan, u juda eski yoki allaqachon
+        # o'chirilgan) - bot to'xtab qolmasligi uchun yangi xabar yuboramiz.
+        await query.get_bot().send_message(
+            chat_id=query.from_user.id, text=text, parse_mode="HTML", reply_markup=reply_markup
+        )
+
+
+def _with_back_to_start_row(keyboard: InlineKeyboardMarkup) -> InlineKeyboardMarkup:
+    """Mavjud inline klaviaturaning tagiga "⬅️ Bosh menyu" (start xabariga
+    qaytish) qatorini qo'shadi - umumiy keyboards.py funksiyalariga
+    tegilmaydi, faqat shu yerda (start oqimida) foydalaniladi."""
+    rows = list(keyboard.inline_keyboard) + [
+        [InlineKeyboardButton("⬅️ Bosh menyu", callback_data=START_BACK_CB)]
+    ]
+    return InlineKeyboardMarkup(rows)
+
+
 async def on_start_account_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """/start rasmi ostidagi "👛 Hisobim" inline tugmasi - eski pastki
-    tugmadagi (👛 Hisobim) xuddi shu funksiyani inline ko'rinishda beradi."""
+    tugmadagi (👛 Hisobim) xuddi shu funksiyani inline ko'rinishda beradi.
+    Yangi xabar yuborish o'rniga ASL /start xabari TAHRIRLANADI - shunda
+    ekran pastga qarab surilib ketmaydi."""
     query = update.callback_query
     user = query.from_user
     await query.answer()
@@ -267,32 +302,32 @@ async def on_start_account_callback(update: Update, context: ContextTypes.DEFAUL
         f"💵 Pul: <b>{money:,} so'm</b>\n\n".replace(",", ".")
         + "Barcha to'lov usullari haqida ma'lumot olish uchun pastdagi tugmani bosing 👇"
     )
-    await context.bot.send_message(
-        chat_id=user.id,
-        text=text,
-        parse_mode="HTML",
-        reply_markup=my_account_keyboard(),
-    )
+    await _edit_in_place(query, text, _with_back_to_start_row(my_account_keyboard()))
 
 
 async def on_start_services_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """/start rasmi ostidagi "🛠️ Barcha xizmatlar" inline tugmasi -
     avval yashirilgan BARCHA bo'limlarni TO'LIQ INLINE ro'yxat qilib
-    ko'rsatadi (birorta ham pastki/reply tugma chiqmaydi)."""
+    ko'rsatadi (birorta ham pastki/reply tugma chiqmaydi). Yangi xabar
+    yuborish o'rniga ASL /start xabari TAHRIRLANADI."""
     query = update.callback_query
     user = query.from_user
     await query.answer()
 
-    await context.bot.send_message(
-        chat_id=user.id,
-        text=(
-            "🛠️ <b>Barcha xizmatlar</b>\n\n"
-            "Quyidagi tugmalar orqali botning barcha imkoniyatlaridan "
-            "foydalanishingiz mumkin 👇"
-        ),
-        parse_mode="HTML",
-        reply_markup=all_services_inline_keyboard(),
+    text = (
+        "🛠️ <b>Barcha xizmatlar</b>\n\n"
+        "Quyidagi tugmalar orqali botning barcha imkoniyatlaridan "
+        "foydalanishingiz mumkin 👇"
     )
+    await _edit_in_place(query, text, _with_back_to_start_row(all_services_inline_keyboard()))
+
+
+async def on_start_back_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """"⬅️ Bosh menyu" - foydalanuvchini ASL /start xabariga (rasm + 3 ta
+    tugma) qaytaradi, yangi xabar yubormasdan, xuddi shu xabarni tahrirlab."""
+    query = update.callback_query
+    await query.answer()
+    await _edit_in_place(query, START_CAPTION_TEXT, start_inline_keyboard())
 
 
 # ---------- 🆕 "Barcha xizmatlar" ro'yxatidagi har bir band ----------
@@ -302,17 +337,71 @@ async def on_start_services_callback(update: Update, context: ContextTypes.DEFAU
 # (balans tekshiruvi, obuna tekshiruvi va h.k.) 100% avvalgidek ishlayveradi -
 # faqat natija endi pastki tugma o'rniga inline xabar ko'rinishida yuboriladi.
 
+class _EditingMessageProxy:
+    """"Barcha xizmatlar" ro'yxatidagi bandlar eski (reply tugmali)
+    handlerlarni chaqirganda, ular odatda update.message.reply_text()/
+    .reply_photo() orqali YANGI xabar yuboradi - bu esa ekranni pastga
+    qarab surib yuboradi. Shu proxy .reply_text()/.reply_photo() chaqiruvini
+    ASL "Barcha xizmatlar" xabarini TAHRIRLASHGA (edit) almashtiradi, shunda
+    hammasi bitta forma ichida o'zgaradi. Agar tahrirlash imkonsiz bo'lsa
+    (masalan, matnli xabarni rasmga aylantirish kerak bo'lsa), botning
+    ishlashdan to'xtab qolmasligi uchun eski xabar o'chirilib, o'rniga
+    yangisi yuboriladi."""
+
+    def __init__(self, query):
+        self._query = query
+        self._message = query.message
+
+    def __getattr__(self, name):
+        return getattr(self._message, name)
+
+    async def reply_text(self, text, **kwargs):
+        reply_markup = kwargs.get("reply_markup")
+        parse_mode = kwargs.get("parse_mode")
+        try:
+            if self._message is not None and self._message.photo:
+                return await self._query.edit_message_caption(
+                    caption=text, parse_mode=parse_mode, reply_markup=reply_markup
+                )
+            return await self._query.edit_message_text(
+                text=text, parse_mode=parse_mode, reply_markup=reply_markup
+            )
+        except TelegramError:
+            try:
+                await self._message.delete()
+            except TelegramError:
+                pass
+            return await self._message.chat.send_message(text, **kwargs)
+
+    async def reply_photo(self, photo, caption=None, **kwargs):
+        reply_markup = kwargs.get("reply_markup")
+        parse_mode = kwargs.get("parse_mode")
+        try:
+            if self._message is None or not self._message.photo:
+                raise TelegramError("matnli xabarni rasmga edit qilib bo'lmaydi")
+            media = InputMediaPhoto(media=photo, caption=caption, parse_mode=parse_mode)
+            return await self._query.edit_message_media(media=media, reply_markup=reply_markup)
+        except TelegramError:
+            try:
+                await self._message.delete()
+            except TelegramError:
+                pass
+            return await self._message.chat.send_photo(photo, caption=caption, **kwargs)
+
+
 def _shim_update_from_callback(query):
     """ConversationHandler holatini talab qilmaydigan oddiy "reply tugma"
     handlerlarini xavfsiz chaqirish uchun yengil "soxta" Update.
-    .message => query.message (haqiqiy Message, shu sabab .reply_text(),
-    .reply_photo() va h.k. to'g'ri ishlaydi), .effective_user => tugmani
-    haqiqatda bosgan foydalanuvchi (bot emas)."""
+    .message => _EditingMessageProxy (haqiqiy Message kabi ishlaydi, lekin
+    .reply_text()/.reply_photo() chaqirilganda YANGI xabar o'rniga ASL
+    xabarni tahrirlaydi - forma pastga surilib ketmasligi uchun),
+    .effective_user => tugmani haqiqatda bosgan foydalanuvchi (bot emas)."""
+    proxy = _EditingMessageProxy(query)
     return SimpleNamespace(
-        message=query.message,
+        message=proxy,
         effective_user=query.from_user,
         effective_chat=query.message.chat if query.message else None,
-        effective_message=query.message,
+        effective_message=proxy,
         callback_query=None,
     )
 
