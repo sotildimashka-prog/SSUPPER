@@ -14,6 +14,8 @@ import time
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes
 
+from handlers.message_utils import safe_edit_message
+
 import database as db
 from keyboards import (
     BTN_MINI_GAMES,  # noqa: F401 (bot.py orqali chaqiriladi)
@@ -152,7 +154,7 @@ async def on_myacc_pay_button(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     query = update.callback_query
     await query.answer()
-    await query.edit_message_text(
+    await safe_edit_message(query,
         "💰 <b>To'lov usullari</b>\n\n"
         "Hisobingizni to'ldirish uchun quyidagi usullardan birini tanlang 👇\n\n"
         "👤 <b>Admin orqali</b> — admin bilan bog'lanib to'lov qilasiz\n"
@@ -200,7 +202,7 @@ async def _show_mode_select(query):
             [InlineKeyboardButton("🏆 Mukofotli O'yinlar 🎁", callback_data="games:mode:paid")],
         ]
     )
-    await query.edit_message_text(text, reply_markup=keyboard, parse_mode="HTML")
+    await safe_edit_message(query, text, reply_markup=keyboard, parse_mode="HTML")
 
 
 async def _show_game_list(query, mode: str):
@@ -231,7 +233,7 @@ async def _show_game_list(query, mode: str):
             "O'yinni tanlang:"
         )
 
-    await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(rows), parse_mode="HTML")
+    await safe_edit_message(query, text, reply_markup=InlineKeyboardMarkup(rows), parse_mode="HTML")
 
 
 async def on_games_root_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -308,7 +310,7 @@ async def _finish(query, context, mode, key, won: bool):
             text = "✅ <b>Siz yutdingiz!</b> 🎉"
     else:
         text = "😔 <b>Bu safar omad kelmadi.</b>\nYana urinib ko'ring!"
-    await query.edit_message_text(text, reply_markup=_result_keyboard(mode, key), parse_mode="HTML")
+    await safe_edit_message(query, text, reply_markup=_result_keyboard(mode, key), parse_mode="HTML")
 
 
 # ---------------------------------------------------------------------------
@@ -333,7 +335,7 @@ async def _open_game(query, context, mode, key):
             rows.append(row)
         rows.append([InlineKeyboardButton("⬅️ Orqaga", callback_data=f"games:list:{mode}")])
         safe_count = MINE_TOTAL_CELLS - mines_count
-        await query.edit_message_text(
+        await safe_edit_message(query,
             f"💣 <b>Minani top!</b>\n\n{MINE_TOTAL_CELLS} ta katakdan {safe_count} tasi xavfsiz, "
             f"{mines_count} tasi mina.\nBitta katakni tanlang:",
             reply_markup=InlineKeyboardMarkup(rows),
@@ -351,7 +353,7 @@ async def _open_game(query, context, mode, key):
             ]
         )
         threshold = 90 if mode == "paid" else 80
-        await query.edit_message_text(
+        await safe_edit_message(query,
             f"🎯 <b>Nishonni ur!</b>\n\n{threshold}-100 ball headshot hisoblanadi. Omad!",
             reply_markup=kb,
             parse_mode="HTML",
@@ -367,7 +369,7 @@ async def _open_game(query, context, mode, key):
                 [InlineKeyboardButton("⬅️ Orqaga", callback_data=f"games:list:{mode}")],
             ]
         )
-        await query.edit_message_text(
+        await safe_edit_message(query,
             "🎲 <b>Kubik tashlash</b>\n\n6 (olti) tushsa - yutasiz!",
             reply_markup=kb,
             parse_mode="HTML",
@@ -391,7 +393,7 @@ async def _open_game(query, context, mode, key):
             if mode == "paid"
             else ""
         )
-        await query.edit_message_text(
+        await safe_edit_message(query,
             "🪙 <b>Tanga tashlash</b>\n\nGerb yoki Raqamni tanlang:" + extra,
             reply_markup=kb,
             parse_mode="HTML",
@@ -413,7 +415,7 @@ async def _open_game(query, context, mode, key):
         kb = InlineKeyboardMarkup(
             card_rows + [[InlineKeyboardButton("⬅️ Orqaga", callback_data=f"games:list:{mode}")]]
         )
-        await query.edit_message_text(
+        await safe_edit_message(query,
             f"🃏 <b>Kartani tanla</b>\n\n{card_count} ta kartadan faqat bittasida sovrin bor:",
             reply_markup=kb,
             parse_mode="HTML",
@@ -430,7 +432,7 @@ async def _open_game(query, context, mode, key):
             ]
         )
         note = "\n\n🏆 Mukofotli rejimda ko'proq emoji bor - qiyinroq!" if mode == "paid" else ""
-        await query.edit_message_text(
+        await safe_edit_message(query,
             "🎰 <b>Slot mashina</b>\n\n3 ta emoji bir xil chiqsa - yutasiz!" + note,
             reply_markup=kb,
             parse_mode="HTML",
@@ -447,7 +449,7 @@ async def _open_game(query, context, mode, key):
         kb = InlineKeyboardMarkup(
             [[InlineKeyboardButton("❌ Bekor qilish", callback_data=f"number:{mode}:cancel")]]
         )
-        await query.edit_message_text(
+        await safe_edit_message(query,
             f"🔢 <b>Sonni top!</b>\n\nMen 1 dan {max_range} gacha son o'yladim.\n"
             "5 ta taxmin huquqingiz bor. Raqamni yozib yuboring 👇",
             reply_markup=kb,
@@ -474,7 +476,7 @@ async def _open_game(query, context, mode, key):
             for i, opt in enumerate(options)
         ]
         rows.append([InlineKeyboardButton("⬅️ Orqaga", callback_data=f"games:list:{mode}")])
-        await query.edit_message_text(
+        await safe_edit_message(query,
             f"❓ <b>Free Fire Viktorinasi</b>\n"
             f"📈 Daraja: {level + 1} | ⏱ Vaqt: {time_limit} soniya\n\n{q['question']}",
             reply_markup=InlineKeyboardMarkup(rows),
@@ -492,7 +494,7 @@ async def _open_game(query, context, mode, key):
             ]
         )
         limit = 0.7 if mode == "paid" else 1.0
-        await query.edit_message_text(
+        await safe_edit_message(query,
             "⚡ <b>Refleks testi</b>\n\n\"Tayyorman\" tugmasini bosing, so'ng "
             f"tasodifiy vaqtda \"🔴 BOS!\" tugmasi chiqadi. {limit:.1f} soniyadan tez bosing!",
             reply_markup=kb,
@@ -517,7 +519,7 @@ async def _open_game(query, context, mode, key):
             if mode == "paid"
             else ""
         )
-        await query.edit_message_text(
+        await safe_edit_message(query,
             "🐔 <b>Tovuqmi yoki tuxummi?</b> 🥚\n\nBirini tanlang, omad tilaymiz!" + extra,
             reply_markup=kb,
             parse_mode="HTML",
@@ -535,7 +537,7 @@ async def _open_game(query, context, mode, key):
         ]
         rows = [buttons[i:i + 4] for i in range(0, len(buttons), 4)]
         rows.append([InlineKeyboardButton("⬅️ Orqaga", callback_data=f"games:list:{mode}")])
-        await query.edit_message_text(
+        await safe_edit_message(query,
             "🔐 <b>Seyf kodi</b>\n\n8 ta tugmadan faqat bittasi seyfni ochadi. "
             "To'g'ri kombinatsiyani toping!",
             reply_markup=InlineKeyboardMarkup(rows),
@@ -555,7 +557,7 @@ async def _open_game(query, context, mode, key):
         ]
         rows = [buttons[i:i + 3] for i in range(0, len(buttons), 3)]
         rows.append([InlineKeyboardButton("⬅️ Orqaga", callback_data=f"games:list:{mode}")])
-        await query.edit_message_text(
+        await safe_edit_message(query,
             "🎨 <b>Baxtli rang</b>\n\n6 ta rangdan faqat bittasi \"baxtli rang\". "
             "To'g'ri rangni tanlang!",
             reply_markup=InlineKeyboardMarkup(rows),
@@ -577,7 +579,7 @@ async def _act_mine(query, context, mode, rest):
     won = cell_idx not in mines
     if not won:
         deducted = _apply_loss_penalty(_user_id(query))
-        await query.edit_message_text(
+        await safe_edit_message(query,
             "💥 <b>Mina portladi!</b>\nMukofot yo'q." + _penalty_suffix(deducted),
             reply_markup=_result_keyboard(mode, "mine"),
             parse_mode="HTML",
@@ -596,7 +598,7 @@ async def _act_target(query, context, mode, rest):
         await _finish_with_prefix(query, mode, "target", True, prefix + "🎯 Headshot!\n")
     else:
         deducted = _apply_loss_penalty(_user_id(query))
-        await query.edit_message_text(
+        await safe_edit_message(query,
             prefix + "❌ Nishonga tegmadi." + _penalty_suffix(deducted),
             reply_markup=_result_keyboard(mode, "target"),
             parse_mode="HTML",
@@ -613,7 +615,7 @@ async def _act_dice(query, context, mode, rest):
         await _finish_with_prefix(query, mode, "dice", True, prefix)
     else:
         deducted = _apply_loss_penalty(_user_id(query))
-        await query.edit_message_text(
+        await safe_edit_message(query,
             prefix + "😔 Omad kelmadi." + _penalty_suffix(deducted),
             reply_markup=_result_keyboard(mode, "dice"),
             parse_mode="HTML",
@@ -630,7 +632,7 @@ async def _act_coin(query, context, mode, rest):
 
     if not won:
         deducted = _apply_loss_penalty(_user_id(query))
-        await query.edit_message_text(
+        await safe_edit_message(query,
             prefix + "😔 Bu safar omad kelmadi.\nYana urinib ko'ring!" + _penalty_suffix(deducted),
             reply_markup=_result_keyboard(mode, "coin"),
             parse_mode="HTML",
@@ -652,7 +654,7 @@ async def _act_coin(query, context, mode, rest):
             [InlineKeyboardButton("⬅️ Orqaga", callback_data=f"games:list:{mode}")],
         ]
     )
-    await query.edit_message_text(
+    await safe_edit_message(query,
         prefix + "✅ Birinchi safar to'g'ri toptingiz!\n"
         "Yutuq uchun yana bir marta to'g'ri toping 👇",
         reply_markup=kb,
@@ -672,7 +674,7 @@ async def _act_coin2(query, context, mode, rest):
         await _finish_with_prefix(query, mode, "coin", True, prefix)
     else:
         deducted = _apply_loss_penalty(_user_id(query))
-        await query.edit_message_text(
+        await safe_edit_message(query,
             prefix + "😔 Ikkinchi safar omad kelmadi.\nYana urinib ko'ring!" + _penalty_suffix(deducted),
             reply_markup=_result_keyboard(mode, "coin"),
             parse_mode="HTML",
@@ -687,7 +689,7 @@ async def _act_card(query, context, mode, rest):
         await _finish_with_prefix(query, mode, "card", True, "🎁 To'g'ri karta!\n\n")
     else:
         deducted = _apply_loss_penalty(_user_id(query))
-        await query.edit_message_text(
+        await safe_edit_message(query,
             "😔 Bu safar omad kelmadi.\nYana urinib ko'ring!" + _penalty_suffix(deducted),
             reply_markup=_result_keyboard(mode, "card"),
             parse_mode="HTML",
@@ -705,7 +707,7 @@ async def _act_slot(query, context, mode, rest):
         await _finish_with_prefix(query, mode, "slot", True, prefix)
     else:
         deducted = _apply_loss_penalty(_user_id(query))
-        await query.edit_message_text(
+        await safe_edit_message(query,
             prefix + "😔 Yutqazdingiz." + _penalty_suffix(deducted),
             reply_markup=_result_keyboard(mode, "slot"),
             parse_mode="HTML",
@@ -722,7 +724,7 @@ async def _act_chicken(query, context, mode, rest):
 
     if not won:
         deducted = _apply_loss_penalty(_user_id(query))
-        await query.edit_message_text(
+        await safe_edit_message(query,
             prefix + "😔 Bu safar omad kelmadi.\nYana urinib ko'ring!" + _penalty_suffix(deducted),
             reply_markup=_result_keyboard(mode, "chicken"),
             parse_mode="HTML",
@@ -742,7 +744,7 @@ async def _act_chicken(query, context, mode, rest):
             [InlineKeyboardButton("⬅️ Orqaga", callback_data=f"games:list:{mode}")],
         ]
     )
-    await query.edit_message_text(
+    await safe_edit_message(query,
         prefix + "✅ Birinchi safar to'g'ri toptingiz!\n"
         "Yutuq uchun yana bir marta to'g'ri toping 👇",
         reply_markup=kb,
@@ -762,7 +764,7 @@ async def _act_chicken2(query, context, mode, rest):
         await _finish_with_prefix(query, mode, "chicken", True, prefix)
     else:
         deducted = _apply_loss_penalty(_user_id(query))
-        await query.edit_message_text(
+        await safe_edit_message(query,
             prefix + "😔 Ikkinchi safar omad kelmadi.\nYana urinib ko'ring!" + _penalty_suffix(deducted),
             reply_markup=_result_keyboard(mode, "chicken"),
             parse_mode="HTML",
@@ -777,7 +779,7 @@ async def _act_safe(query, context, mode, rest):
         await _finish_with_prefix(query, mode, "safe", True, "🔓 Seyf ochildi!\n\n")
     else:
         deducted = _apply_loss_penalty(_user_id(query))
-        await query.edit_message_text(
+        await safe_edit_message(query,
             "🔒 Noto'g'ri kombinatsiya. Seyf ochilmadi.\nYana urinib ko'ring!" + _penalty_suffix(deducted),
             reply_markup=_result_keyboard(mode, "safe"),
             parse_mode="HTML",
@@ -792,7 +794,7 @@ async def _act_color(query, context, mode, rest):
         await _finish_with_prefix(query, mode, "color", True, "🎉 Baxtli rangni topdingiz!\n\n")
     else:
         deducted = _apply_loss_penalty(_user_id(query))
-        await query.edit_message_text(
+        await safe_edit_message(query,
             "❌ Bu baxtli rang emas edi.\nYana urinib ko'ring!" + _penalty_suffix(deducted),
             reply_markup=_result_keyboard(mode, "color"),
             parse_mode="HTML",
@@ -824,7 +826,7 @@ async def _act_quiz(query, context, mode, rest):
             reason = "⏱ Vaqt tugadi! Javob to'g'ri edi, lekin kechikdingiz."
         else:
             reason = "❌ Noto'g'ri javob."
-        await query.edit_message_text(
+        await safe_edit_message(query,
             reason + "\nYana urinib ko'ring!" + _penalty_suffix(deducted),
             reply_markup=_result_keyboard(mode, "quiz"),
             parse_mode="HTML",
@@ -835,7 +837,7 @@ async def _act_reflex(query, context, mode, rest):
     sub = rest[0]
     if sub == "ready":
         await query.answer()
-        await query.edit_message_text("⏳ Tayyorlaning...", parse_mode="HTML")
+        await safe_edit_message(query, "⏳ Tayyorlaning...", parse_mode="HTML")
         delay = random.uniform(1.5, 4.5)
         await asyncio.sleep(delay)
         start_ts = time.time()
@@ -843,7 +845,7 @@ async def _act_reflex(query, context, mode, rest):
             [[InlineKeyboardButton("🔴 BOS!", callback_data=f"reflex:{mode}:hit:{start_ts}")]]
         )
         try:
-            await query.edit_message_text("🔴 <b>BOS!</b>", reply_markup=kb, parse_mode="HTML")
+            await safe_edit_message(query, "🔴 <b>BOS!</b>", reply_markup=kb, parse_mode="HTML")
         except Exception:
             pass
         return
@@ -861,10 +863,10 @@ async def _act_reflex(query, context, mode, rest):
                 text = prefix + f"⚡ <b>Juda tez!</b>\n🎉 Siz {REWARD_AMOUNT} 💎 Almaz yutdingiz!"
             else:
                 text = prefix + "⚡ <b>Juda tez!</b> ✅"
-            await query.edit_message_text(text, reply_markup=_result_keyboard(mode, "reflex"), parse_mode="HTML")
+            await safe_edit_message(query, text, reply_markup=_result_keyboard(mode, "reflex"), parse_mode="HTML")
         else:
             deducted = _apply_loss_penalty(_user_id(query))
-            await query.edit_message_text(
+            await safe_edit_message(query,
                 prefix + "😔 Sekin bosdingiz. Yana urinib ko'ring!" + _penalty_suffix(deducted),
                 reply_markup=_result_keyboard(mode, "reflex"),
                 parse_mode="HTML",
@@ -878,7 +880,7 @@ async def _act_number(query, context, mode, rest):
     # Faqat "bekor qilish" tugmasi shu yerdan keladi; taxminlar TEXT orqali.
     await query.answer()
     db.clear_number_game(_user_id(query))
-    await query.edit_message_text(
+    await safe_edit_message(query,
         "❌ O'yin bekor qilindi.",
         reply_markup=_back_keyboard(mode),
         parse_mode="HTML",
@@ -893,7 +895,7 @@ async def _finish_with_prefix(query, mode, key, won, prefix):
         text = prefix + "✅ <b>Siz yutdingiz!</b> 🎉"
     else:
         text = prefix + "😔 Bu safar omad kelmadi.\nYana urinib ko'ring!"
-    await query.edit_message_text(text, reply_markup=_result_keyboard(mode, key), parse_mode="HTML")
+    await safe_edit_message(query, text, reply_markup=_result_keyboard(mode, key), parse_mode="HTML")
 
 
 _ACTION_HANDLERS = {
