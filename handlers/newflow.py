@@ -14,6 +14,8 @@ qayta ishlatiladi.
 from telegram import Update
 from telegram.ext import ContextTypes
 
+from handlers.message_utils import safe_edit_message
+
 import database as db
 from config import ADMIN_USERNAME, CARD_NUMBER, CARD_HOLDER_NAME, CARD_PHONE
 from keyboards import (
@@ -64,7 +66,7 @@ async def on_diaget_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """💎 Almaz sotib olish - mavjud xarid oqimi (Admin/Bot orqali) qayta ishlatiladi."""
     query = update.callback_query
     await query.answer()
-    await query.edit_message_text(
+    await safe_edit_message(query,
         "💎 <b>Almaz sotib olish</b>\n\nQanday yo'l bilan sotib olmoqchisiz?",
         parse_mode="HTML",
         reply_markup=diamonds_entry_keyboard(),
@@ -99,7 +101,7 @@ async def on_m2_settings_button(update: Update, context: ContextTypes.DEFAULT_TY
 async def on_newset_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    await query.edit_message_text(
+    await safe_edit_message(query,
         NASTROYKALAR_TEXT, parse_mode="HTML", reply_markup=new_settings_menu_keyboard()
     )
 
@@ -107,7 +109,7 @@ async def on_newset_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def on_newset_premium(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    await query.edit_message_text(
+    await safe_edit_message(query,
         PREMIUM_TEXT, parse_mode="HTML", reply_markup=custom_entry_keyboard()
     )
 
@@ -136,7 +138,7 @@ async def on_m2_nicks_button(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def on_newnick_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    await query.edit_message_text(
+    await safe_edit_message(query,
         NICKS_MENU_TEXT, parse_mode="HTML", reply_markup=new_nicks_menu_keyboard()
     )
 
@@ -151,7 +153,7 @@ async def on_newnick_category(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     lines = [f"<code>{n}</code>" for n in nicks]
     text = f"{title}\n\n" + "\n".join(lines) + "\n\n👆 Ustiga bosib nusxa olishingiz mumkin."
-    await query.edit_message_text(
+    await safe_edit_message(query,
         text, parse_mode="HTML", reply_markup=new_nicks_back_keyboard()
     )
 
@@ -187,7 +189,7 @@ async def on_m2_services_button(update: Update, context: ContextTypes.DEFAULT_TY
 async def on_newsvc_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    await query.edit_message_text(
+    await safe_edit_message(query,
         SERVICES_MENU_TEXT, parse_mode="HTML", reply_markup=new_services_menu_keyboard()
     )
 
@@ -205,13 +207,13 @@ async def on_newsvc_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "🗺 Barcha Free Fire yangiliklari va turnirlar Free Fire Portal "
             "saytida joylashgan. Pastdagi tugma orqali Telegram ichida ochiladi 👇"
         )
-        await query.edit_message_text(
+        await safe_edit_message(query,
             text, parse_mode="HTML", reply_markup=newsvc_portal_keyboard()
         )
         return
 
     text = f"{title}\n\n{SERVICE_CHANNEL_TEXT}"
-    await query.edit_message_text(
+    await safe_edit_message(query,
         text, parse_mode="HTML", reply_markup=service_channel_keyboard()
     )
 
@@ -232,7 +234,7 @@ async def on_m2_payments_button(update: Update, context: ContextTypes.DEFAULT_TY
 async def on_pay_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    await query.edit_message_text(
+    await safe_edit_message(query,
         PAYMENTS_MENU_TEXT, parse_mode="HTML", reply_markup=payments_menu_keyboard()
     )
 
@@ -253,7 +255,7 @@ async def on_pay_bonus_diamond(update: Update, context: ContextTypes.DEFAULT_TYP
         await query.answer(
             f"🎉 Sizga {db.DIAMOND_BONUS_AMOUNT} 💎 bonus almaz berildi!", show_alert=True
         )
-        await query.edit_message_text(
+        await safe_edit_message(query,
             "🌙 <b>Bonus Almaz olindi!</b>\n\n"
             f"💎 +{db.DIAMOND_BONUS_AMOUNT} almaz hisobingizga qo'shildi.\n"
             f"💎 Jami almazlaringiz: <b>{total}</b>\n\n"
@@ -266,7 +268,7 @@ async def on_pay_bonus_diamond(update: Update, context: ContextTypes.DEFAULT_TYP
             "🌙 Siz bugungi Bonus Almazni allaqachon oldingiz. Ertaga qaytadan urinib ko'ring!",
             show_alert=True,
         )
-        await query.edit_message_text(
+        await safe_edit_message(query,
             "🌙 <b>Bonus Almaz</b>\n\n"
             "✅ Siz bugungi bonusingizni allaqachon olib bo'ldingiz.\n"
             f"💎 Jami almazlaringiz: <b>{total}</b>\n\n"
@@ -299,7 +301,7 @@ async def on_pay_daily_bonus(update: Update, context: ContextTypes.DEFAULT_TYPE)
             f"🎉 Sizga avtomatik ravishda {db.DAILY_MONEY_BONUS_AMOUNT} so'm bonus berildi!",
             show_alert=True,
         )
-        await query.edit_message_text(
+        await safe_edit_message(query,
             "💵 <b>Kunlik Bonus berildi!</b>\n\n"
             f"✅ +{db.DAILY_MONEY_BONUS_AMOUNT} so'm avtomatik ravishda hisobingizga qo'shildi.\n"
             f"💰 Joriy balans: <b>{balance:,} so'm</b>\n\n".replace(",", ".")
@@ -309,7 +311,7 @@ async def on_pay_daily_bonus(update: Update, context: ContextTypes.DEFAULT_TYPE)
         )
     else:
         await query.answer("🕛 Kunlik bonus hali tayyor emas.", show_alert=True)
-        await query.edit_message_text(
+        await safe_edit_message(query,
             "💵 <b>Kunlik Bonus</b>\n\n"
             f"🕛 Har 24 soatda avtomatik ravishda {db.DAILY_MONEY_BONUS_AMOUNT} so'm beriladi.\n"
             f"⏳ Keyingi bonusgacha: <b>{_format_hms(info)}</b>\n"
@@ -323,7 +325,7 @@ async def on_pay_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """👤 Admin orqali to'ldirish - eski (asl) usul."""
     query = update.callback_query
     await query.answer()
-    await query.edit_message_text(
+    await safe_edit_message(query,
         "👤 Admin bilan bevosita bog'lanish uchun tugmani bosing 👇",
         reply_markup=account_admin_keyboard(ADMIN_USERNAME),
     )
@@ -342,4 +344,4 @@ async def on_pay_card(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "(ustiga bosangiz nusxa olinadi) 🎉\n\n"
         "To'lov qilib bo'lgach, pastdagi <b>✅ To'lov qildim</b> tugmasini bosing."
     )
-    await query.edit_message_text(text, parse_mode="HTML", reply_markup=paid_confirm_keyboard())
+    await safe_edit_message(query, text, parse_mode="HTML", reply_markup=paid_confirm_keyboard())
