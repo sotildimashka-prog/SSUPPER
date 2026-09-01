@@ -337,6 +337,20 @@ async def on_start_back_callback(update: Update, context: ContextTypes.DEFAULT_T
 # (balans tekshiruvi, obuna tekshiruvi va h.k.) 100% avvalgidek ishlayveradi -
 # faqat natija endi pastki tugma o'rniga inline xabar ko'rinishida yuboriladi.
 
+def _append_back_to_services_row(reply_markup):
+    """"Barcha xizmatlar" ro'yxatidan ochilgan har bir bo'lim tagiga
+    "⬅️ Orqaga" (Barcha xizmatlar ro'yxatiga qaytish) tugmasini qo'shadi.
+    Faqat InlineKeyboardMarkup uchun ishlaydi (ReplyKeyboard va boshqalarga
+    tegilmaydi)."""
+    back_row = [InlineKeyboardButton("⬅️ Orqaga", callback_data=START_SERVICES_CB)]
+    if reply_markup is None:
+        return InlineKeyboardMarkup([back_row])
+    if not isinstance(reply_markup, InlineKeyboardMarkup):
+        return reply_markup
+    rows = list(reply_markup.inline_keyboard) + [back_row]
+    return InlineKeyboardMarkup(rows)
+
+
 class _EditingMessageProxy:
     """"Barcha xizmatlar" ro'yxatidagi bandlar eski (reply tugmali)
     handlerlarni chaqirganda, ular odatda update.message.reply_text()/
@@ -346,7 +360,8 @@ class _EditingMessageProxy:
     hammasi bitta forma ichida o'zgaradi. Agar tahrirlash imkonsiz bo'lsa
     (masalan, matnli xabarni rasmga aylantirish kerak bo'lsa), botning
     ishlashdan to'xtab qolmasligi uchun eski xabar o'chirilib, o'rniga
-    yangisi yuboriladi."""
+    yangisi yuboriladi. Har ikkala holatda ham natijaviy klaviatura tagiga
+    "⬅️ Orqaga" (Barcha xizmatlar ro'yxatiga qaytish) tugmasi qo'shiladi."""
 
     def __init__(self, query):
         self._query = query
@@ -356,7 +371,7 @@ class _EditingMessageProxy:
         return getattr(self._message, name)
 
     async def reply_text(self, text, **kwargs):
-        reply_markup = kwargs.get("reply_markup")
+        reply_markup = _append_back_to_services_row(kwargs.get("reply_markup"))
         parse_mode = kwargs.get("parse_mode")
         try:
             if self._message is not None and self._message.photo:
@@ -371,10 +386,11 @@ class _EditingMessageProxy:
                 await self._message.delete()
             except TelegramError:
                 pass
+            kwargs["reply_markup"] = reply_markup
             return await self._message.chat.send_message(text, **kwargs)
 
     async def reply_photo(self, photo, caption=None, **kwargs):
-        reply_markup = kwargs.get("reply_markup")
+        reply_markup = _append_back_to_services_row(kwargs.get("reply_markup"))
         parse_mode = kwargs.get("parse_mode")
         try:
             if self._message is None or not self._message.photo:
@@ -386,6 +402,7 @@ class _EditingMessageProxy:
                 await self._message.delete()
             except TelegramError:
                 pass
+            kwargs["reply_markup"] = reply_markup
             return await self._message.chat.send_photo(photo, caption=caption, **kwargs)
 
 
