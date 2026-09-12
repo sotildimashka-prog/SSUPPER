@@ -354,6 +354,53 @@ def fftournament_slots_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(rows)
 
 
+# ---------- 🏆 Free Fire Turnirlar (asosiy pastki tugma, ochiq ro'yxat) ----------
+# Bu "🏆 Free Fire Turnirlar" pastki (reply) tugmasi bosilganda ochiladigan
+# bo'lim uchun: admin xohlagancha turnir qo'shishi mumkin (kuniga 3-4 tasi
+# bo'lsa ham), har biri o'z formati (3/3, 1/1 va h.k.) bilan ko'rsatiladi.
+
+TURNIRADMIN_ADD_CB = "turniradmin:add"
+
+
+def turnir_emoji_for_index(index: int) -> str:
+    """Har bir turnir uchun ro'yxatda chiroyli, o'zgaruvchan emoji."""
+    icons = ["🥇", "🥈", "🥉", "🏅", "🔥", "⚡️", "🎯", "🎮"]
+    return icons[index % len(icons)]
+
+
+def turnirlar_list_keyboard(turnirlar: list, is_admin: bool = False) -> InlineKeyboardMarkup:
+    rows = []
+    for i, t in enumerate(turnirlar):
+        day = (t.get("day_label") or "").strip() or "Kun belgilanmagan"
+        fmt = (t.get("format_text") or "").strip()
+        label = f"{turnir_emoji_for_index(i)} {day}"
+        if fmt:
+            label += f" • {fmt}"
+        rows.append([_ikb(label, callback_data=f"turnir:open:{t['id']}")])
+    if is_admin:
+        rows.append([_ikb("➕ Turnir qo'shish", callback_data=TURNIRADMIN_ADD_CB)])
+    return InlineKeyboardMarkup(rows)
+
+
+def turnirlar_detail_keyboard(turnirlar: list, index: int, is_admin: bool = False) -> InlineKeyboardMarkup:
+    rows = []
+    nav_row = []
+    if index > 0:
+        nav_row.append(_ikb("⬅️ Oldingi turnir", callback_data=f"turnir:nav:{index - 1}"))
+    if index < len(turnirlar) - 1:
+        nav_row.append(_ikb("Keyingi turnir ➡️", callback_data=f"turnir:nav:{index + 1}"))
+    if nav_row:
+        rows.append(nav_row)
+    rows.append([_ikb("📋 Turnirlar ro'yxati", callback_data="turnir:list")])
+    if is_admin and 0 <= index < len(turnirlar):
+        rows.append(
+            [_ikb("🗑 Ushbu turnirni o'chirish", callback_data=f"turniradmin:del:{turnirlar[index]['id']}")]
+        )
+    if is_admin:
+        rows.append([_ikb("➕ Turnir qo'shish", callback_data=TURNIRADMIN_ADD_CB)])
+    return InlineKeyboardMarkup(rows)
+
+
 # ---------- 🗂 Admin: Turnir/Akkaunt boshqaruvi ----------
 
 def ff_admin_panel_keyboard(tournament_status: dict, account_added: bool) -> InlineKeyboardMarkup:
@@ -551,7 +598,6 @@ def brands_keyboard() -> InlineKeyboardMarkup:
         rows.append(
             [_ikb(b, callback_data=f"brand:{b}") for b in chunk]
         )
-    rows.append([_ikb("⬅️ Bosh menyu", callback_data="start:back")])
     return InlineKeyboardMarkup(rows)
 
 
