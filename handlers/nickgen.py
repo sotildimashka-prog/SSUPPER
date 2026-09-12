@@ -2,14 +2,21 @@
 """🎮 Nik yaratish - foydalanuvchi ism yuboradi, bot shu ismga avtomatik
 100 ta chiroyli Free Fire nik yaratadi."""
 
-from telegram import Update
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes, ConversationHandler
 
-from config import ADMIN_ID
-from keyboards import main_menu_keyboard, nick_creation_back_keyboard
+from keyboards import nick_creation_back_keyboard
 from data.nicknames_data import generate_custom_nicknames
 
 WAITING_NICK_NAME = 70
+
+# 🆕 Yangi (faqat inline tugmali) oqimda pastki (Reply) "Asosiy menyu"
+# klaviaturasi endi HECH QAERDA ko'rsatilmaydi - shu sabab bu yerda ham
+# eski main_menu_keyboard() o'rniga oddiy inline "⬅️ Bosh menyu" tugmasi
+# ishlatiladi (bosilganda /start xabariga qaytaradi).
+_BACK_TO_START_KB = InlineKeyboardMarkup(
+    [[InlineKeyboardButton("⬅️ Bosh menyu", callback_data="start:back")]]
+)
 
 ASK_NAME_TEXT = (
     "🎮 <b>Nik yaratish</b>\n\n"
@@ -30,7 +37,6 @@ async def start_nick_creation(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 async def receive_nick_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     name = (update.message.text or "").strip()
-    is_admin = update.effective_user.id == ADMIN_ID
 
     if not name:
         await update.message.reply_text("⚠️ Iltimos, ism yoki so'z yuboring.")
@@ -60,14 +66,13 @@ async def receive_nick_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             chunk,
             parse_mode="HTML",
-            reply_markup=main_menu_keyboard(is_admin) if is_last else None,
+            reply_markup=_BACK_TO_START_KB if is_last else None,
         )
     return ConversationHandler.END
 
 
 async def cancel_nick_creation(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    is_admin = update.effective_user.id == ADMIN_ID
     await update.message.reply_text(
-        "❌ Bekor qilindi.", reply_markup=main_menu_keyboard(is_admin)
+        "❌ Bekor qilindi.", reply_markup=_BACK_TO_START_KB
     )
     return ConversationHandler.END
