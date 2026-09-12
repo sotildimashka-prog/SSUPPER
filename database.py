@@ -6,6 +6,7 @@ buni README.md faylida batafsil tushuntirilgan.
 """
 
 import sqlite3
+import json
 from datetime import date, datetime
 from contextlib import contextmanager
 
@@ -362,6 +363,90 @@ def set_content(key: str, content_type: str, text: str = "", file_id: str = "", 
             {"type": content_type, "text": text, "file_id": file_id, "caption": caption}
         ),
     )
+
+
+# ---------------- 🏆 Free Fire turnirlar / 🎮 Free Fire akkauntlar ----------------
+# "Nima gap?" bo'limi uchun: admin panel orqali qo'shiladigan, oddiy JSON
+# (app_settings jadvali) sifatida saqlanadigan kontent. Alohida jadval
+# yaratilmadi - loyihada allaqachon mavjud bo'lgan get_setting/set_setting
+# patterni ishlatildi.
+
+TOURNAMENT_SLOTS = ("today", "tomorrow", "2days", "3days", "1week")
+
+_TOURNAMENT_KEY_PREFIX = "fftournament_"
+_FF_ACCOUNT_KEY = "ffaccount"
+
+
+def get_tournament(slot: str) -> dict | None:
+    """Berilgan kun (slot) uchun saqlangan turnir ma'lumotini qaytaradi.
+    Agar admin hali qo'shmagan bo'lsa - None qaytadi."""
+    raw = get_setting(f"{_TOURNAMENT_KEY_PREFIX}{slot}", "")
+    if not raw:
+        return None
+    try:
+        return json.loads(raw)
+    except (ValueError, TypeError):
+        return None
+
+
+def set_tournament(
+    slot: str,
+    content_type: str,
+    file_id: str = "",
+    caption: str = "",
+    channel_url: str = "",
+):
+    set_setting(
+        f"{_TOURNAMENT_KEY_PREFIX}{slot}",
+        json.dumps(
+            {
+                "type": content_type,
+                "file_id": file_id,
+                "caption": caption,
+                "channel_url": channel_url,
+            }
+        ),
+    )
+
+
+def delete_tournament(slot: str):
+    set_setting(f"{_TOURNAMENT_KEY_PREFIX}{slot}", "")
+
+
+def get_all_tournament_status() -> dict:
+    """Har bir kun (slot) uchun turnir qo'shilgan-qo'shilmaganini (True/False)
+    qaytaradi - admin panelida ✅/❌ belgisi uchun ishlatiladi."""
+    return {slot: get_tournament(slot) is not None for slot in TOURNAMENT_SLOTS}
+
+
+def get_ff_account() -> dict | None:
+    """Sotuvdagi Free Fire akkaunt ma'lumotini qaytaradi. Admin hali
+    qo'shmagan bo'lsa - None qaytadi."""
+    raw = get_setting(_FF_ACCOUNT_KEY, "")
+    if not raw:
+        return None
+    try:
+        return json.loads(raw)
+    except (ValueError, TypeError):
+        return None
+
+
+def set_ff_account(content_type: str, file_id: str = "", caption: str = "", buy_url: str = ""):
+    set_setting(
+        _FF_ACCOUNT_KEY,
+        json.dumps(
+            {
+                "type": content_type,
+                "file_id": file_id,
+                "caption": caption,
+                "buy_url": buy_url,
+            }
+        ),
+    )
+
+
+def delete_ff_account():
+    set_setting(_FF_ACCOUNT_KEY, "")
 
 
 # ---------------- Savol va Javob (Quiz) ----------------
