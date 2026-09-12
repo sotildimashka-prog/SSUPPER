@@ -10,6 +10,7 @@ from telegram.error import TelegramError
 from telegram.ext import ContextTypes
 
 import database as db
+from handlers.message_utils import safe_edit_message
 from keyboards import brands_keyboard, models_keyboard, model_back_keyboard
 from data.settings_data import PHONES
 
@@ -33,26 +34,48 @@ def _find_brand(model_name: str) -> str | None:
     return None
 
 
+async def _show_text_screen(query, context: ContextTypes.DEFAULT_TYPE, text: str, reply_markup) -> None:
+    """Joriy xabar matn, rasm yoki video (nastroyka kontenti) bo'lishidan
+    qat'i nazar, xavfsiz ravishda YANGI matnli ekranga o'tkazadi.
+
+    XATOLIK SABABI ("Modellarga qaytish" tugmasi ishlamay qolgani):
+    Agar model uchun RASM/VIDEO kontent qo'shilgan bo'lsa, on_model_selected
+    o'sha xabarni RASM/VIDEO sifatida yuboradi. Undan keyin "⬅️ Modellarga
+    qaytish" yoki "⬅️ Bosh menyu" bosilganda to'g'ridan-to'g'ri
+    query.edit_message_text(...) chaqirilsa, Telegram buni rad etadi
+    ("There is no text in the message to edit"), chunki rasm/video
+    xabarida "text" emas, "caption" bo'ladi - shu sabab tugma hech narsa
+    qilmagandek ko'rinardi."""
+    msg = query.message
+    if msg is not None and (msg.photo or msg.video):
+        try:
+            await msg.delete()
+        except TelegramError:
+            pass
+        chat_id = msg.chat_id
+        await context.bot.send_message(
+            chat_id, text, parse_mode="HTML", reply_markup=reply_markup
+        )
+        return
+
+    await safe_edit_message(query, text, parse_mode="HTML", reply_markup=reply_markup)
+
+
 async def on_brand_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     brand = query.data.split(":", 1)[1]
     if brand not in PHONES:
         return
-    await query.edit_message_text(
-        f"{brand}\n\nModelni tanlang 👇",
-        reply_markup=models_keyboard(brand),
+    await _show_text_screen(
+        query, context, f"{brand}\n\nModelni tanlang 👇", models_keyboard(brand)
     )
 
 
 async def on_back_to_brands(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    await query.edit_message_text(
-        SETTINGS_INTRO_TEXT,
-        parse_mode="HTML",
-        reply_markup=brands_keyboard(),
-    )
+    await _show_text_screen(query, context, SETTINGS_INTRO_TEXT, brands_keyboard())
 
 
 async def on_model_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -65,14 +88,9 @@ async def on_model_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
     content = db.get_nastroyka_content(model_name)
 
     if not content:
-        try:
-            await query.edit_message_text(
-                f"📱 <b>{model_name}</b>\n\n{NOT_ADDED_TEXT}",
-                parse_mode="HTML",
-                reply_markup=markup,
-            )
-        except TelegramError:
-            pass
+        await _show_text_screen(
+            query, context, f"📱 <b>{model_name}</b>\n\n{NOT_ADDED_TEXT}", markup
+        )
         return
 
     ctype = content.get("type", "text")
@@ -83,12 +101,7 @@ async def on_model_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if ctype == "text" or not file_id:
         body = text or caption or NOT_ADDED_TEXT
-        try:
-            await query.edit_message_text(
-                header + body, parse_mode="HTML", reply_markup=markup
-            )
-        except TelegramError:
-            pass
+        await _show_text_screen(query, context, header + body, markup)
         return
 
     # Rasm/video kontent: matnli xabarni media xabariga "edit" qilib
