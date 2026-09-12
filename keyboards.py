@@ -10,6 +10,7 @@ from telegram import (
     WebAppInfo,
 )
 
+import database as db
 from config import (
     REQUIRED_CHANNELS,
     ADMIN_ID,
@@ -216,6 +217,7 @@ def full_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
                 (BTN_GIFT_ALL, {}),
                 (BTN_DEDUCT_DIAMOND, {}),
                 (BTN_FF_ADMIN_PANEL, {}),
+                (BTN_NASTROYKA_ADD, {}),
             ]
         )
 
@@ -432,6 +434,7 @@ def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
                 (BTN_GIFT_ALL, {}),
                 (BTN_DEDUCT_DIAMOND, {}),
                 (BTN_FF_ADMIN_PANEL, {}),
+                (BTN_NASTROYKA_ADD, {}),
             ]
         )
 
@@ -553,7 +556,7 @@ def models_keyboard(brand: str) -> InlineKeyboardMarkup:
     for i in range(0, len(models), 2):
         chunk = models[i:i + 2]
         rows.append(
-            [_ikb(m[0], callback_data=f"model:{m[0]}") for m in chunk]
+            [_ikb(m, callback_data=f"model:{m}") for m in chunk]
         )
     rows.append([_ikb("⬅️ Orqaga", callback_data="back_to_brands")])
     return InlineKeyboardMarkup(rows)
@@ -563,6 +566,59 @@ def model_back_keyboard(brand: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [[_ikb("⬅️ Modellarga qaytish", callback_data=f"brand:{brand}")]]
     )
+
+
+# ---------- 👑 Admin: Nastroyka qo'shish (brend -> model -> kontent turi) ----------
+
+BTN_NASTROYKA_ADD = "➕ NASTROYKA QO'SHISH"
+
+NASTROYKA_CONTENT_TYPES = [
+    ("text", "📝 TEXT"),
+    ("photo", "🖼 RASM"),
+    ("video", "🎬 VIDEO"),
+    ("phototext", "📦 TEXT + RASM"),
+    ("videotext", "🎬 VIDEO + TEXT"),
+]
+
+
+def nastroyka_admin_brands_keyboard() -> InlineKeyboardMarkup:
+    rows = []
+    brands = list(PHONES.keys())
+    for i in range(0, len(brands), 2):
+        chunk = brands[i:i + 2]
+        rows.append(
+            [_ikb(b, callback_data=f"nadmin:brand:{b}") for b in chunk]
+        )
+    rows.append([_ikb("🔙 Yopish", callback_data="nadmin:close")])
+    return InlineKeyboardMarkup(rows)
+
+
+def nastroyka_admin_models_keyboard(brand: str) -> InlineKeyboardMarkup:
+    rows = []
+    models = PHONES.get(brand, [])
+    for i in range(0, len(models), 2):
+        chunk = models[i:i + 2]
+        row = []
+        for m in chunk:
+            has_content = db.get_nastroyka_content(m) is not None
+            mark = "✅" if has_content else "❌"
+            row.append(_ikb(f"{mark} {m}", callback_data=f"nadmin:model:{m}"))
+        rows.append(row)
+    rows.append([_ikb("⬅️ Orqaga", callback_data="nadmin:back_brands")])
+    return InlineKeyboardMarkup(rows)
+
+
+def nastroyka_admin_type_keyboard(model_name: str, has_content: bool) -> InlineKeyboardMarkup:
+    rows = []
+    for i in range(0, len(NASTROYKA_CONTENT_TYPES), 2):
+        chunk = NASTROYKA_CONTENT_TYPES[i:i + 2]
+        rows.append(
+            [_ikb(label, callback_data=f"nadmin:type:{key}") for key, label in chunk]
+        )
+    if has_content:
+        rows.append([_ikb("🗑 O'chirish", callback_data="nadmin:delete")])
+    rows.append([_ikb("⬅️ Orqaga", callback_data="nadmin:back_models")])
+    return InlineKeyboardMarkup(rows)
 
 
 # ---------- Planshet nastroykalari ----------
