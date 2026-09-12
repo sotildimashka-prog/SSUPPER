@@ -564,19 +564,26 @@ async def on_language_selected(update: Update, context: ContextTypes.DEFAULT_TYP
 async def check_subscription_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user = query.from_user
-    await query.answer()
 
     lang = db.get_user_language(user.id) or "uz"
 
     unsubscribed = await get_unsubscribed_channels(user.id, context)
     if unsubscribed:
+        # MUHIM: query.answer() FAQAT BIR MARTA chaqirilishi kerak - shu
+        # sabab bu yerda (obuna bo'lmagan holatda) alert bilan birga
+        # chaqiramiz, boshqa joyda oldindan chaqirilmaydi.
         alert_text = (
             "⛔️ Вы ещё не подписались на все каналы! Подпишитесь и попробуйте снова."
             if lang == "ru"
             else "⛔️ Siz hali barcha kanallarga obuna bo'lmadingiz! Obuna bo'lib, qaytadan urinib ko'ring."
         )
-        await query.answer(alert_text, show_alert=True)
+        try:
+            await query.answer(alert_text, show_alert=True)
+        except TelegramError:
+            pass
         return
+
+    await query.answer()
 
     # ✅ Obuna tasdiqlandi - foydalanuvchini yangi /start buyrug'ini
     # yuborishga taklif qilamiz (menyu to'g'ridan-to'g'ri shu yerda
