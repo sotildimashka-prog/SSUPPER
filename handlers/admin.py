@@ -14,12 +14,24 @@ from telegram.error import TelegramError
 
 import database as db
 from config import ADMIN_ID
-from keyboards import main_menu_keyboard, edit_texts_keyboard
+from keyboards import (
+    main_menu_keyboard,
+    edit_texts_keyboard,
+    ff_admin_panel_keyboard,
+    ffadmin_tour_actions_keyboard,
+    ffadmin_acc_actions_keyboard,
+    TOURNAMENT_SLOT_LABELS,
+)
 
 WAITING_BROADCAST = 2
 WAITING_POST_TEXT = 3
 WAITING_POST_BUTTON = 4
 WAITING_EDIT_TEXT = 5
+
+WAITING_FFTOUR_CONTENT = 100
+WAITING_FFTOUR_CHANNEL = 101
+WAITING_FFACC_CONTENT = 102
+WAITING_FFACC_LINK = 103
 
 TEXT_LABELS = {
     "help_text": "🎧 Yordam matni",
@@ -284,3 +296,287 @@ async def cancel_edit_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "❌ Bekor qilindi.", reply_markup=main_menu_keyboard(True)
     )
     return ConversationHandler.END
+
+
+# ---------- 🗂 Turnir/Akkaunt boshqaruvi (faqat admin) ----------
+# "Nima gap?" bo'limidagi Free Fire turnirlar (5 kun) va Free Fire
+# akkauntlar shu yerdan qo'shiladi/tahrirlanadi/o'chiriladi.
+
+def _normalize_link(raw: str) -> str:
+    raw = (raw or "").strip()
+    if raw.startswith("http"):
+        return raw
+    return f"https://t.me/{raw.lstrip('@')}"
+
+
+def _ff_panel_text() -> str:
+    return (
+        "🗂 <b>Turnir va akkauntlar boshqaruvi</b>\n\n"
+        "Quyidagi ro'yxatdan kerakli bo'limni tanlang.\n"
+        "✅ — qo'shilgan, ❌ — hali qo'shilmagan."
+    )
+
+
+def _ff_panel_markup():
+    status = db.get_all_tournament_status()
+    acc_added = db.get_ff_account() is not None
+    return ff_admin_panel_keyboard(status, acc_added)
+
+
+async def on_ff_admin_panel_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not _admin_only(update):
+        return
+    await update.message.reply_text(
+        _ff_panel_text(), parse_mode="HTML", reply_markup=_ff_panel_markup()
+    )
+
+
+async def on_ff_admin_panel_refresh(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    if not _admin_only(update):
+        await query.answer("Bu funksiya faqat admin uchun.", show_alert=True)
+        return
+    await query.answer()
+    try:
+        await query.edit_message_text(
+            _ff_panel_text(), parse_mode="HTML", reply_markup=_ff_panel_markup()
+        )
+    except TelegramError:
+        pass
+
+
+async def on_ff_admin_close(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    try:
+        await query.message.delete()
+    except TelegramError:
+        pass
+
+
+async def on_ff_admin_tour_open(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    if not _admin_only(update):
+        await query.answer("Bu funksiya faqat admin uchun.", show_alert=True)
+        return
+    await query.answer()
+    slot = query.data.split(":", 2)[2]
+    label = TOURNAMENT_SLOT_LABELS.get(slot, slot)
+    added = db.get_tournament(slot) is not None
+    try:
+        await query.edit_message_text(
+            f"🏆 <b>{label}</b>\n\nKerakli amalni tanlang:",
+            parse_mode="HTML",
+            reply_markup=ffadmin_tour_actions_keyboard(slot, added),
+        )
+    except TelegramError:
+        pass
+
+
+async def on_ff_admin_tour_add_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    if not _admin_only(update):
+        await query.answer("Bu funksiya faqat admin uchun.", show_alert=True)
+        return ConversationHandler.END
+    await query.answer()
+    slot = query.data.split(":", 2)[2]
+    context.user_data["fftour_slot"] = slot
+    label = TOURNAMENT_SLOT_LABELS.get(slot, slot)
+    await query.message.reply_text(
+        f"➕ <b>{label}</b> uchun turnir ma'lumotini yuboring.\n\n"
+        "Sana, vaqt va boshqa ma'lumotlarni matn qilib yozing (rasm bilan "
+        "yuborsangiz, rasmga izoh sifatida yozing).\n\n"
+        "Bekor qilish uchun /bekor.",
+        parse_mode="HTML",
+    )
+    return WAITING_FFTOUR_CONTENT
+
+
+async def receive_fftour_content(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    message = update.message
+    if message.photo:
+        context.user_data["fftour_content"] = {
+            "type": "photo",
+            "file_id": message.photo[-1].file_id,
+            "caption": message.caption_html or message.caption or "",
+        }
+    else:
+        context.user_data["fftour_content"] = {
+            "type": "text",
+            "file_id": "",
+            "caption": message.text_html or message.text or "",
+        }
+    await update.message.reply_text(
+        "📢 Endi turnir kanalini yuboring (masalan: <code>@kanal_nomi</code> "
+        "yoki to'liq havola).\n\n"
+        "Kanal kerak bo'lmasa /otkazib_yuborish deb yozing.\n"
+        "Bekor qilish uchun /bekor.",
+        parse_mode="HTML",
+    )
+    return WAITING_FFTOUR_CHANNEL
+
+
+async def _save_fftour(update: Update, context: ContextTypes.DEFAULT_TYPE, channel_url: str):
+    slot = context.user_data.pop("fftour_slot", None)
+    content = context.user_data.pop("fftour_content", None)
+    if not slot or not content:
+        await update.message.reply_text(
+            "⚠️ Xatolik yuz berdi. Qaytadan boshlang.",
+            reply_markup=main_menu_keyboard(True),
+        )
+        return ConversationHandler.END
+
+    db.set_tournament(
+        slot,
+        content["type"],
+        file_id=content.get("file_id", ""),
+        caption=content.get("caption", ""),
+        channel_url=channel_url,
+    )
+    label = TOURNAMENT_SLOT_LABELS.get(slot, slot)
+    await update.message.reply_text(
+        f"✅ {label} uchun turnir muvaffaqiyatli saqlandi!",
+        reply_markup=main_menu_keyboard(True),
+    )
+    return ConversationHandler.END
+
+
+async def skip_fftour_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    return await _save_fftour(update, context, "")
+
+
+async def receive_fftour_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    url = _normalize_link(update.message.text or "")
+    return await _save_fftour(update, context, url)
+
+
+async def cancel_fftour(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data.pop("fftour_slot", None)
+    context.user_data.pop("fftour_content", None)
+    await update.message.reply_text(
+        "❌ Bekor qilindi.", reply_markup=main_menu_keyboard(True)
+    )
+    return ConversationHandler.END
+
+
+async def on_ff_admin_tour_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    if not _admin_only(update):
+        await query.answer("Bu funksiya faqat admin uchun.", show_alert=True)
+        return
+    slot = query.data.split(":", 2)[2]
+    db.delete_tournament(slot)
+    await query.answer("🗑 O'chirildi.")
+    try:
+        await query.edit_message_text(
+            _ff_panel_text(), parse_mode="HTML", reply_markup=_ff_panel_markup()
+        )
+    except TelegramError:
+        pass
+
+
+async def on_ff_admin_acc_open(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    if not _admin_only(update):
+        await query.answer("Bu funksiya faqat admin uchun.", show_alert=True)
+        return
+    await query.answer()
+    added = db.get_ff_account() is not None
+    try:
+        await query.edit_message_text(
+            "🎮 <b>Free Fire akkaunt</b>\n\nKerakli amalni tanlang:",
+            parse_mode="HTML",
+            reply_markup=ffadmin_acc_actions_keyboard(added),
+        )
+    except TelegramError:
+        pass
+
+
+async def on_ff_admin_acc_add_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    if not _admin_only(update):
+        await query.answer("Bu funksiya faqat admin uchun.", show_alert=True)
+        return ConversationHandler.END
+    await query.answer()
+    await query.message.reply_text(
+        "➕ Akkaunt haqida ma'lumot yuboring (rasm bilan yuborsangiz, "
+        "rasmga izoh sifatida yozing).\n\n"
+        "Bekor qilish uchun /bekor.",
+        parse_mode="HTML",
+    )
+    return WAITING_FFACC_CONTENT
+
+
+async def receive_ffacc_content(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    message = update.message
+    if message.photo:
+        context.user_data["ffacc_content"] = {
+            "type": "photo",
+            "file_id": message.photo[-1].file_id,
+            "caption": message.caption_html or message.caption or "",
+        }
+    else:
+        context.user_data["ffacc_content"] = {
+            "type": "text",
+            "file_id": "",
+            "caption": message.text_html or message.text or "",
+        }
+    await update.message.reply_text(
+        "🛒 Endi sotib olish uchun havolani yuboring (masalan: "
+        "<code>https://t.me/auwsn</code>).\n\n"
+        "Bekor qilish uchun /bekor.",
+        parse_mode="HTML",
+    )
+    return WAITING_FFACC_LINK
+
+
+async def receive_ffacc_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    raw = (update.message.text or "").strip()
+    if not raw:
+        await update.message.reply_text(
+            "⚠️ Havola bo'sh bo'lmasin. Qaytadan yuboring yoki /bekor."
+        )
+        return WAITING_FFACC_LINK
+    buy_url = _normalize_link(raw)
+
+    content = context.user_data.pop("ffacc_content", None)
+    if not content:
+        await update.message.reply_text(
+            "⚠️ Xatolik yuz berdi. Qaytadan boshlang.",
+            reply_markup=main_menu_keyboard(True),
+        )
+        return ConversationHandler.END
+
+    db.set_ff_account(
+        content["type"],
+        file_id=content.get("file_id", ""),
+        caption=content.get("caption", ""),
+        buy_url=buy_url,
+    )
+    await update.message.reply_text(
+        "✅ Akkaunt muvaffaqiyatli saqlandi!", reply_markup=main_menu_keyboard(True)
+    )
+    return ConversationHandler.END
+
+
+async def cancel_ffacc(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data.pop("ffacc_content", None)
+    await update.message.reply_text(
+        "❌ Bekor qilindi.", reply_markup=main_menu_keyboard(True)
+    )
+    return ConversationHandler.END
+
+
+async def on_ff_admin_acc_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    if not _admin_only(update):
+        await query.answer("Bu funksiya faqat admin uchun.", show_alert=True)
+        return
+    db.delete_ff_account()
+    await query.answer("🗑 O'chirildi.")
+    try:
+        await query.edit_message_text(
+            _ff_panel_text(), parse_mode="HTML", reply_markup=_ff_panel_markup()
+        )
+    except TelegramError:
+        pass
