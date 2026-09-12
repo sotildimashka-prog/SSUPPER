@@ -290,7 +290,7 @@ async def on_start_account_callback(update: Update, context: ContextTypes.DEFAUL
     diamonds = db.get_quiz_diamonds(user.id)
     money = db.get_balance(user.id)
     text = (
-        "👛 <b>Hisobim</b>\n\n"
+        "👛 <b>Balansim</b>\n\n"
         f"💎 Almaz: <b>{diamonds}</b>\n"
         f"💵 Pul: <b>{money:,} so'm</b>\n\n".replace(",", ".")
         + "Barcha to'lov usullari haqida ma'lumot olish uchun pastdagi tugmani bosing 👇"
