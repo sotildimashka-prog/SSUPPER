@@ -33,6 +33,7 @@ from keyboards import (
     account_admin_keyboard,
     paid_confirm_keyboard,
     custom_entry_keyboard,
+    brands_keyboard,
 )
 from data.nicknames_data import (
     GAMER_NICKNAMES,
@@ -79,6 +80,13 @@ async def on_diaget_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 NASTROYKALAR_TEXT = "⚙️ <b>Nastroykalar</b>\n\nKerakli bo'limni tanlang 👇"
 
+SETTINGS_INTRO_TEXT = (
+    "📱 <b>TELEFON MODELINGIZNI TANLANG!</b>\n\n"
+    "✨ Qurilmangizga mos Free Fire nastroykasini tanlang va qulay "
+    "sozlamalardan foydalaning.\n\n"
+    "Telefon brendini tanlang 👇"
+)
+
 PREMIUM_TEXT = (
     "🎁✨ <b>MAXSUS NASTROYKALAR</b> ✨🎁\n"
     "━━━━━━━━━━━━━━━━━━\n\n"
@@ -93,8 +101,15 @@ PREMIUM_TEXT = (
 
 
 async def on_m2_settings_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # MUHIM: foydalanuvchi so'rovi bo'yicha bu yerda endi "Telefon /
+    # Planshet / PC / Maxsus nastroyka" kabi oraliq tanlov menyusi
+    # ko'RSATILMAYDI - "⚙️ Nastroykalar" bosilganda to'g'ridan-to'g'ri
+    # FAQAT telefon brend/model tanlash bo'limi ochiladi (eski
+    # Planshet/PC/Premium bo'limlarining kodi o'chirilmagan, faqat shu
+    # yerdan chaqirilishi olib tashlandi - pastdagi funksiyalar hali ham
+    # mavjud, kerak bo'lsa qaytadan ulash mumkin).
     await update.message.reply_text(
-        NASTROYKALAR_TEXT, parse_mode="HTML", reply_markup=new_settings_menu_keyboard()
+        SETTINGS_INTRO_TEXT, parse_mode="HTML", reply_markup=brands_keyboard()
     )
 
 
@@ -102,7 +117,7 @@ async def on_newset_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     await safe_edit_message(query,
-        NASTROYKALAR_TEXT, parse_mode="HTML", reply_markup=new_settings_menu_keyboard()
+        SETTINGS_INTRO_TEXT, parse_mode="HTML", reply_markup=brands_keyboard()
     )
 
 
