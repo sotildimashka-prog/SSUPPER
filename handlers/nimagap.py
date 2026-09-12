@@ -41,11 +41,30 @@ async def on_nimagap_open(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await _edit_in_place(query, NIMAGAP_TEXT, nimagap_menu_keyboard())
 
 
+TOURNIR_PHOTO_PATH = "assets/turnir_banner.jpg"
+
+
 async def on_nimagap_tournaments_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """"🏆 Free Fire turnirlar" - 5 ta kun tugmasi chiqadi."""
+    """"🏆 Free Fire turnirlar" - banner rasm bilan birga 5 ta kun tugmasi
+    chiqadi. Asl "Nima gap?" xabari o'zgarmasdan qoladi (tahrirlanmaydi) -
+    o'rniga rasmli YANGI xabar yuboriladi."""
     query = update.callback_query
     await query.answer()
-    await _edit_in_place(query, TOURNAMENTS_MENU_TEXT, fftournament_slots_keyboard())
+    chat_id = query.from_user.id
+    kb = fftournament_slots_keyboard()
+    try:
+        with open(TOURNIR_PHOTO_PATH, "rb") as photo:
+            await context.bot.send_photo(
+                chat_id=chat_id,
+                photo=photo,
+                caption=TOURNAMENTS_MENU_TEXT,
+                parse_mode="HTML",
+                reply_markup=kb,
+            )
+    except (FileNotFoundError, TelegramError):
+        await context.bot.send_message(
+            chat_id=chat_id, text=TOURNAMENTS_MENU_TEXT, parse_mode="HTML", reply_markup=kb
+        )
 
 
 async def on_nimagap_accounts(update: Update, context: ContextTypes.DEFAULT_TYPE):
