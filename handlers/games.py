@@ -136,12 +136,9 @@ async def on_my_account_button(update: Update, context: ContextTypes.DEFAULT_TYP
     text = (
         "👛 <b>Hisobim</b>\n\n"
         f"💎 Almaz: <b>{diamonds}</b>\n"
-        f"💵 Pul: <b>{money:,} so'm</b>\n\n".replace(",", ".")
-        + "Barcha to'lov usullari haqida ma'lumot olish uchun pastdagi tugmani bosing 👇"
+        f"💵 Pul: <b>{money:,} so'm</b>".replace(",", ".")
     )
-    await update.message.reply_text(
-        text, parse_mode="HTML", reply_markup=my_account_keyboard()
-    )
+    await update.message.reply_text(text, parse_mode="HTML")
     await update.message.reply_text(
         "⬅️ Orqaga qaytish uchun pastdagi tugmani bosing.",
         reply_markup=back_reply_keyboard(),
