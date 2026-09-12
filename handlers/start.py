@@ -229,11 +229,17 @@ async def _continue_after_language(update: Update, context: ContextTypes.DEFAULT
 START_PHOTO_PATH = "assets/start_banner.jpg"
 
 START_CAPTION_TEXT = (
-    "🔥 <b>Assalomu alaykum, aziz do'stim!</b> 👋\n\n"
-    "🎮 Free Fire olamining eng zo'r yordamchisi — botimizga xush kelibsiz!\n"
-    "Bu yerda nastroykalar, noyob niklar, sovg'alar, almazlar va yana "
-    "ko'plab qiziqarli imkoniyatlar sizni kutmoqda ✨💎\n\n"
-    "👇 Boshlash uchun pastdagi tugmani bosing:"
+    "🌸 <b>Assalomu alaykum, aziz jangchi!</b> 🌸\n\n"
+    "Botimizga xush kelibsiz — bu yerda siz o'zingizni his qiladigan "
+    "issiq va samimiy uydasiz 🏡💫\n\n"
+    "🎮 Men Free Fire olamidagi eng sodiq yordamchingizman: sizga eng "
+    "yumshoq nastroykalarni topib beraman, eng noyob niklarni "
+    "yarataman, so'nggi turnirlar va sotuvdagi akkauntlardan xabardor "
+    "qilaman ✨\n\n"
+    "💎 Har bir bosgan tugmangiz — yangi bir imkoniyat sari qadam. "
+    "Shoshilmang, o'zingizga qulay bo'lgan bo'limni tanlang, men "
+    "doim shu yerdaman 🤍\n\n"
+    "👇 Boshlash uchun pastdagi tugmalardan birini bosing:"
 )
 
 
