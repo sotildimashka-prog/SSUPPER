@@ -26,6 +26,7 @@ def get_conn():
 
 def init_db():
     with get_conn() as conn:
+        _init_turnirlar_table(conn)
         cur = conn.cursor()
         cur.execute(
             """
@@ -443,6 +444,64 @@ def set_tournament(
 
 def delete_tournament(slot: str):
     set_setting(f"{_TOURNAMENT_KEY_PREFIX}{slot}", "")
+
+
+# ---------------- 🏆 Free Fire Turnirlar (ochiq ro'yxat, cheksiz son) ----------------
+# "🏆 Free Fire Turnirlar" (asosiy pastki tugma) bo'limi uchun: admin
+# xohlagancha turnir qo'shishi mumkin (bir kunda 3-4 tasi bo'lsa ham),
+# har biri o'z kuni, formati (3/3, 1/1 va h.k.) va vaqti bilan saqlanadi.
+
+def _init_turnirlar_table(conn):
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS ff_turnirlar (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            day_label TEXT,
+            title TEXT,
+            format_text TEXT,
+            time_text TEXT,
+            note TEXT,
+            created_at TEXT
+        )
+        """
+    )
+
+
+def add_turnir(day_label: str, title: str, format_text: str, time_text: str, note: str = "") -> int:
+    with get_conn() as conn:
+        _init_turnirlar_table(conn)
+        cur = conn.execute(
+            "INSERT INTO ff_turnirlar (day_label, title, format_text, time_text, note, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (day_label, title, format_text, time_text, note, datetime.now().isoformat()),
+        )
+        return cur.lastrowid
+
+
+def get_turnirlar_list() -> list:
+    """Barcha qo'shilgan turnirlarni (eskisidan yangisiga) ro'yxat qilib qaytaradi."""
+    with get_conn() as conn:
+        _init_turnirlar_table(conn)
+        rows = conn.execute(
+            "SELECT id, day_label, title, format_text, time_text, note FROM ff_turnirlar ORDER BY id ASC"
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def get_turnir_by_id(turnir_id: int) -> dict | None:
+    with get_conn() as conn:
+        _init_turnirlar_table(conn)
+        row = conn.execute(
+            "SELECT id, day_label, title, format_text, time_text, note FROM ff_turnirlar WHERE id = ?",
+            (turnir_id,),
+        ).fetchone()
+        return dict(row) if row else None
+
+
+def delete_turnir_by_id(turnir_id: int):
+    with get_conn() as conn:
+        _init_turnirlar_table(conn)
+        conn.execute("DELETE FROM ff_turnirlar WHERE id = ?", (turnir_id,))
 
 
 def get_all_tournament_status() -> dict:
