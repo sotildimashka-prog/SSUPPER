@@ -291,6 +291,7 @@ _ALL_SERVICES_ITEMS = [
     # (BTN_GIFT_ORDER, f"{SVC_ALL_PREFIX}:giftorder"),
     (BTN_M2_DIAMONDS, f"{SVC_ALL_PREFIX}:diamonds"),
     (BTN_WITHDRAW, f"{SVC_ALL_PREFIX}:withdraw"),
+    (BTN_WEBSITE, f"{SVC_ALL_PREFIX}:turnirlar"),
 ]
 
 
