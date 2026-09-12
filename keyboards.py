@@ -242,13 +242,18 @@ NIMAGAP_CB = "nimagap:menu"
 
 def start_inline_keyboard() -> InlineKeyboardMarkup:
     """/start bosilganda chiqadigan inline tugmalar: ⚙️ Nastroykalar,
-    ✨ Nik yaratish, 🎮 Nima gap? va eng pastda 👤 Hisobim."""
+    ✨ Nik yaratish, 🎮 Nima gap? va eng pastda 👤 Hisobim.
+    Chiroyli ko'rinishi uchun 2 tadan yonma-yon joylashtirilgan."""
     return InlineKeyboardMarkup(
         [
-            [_ikb("⚙️ Nastroykalar", callback_data=f"{SVC_ALL_PREFIX}:settings")],
-            [_ikb("✨ Nik yaratish", callback_data=f"{SVC_ALL_PREFIX}:nicks")],
-            [_ikb("🎮 Nima gap?", callback_data=NIMAGAP_CB)],
-            [_ikb("👤 Hisobim", callback_data=START_ACCOUNT_CB)],
+            [
+                _ikb("⚙️ Nastroykalar", callback_data=f"{SVC_ALL_PREFIX}:settings"),
+                _ikb("✨ Nik yaratish", callback_data=f"{SVC_ALL_PREFIX}:nicks"),
+            ],
+            [
+                _ikb("🎮 Nima gap?", callback_data=NIMAGAP_CB),
+                _ikb("👤 Hisobim", callback_data=START_ACCOUNT_CB),
+            ],
         ]
     )
 
