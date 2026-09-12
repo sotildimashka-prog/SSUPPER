@@ -110,6 +110,7 @@ BTN_WITHDRAW = "💎 Almaz yechish"
 BTN_ADMIN_CREDIT = "🛠 Admin buyrug'i"
 BTN_GIFT_ALL = "🎁 Hammaga sovg'a"
 BTN_DEDUCT_DIAMOND = "➖ Almazni ayirish"
+BTN_FF_ADMIN_PANEL = "🗂 Turnir/Akkaunt boshqaruvi"
 
 # ---------- 🛒 Free Fire Do'koni / 🎁 Giftlar / 🏆 Yutiqni chiqarish ----------
 BTN_STORE = "🛒 Free Fire Do'koni"
@@ -214,6 +215,7 @@ def full_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
                 (BTN_ADMIN_CREDIT, {}),
                 (BTN_GIFT_ALL, {}),
                 (BTN_DEDUCT_DIAMOND, {}),
+                (BTN_FF_ADMIN_PANEL, {}),
             ]
         )
 
@@ -233,19 +235,18 @@ START_ACCOUNT_CB = "start:account"
 START_SERVICES_CB = "start:services"
 
 
+NIMAGAP_CB = "nimagap:menu"
+
+
 def start_inline_keyboard() -> InlineKeyboardMarkup:
-    """/start bosilganda chiqadigan inline tugma: faqat 👛 Hisobim.
-    MUHIM: Foydalanuvchi so'rovi bo'yicha "🛠️ Barcha xizmatlar" va
-    "📰 Yangiliklar" tugmalari OLIB TASHLANDI (kodi/handlerlari
-    o'chirilmagan, faqat shu klaviaturada ko'rsatilmayapti - kerak
-    bo'lsa pastdagi qatorlarni qayta izohdan chiqarib qaytarish mumkin)."""
+    """/start bosilganda chiqadigan inline tugmalar: ⚙️ Nastroykalar,
+    ✨ Nik yaratish, 🎮 Nima gap? va eng pastda 👤 Hisobim."""
     return InlineKeyboardMarkup(
         [
-            # [_ikb("🛠️ Barcha xizmatlar", callback_data=START_SERVICES_CB)],
-            [
-                _ikb(BTN_MY_ACCOUNT, callback_data=START_ACCOUNT_CB),
-                # _ikb("📰 Yangiliklar", url=f"https://t.me/{NEWS_CHANNEL_USERNAME}"),
-            ],
+            [_ikb("⚙️ Nastroykalar", callback_data=f"{SVC_ALL_PREFIX}:settings")],
+            [_ikb("✨ Nik yaratish", callback_data=f"{SVC_ALL_PREFIX}:nicks")],
+            [_ikb("🎮 Nima gap?", callback_data=NIMAGAP_CB)],
+            [_ikb("👤 Hisobim", callback_data=START_ACCOUNT_CB)],
         ]
     )
 
@@ -313,6 +314,68 @@ def all_services_inline_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(rows)
 
 
+# ---------- 🎮 "Nima gap?" bo'limi (Free Fire turnirlar / akkauntlar) ----------
+
+NIMAGAP_TOURNAMENTS_CB = "nimagap:tournaments"
+NIMAGAP_ACCOUNTS_CB = "nimagap:accounts"
+FFTOUR_PREFIX = "fftour"
+
+# (slot_key, tugma matni) - tartib shu bo'yicha ko'rsatiladi.
+TOURNAMENT_SLOTS = [
+    ("today", "🔥 Bugungi turnirlar"),
+    ("tomorrow", "📅 Ertangi turnirlar"),
+    ("2days", "📆 2 kundan keyingi"),
+    ("3days", "🗓 3 kundan keyingi"),
+    ("1week", "⭐ 1 haftadan keyingi"),
+]
+TOURNAMENT_SLOT_LABELS = dict(TOURNAMENT_SLOTS)
+
+
+def nimagap_menu_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [_ikb("🏆 Free Fire turnirlar", callback_data=NIMAGAP_TOURNAMENTS_CB)],
+            [_ikb("🎮 Free Fire akkauntlar", callback_data=NIMAGAP_ACCOUNTS_CB)],
+            [_ikb("⬅️ Bosh menyu", callback_data="start:back")],
+        ]
+    )
+
+
+def fftournament_slots_keyboard() -> InlineKeyboardMarkup:
+    rows = [[_ikb(label, callback_data=f"{FFTOUR_PREFIX}:{key}")] for key, label in TOURNAMENT_SLOTS]
+    rows.append([_ikb("⬅️ Orqaga", callback_data=NIMAGAP_CB)])
+    return InlineKeyboardMarkup(rows)
+
+
+# ---------- 🗂 Admin: Turnir/Akkaunt boshqaruvi ----------
+
+def ff_admin_panel_keyboard(tournament_status: dict, account_added: bool) -> InlineKeyboardMarkup:
+    rows = []
+    for key, label in TOURNAMENT_SLOTS:
+        mark = "✅" if tournament_status.get(key) else "❌"
+        rows.append([_ikb(f"{mark} {label}", callback_data=f"ffadmin:tour:{key}")])
+    acc_mark = "✅" if account_added else "❌"
+    rows.append([_ikb(f"{acc_mark} 🎮 Free Fire akkaunt", callback_data="ffadmin:acc")])
+    rows.append([_ikb("🔙 Yopish", callback_data="ffadmin:close")])
+    return InlineKeyboardMarkup(rows)
+
+
+def ffadmin_tour_actions_keyboard(slot: str, added: bool) -> InlineKeyboardMarkup:
+    rows = [[_ikb("➕ Qo'shish / Tahrirlash", callback_data=f"ffadmin:touradd:{slot}")]]
+    if added:
+        rows.append([_ikb("🗑 O'chirish", callback_data=f"ffadmin:tourdel:{slot}")])
+    rows.append([_ikb("⬅️ Orqaga", callback_data="ffadmin:panel")])
+    return InlineKeyboardMarkup(rows)
+
+
+def ffadmin_acc_actions_keyboard(added: bool) -> InlineKeyboardMarkup:
+    rows = [[_ikb("➕ Qo'shish / Tahrirlash", callback_data="ffadmin:accadd")]]
+    if added:
+        rows.append([_ikb("🗑 O'chirish", callback_data="ffadmin:accdel")])
+    rows.append([_ikb("⬅️ Orqaga", callback_data="ffadmin:panel")])
+    return InlineKeyboardMarkup(rows)
+
+
 def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
     # Barcha tugmalar (matn, qo'shimcha kwarg) tartibida - keyin 2 tadan
     # qatorlarga bo'linadi. Tartib chiroyli juftlashishi uchun махсус
@@ -368,6 +431,7 @@ def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
                 (BTN_ADMIN_CREDIT, {}),
                 (BTN_GIFT_ALL, {}),
                 (BTN_DEDUCT_DIAMOND, {}),
+                (BTN_FF_ADMIN_PANEL, {}),
             ]
         )
 
