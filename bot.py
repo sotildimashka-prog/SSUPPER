@@ -257,6 +257,26 @@ from handlers.admin import (
     receive_nastroyka_content,
     cancel_nastroyka,
     WAITING_NASTROYKA_CONTENT,
+    on_turniradmin_add_start,
+    receive_turnir_day,
+    receive_turnir_title,
+    receive_turnir_format,
+    receive_turnir_time,
+    receive_turnir_note,
+    skip_turnir_note,
+    cancel_turnir_add,
+    on_turniradmin_delete,
+    WAITING_TURNIR_DAY,
+    WAITING_TURNIR_TITLE,
+    WAITING_TURNIR_FORMAT,
+    WAITING_TURNIR_TIME,
+    WAITING_TURNIR_NOTE,
+)
+from handlers.turnirlar import (
+    on_turnirlar_button,
+    on_turnir_open,
+    on_turnir_nav,
+    on_turnir_back_list,
 )
 from handlers.nimagap import (
     on_nimagap_open,
@@ -1182,7 +1202,7 @@ def build_application() -> Application:
     app.add_handler(MessageHandler(_exact(BTN_NICKS), on_nicks_button))
     app.add_handler(MessageHandler(_exact(BTN_TABLET), on_tablet_button))
     app.add_handler(MessageHandler(_exact(BTN_GUIDES), on_guides_button))
-    app.add_handler(MessageHandler(_exact(BTN_WEBSITE), on_website_button))
+    app.add_handler(MessageHandler(_exact(BTN_WEBSITE), on_turnirlar_button))
     app.add_handler(MessageHandler(_exact(BTN_FF2017), on_ff2017_button))
     app.add_handler(MessageHandler(_exact(BTN_NEWS), on_news_button))
     app.add_handler(MessageHandler(_exact(BTN_MUSIC), on_music_button))
@@ -1193,6 +1213,41 @@ def build_application() -> Application:
     app.add_handler(MessageHandler(_exact(BTN_STATS), on_stats_button))
     app.add_handler(MessageHandler(_exact(BTN_DIAMONDS), on_diamonds_button))
     app.add_handler(MessageHandler(_exact(BTN_ACCOUNT), on_account_button))
+
+    # ---------- 🏆 Free Fire Turnirlar (ochiq ro'yxat) ----------
+    app.add_handler(CallbackQueryHandler(on_turnir_open, pattern="^turnir:open:"))
+    app.add_handler(CallbackQueryHandler(on_turnir_nav, pattern="^turnir:nav:"))
+    app.add_handler(CallbackQueryHandler(on_turnir_back_list, pattern="^turnir:list$"))
+    app.add_handler(CallbackQueryHandler(on_turniradmin_delete, pattern="^turniradmin:del:"))
+
+    turniradmin_conv = ConversationHandler(
+        entry_points=[CallbackQueryHandler(on_turniradmin_add_start, pattern="^turniradmin:add$")],
+        states={
+            WAITING_TURNIR_DAY: [
+                CommandHandler("bekor", cancel_turnir_add),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_turnir_day),
+            ],
+            WAITING_TURNIR_TITLE: [
+                CommandHandler("bekor", cancel_turnir_add),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_turnir_title),
+            ],
+            WAITING_TURNIR_FORMAT: [
+                CommandHandler("bekor", cancel_turnir_add),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_turnir_format),
+            ],
+            WAITING_TURNIR_TIME: [
+                CommandHandler("bekor", cancel_turnir_add),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_turnir_time),
+            ],
+            WAITING_TURNIR_NOTE: [
+                CommandHandler("bekor", cancel_turnir_add),
+                CommandHandler("otkazib_yuborish", skip_turnir_note),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_turnir_note),
+            ],
+        },
+        fallbacks=[CommandHandler("bekor", cancel_turnir_add)],
+    )
+    app.add_handler(turniradmin_conv)
 
     # ---------- Inline callbacklar: Nastroykalar (telefon) ----------
     app.add_handler(CallbackQueryHandler(on_brand_selected, pattern="^brand:"))
