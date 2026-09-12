@@ -341,7 +341,6 @@ TOURNAMENT_SLOT_LABELS = dict(TOURNAMENT_SLOTS)
 def nimagap_menu_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
-            [_ikb("🏆 Free Fire turnirlar", callback_data=NIMAGAP_TOURNAMENTS_CB)],
             [_ikb("🎮 Free Fire akkauntlar", callback_data=NIMAGAP_ACCOUNTS_CB)],
             [_ikb("⬅️ Bosh menyu", callback_data="start:back")],
         ]
@@ -405,9 +404,6 @@ def turnirlar_detail_keyboard(turnirlar: list, index: int, is_admin: bool = Fals
 
 def ff_admin_panel_keyboard(tournament_status: dict, account_added: bool) -> InlineKeyboardMarkup:
     rows = []
-    for key, label in TOURNAMENT_SLOTS:
-        mark = "✅" if tournament_status.get(key) else "❌"
-        rows.append([_ikb(f"{mark} {label}", callback_data=f"ffadmin:tour:{key}")])
     acc_mark = "✅" if account_added else "❌"
     rows.append([_ikb(f"{acc_mark} 🎮 Free Fire akkaunt", callback_data="ffadmin:acc")])
     rows.append([_ikb("🔙 Yopish", callback_data="ffadmin:close")])
@@ -609,14 +605,11 @@ def models_keyboard(brand: str) -> InlineKeyboardMarkup:
         rows.append(
             [_ikb(m, callback_data=f"model:{m}") for m in chunk]
         )
-    rows.append([_ikb("⬅️ Orqaga", callback_data="back_to_brands")])
     return InlineKeyboardMarkup(rows)
 
 
 def model_back_keyboard(brand: str) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        [[_ikb("⬅️ Modellarga qaytish", callback_data=f"brand:{brand}")]]
-    )
+    return None
 
 
 # ---------- 👑 Admin: Nastroyka qo'shish (brend -> model -> kontent turi) ----------
