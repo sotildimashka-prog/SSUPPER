@@ -546,7 +546,7 @@ def brands_keyboard() -> InlineKeyboardMarkup:
         rows.append(
             [_ikb(b, callback_data=f"brand:{b}") for b in chunk]
         )
-    rows.append([_ikb("⬅️ Free Fire menyu", callback_data="back_to_ff")])
+    rows.append([_ikb("⬅️ Bosh menyu", callback_data="start:back")])
     return InlineKeyboardMarkup(rows)
 
 
@@ -631,7 +631,7 @@ def tablet_brands_keyboard() -> InlineKeyboardMarkup:
         rows.append(
             [_ikb(b, callback_data=f"tbrand:{b}") for b in chunk]
         )
-    rows.append([_ikb("⬅️ Free Fire menyu", callback_data="back_to_ff")])
+    rows.append([_ikb("⬅️ Bosh menyu", callback_data="start:back")])
     return InlineKeyboardMarkup(rows)
 
 
@@ -1010,7 +1010,7 @@ def ff_menu_keyboard() -> InlineKeyboardMarkup:
 
 def back_to_ff_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
-        [[_ikb("⬅️ Free Fire menyu", callback_data="back_to_ff")]]
+        [[_ikb("⬅️ Bosh menyu", callback_data="start:back")]]
     )
 
 
@@ -1024,7 +1024,7 @@ def pc_keyboard() -> InlineKeyboardMarkup:
         rows.append(
             [_ikb(n, callback_data=f"pc:{n}") for n in chunk]
         )
-    rows.append([_ikb("⬅️ Free Fire menyu", callback_data="back_to_ff")])
+    rows.append([_ikb("⬅️ Bosh menyu", callback_data="start:back")])
     return InlineKeyboardMarkup(rows)
 
 
@@ -1038,7 +1038,7 @@ def pc_back_keyboard() -> InlineKeyboardMarkup:
 
 def nick_creation_back_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
-        [[_ikb("⬅️ Free Fire menyu", callback_data="back_to_ff")]]
+        [[_ikb("⬅️ Bosh menyu", callback_data="start:back")]]
     )
 
 
