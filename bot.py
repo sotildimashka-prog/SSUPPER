@@ -357,6 +357,7 @@ from handlers.nickgen import (
     start_nick_creation,
     receive_nick_name,
     cancel_nick_creation,
+    back_to_start_from_nick,
     WAITING_NICK_NAME,
 )
 from handlers.services import (
@@ -722,6 +723,30 @@ def build_application() -> Application:
     # ---------- Majburiy obuna tekshiruvi ----------
     app.add_handler(CallbackQueryHandler(check_subscription_callback, pattern="^check_sub$"))
     app.add_handler(CallbackQueryHandler(on_player_type_selected, pattern="^player:"))
+
+    # ---------- 🎮 Nik yaratish (ism -> 20+ nik) ----------
+    # MUHIM: bu handler "⬅️ Bosh menyu" (start:back) tugmasini pastdagi
+    # umumiy on_start_back_callback handleridan OLDIN ro'yxatdan o'tkazadi -
+    # shunda "Nik yaratish" jarayonida (ism so'ralayotganda) orqaga
+    # bosilsa, avval jarayon TO'XTATILADI (ConversationHandler.END) va
+    # keyin foydalanuvchi /start xabariga qaytariladi. Aks holda jarayon
+    # "osilib" qolib, keyingi yuborilgan har qanday matn yana nik nomi
+    # sifatida qabul qilinaverardi.
+    nick_conv = ConversationHandler(
+        entry_points=[CallbackQueryHandler(start_nick_creation, pattern="^ffmenu:nick$")],
+        states={
+            WAITING_NICK_NAME: [
+                CommandHandler("bekor", cancel_nick_creation),
+                CallbackQueryHandler(back_to_start_from_nick, pattern="^start:back$"),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_nick_name),
+            ]
+        },
+        fallbacks=[
+            CommandHandler("bekor", cancel_nick_creation),
+            CallbackQueryHandler(back_to_start_from_nick, pattern="^start:back$"),
+        ],
+    )
+    app.add_handler(nick_conv)
 
     # ---------- 🆕 /start rasmi ostidagi 3 ta inline tugma ----------
     app.add_handler(CallbackQueryHandler(on_start_account_callback, pattern="^start:account$"))
@@ -1218,19 +1243,6 @@ def build_application() -> Application:
     # ---------- 💻 PC nastroyka (20 ta model) ----------
     app.add_handler(CallbackQueryHandler(on_pc_model_selected, pattern="^pc:"))
     app.add_handler(CallbackQueryHandler(on_back_to_pc, pattern="^back_to_pc$"))
-
-    # ---------- 🎮 Nik yaratish (ism -> 20+ nik) ----------
-    nick_conv = ConversationHandler(
-        entry_points=[CallbackQueryHandler(start_nick_creation, pattern="^ffmenu:nick$")],
-        states={
-            WAITING_NICK_NAME: [
-                CommandHandler("bekor", cancel_nick_creation),
-                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_nick_name),
-            ]
-        },
-        fallbacks=[CommandHandler("bekor", cancel_nick_creation)],
-    )
-    app.add_handler(nick_conv)
 
     # ---------- 💎 Almaz olish (reply tugma - eski Almaz sotib olish oqimi qayta ishlatiladi) ----------
     app.add_handler(MessageHandler(_exact(BTN_MAIN_DIAMONDS), on_diamonds_button))
