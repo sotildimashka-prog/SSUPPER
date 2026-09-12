@@ -213,24 +213,16 @@ START_CAPTION_TEXT = (
 
 
 async def _send_start_message(context: ContextTypes.DEFAULT_TYPE, chat_id: int):
-    try:
-        with open(START_PHOTO_PATH, "rb") as photo_file:
-            await context.bot.send_photo(
-                chat_id=chat_id,
-                photo=photo_file,
-                caption=START_CAPTION_TEXT,
-                parse_mode="HTML",
-                reply_markup=start_inline_keyboard(),
-            )
-    except (FileNotFoundError, OSError, TelegramError):
-        # Rasm topilmasa yoki yuborib bo'lmasa - hech bo'lmasa tugmalar
-        # bilan matnli xabar chiqadi (bot to'xtab qolmasligi uchun).
-        await context.bot.send_message(
-            chat_id=chat_id,
-            text=START_CAPTION_TEXT,
-            parse_mode="HTML",
-            reply_markup=start_inline_keyboard(),
-        )
+    # MUHIM: Foydalanuvchi so'rovi bo'yicha /start bosilganda rasm
+    # YUBORILMAYDI - endi faqat matn + tugmalar chiqadi. Rasm yuborish
+    # kodi (START_PHOTO_PATH bilan) o'chirilmagan, faqat chaqirilmayapti -
+    # kerak bo'lsa pastdagi bloklarni qayta yoqish mumkin.
+    await context.bot.send_message(
+        chat_id=chat_id,
+        text=START_CAPTION_TEXT,
+        parse_mode="HTML",
+        reply_markup=start_inline_keyboard(),
+    )
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
