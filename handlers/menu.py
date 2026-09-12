@@ -152,9 +152,17 @@ async def on_proxy_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(text, parse_mode="HTML")
 
 
+SETTINGS_INTRO_TEXT = (
+    "📱 <b>TELEFON MODELINGIZNI TANLANG!</b>\n\n"
+    "✨ Qurilmangizga mos Free Fire nastroykasini tanlang va qulay "
+    "sozlamalardan foydalaning.\n\n"
+    "Telefon brendini tanlang 👇"
+)
+
+
 async def on_settings_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "🎯 <b>Nastroykalar</b>\n\nTelefon brendini tanlang 👇",
+        SETTINGS_INTRO_TEXT,
         parse_mode="HTML",
         reply_markup=brands_keyboard(),
     )
