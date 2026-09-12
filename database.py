@@ -365,6 +365,38 @@ def set_content(key: str, content_type: str, text: str = "", file_id: str = "", 
     )
 
 
+# ---------------- ⚙️ Nastroykalar: telefon modeli bo'yicha kontent ----------------
+# Har bir telefon modeli uchun admin panel orqali qo'shilgan kontent (matn /
+# rasm / video / rasm+matn / video+matn). app_settings jadvalida
+# "nastroyka:<model nomi>" kaliti ostida JSON sifatida saqlanadi.
+
+def get_nastroyka_content(model_name: str) -> dict | None:
+    """Model uchun saqlangan kontentni qaytaradi, hali qo'shilmagan bo'lsa None."""
+    raw = get_setting(f"nastroyka:{model_name}", "")
+    if not raw:
+        return None
+    try:
+        return json.loads(raw)
+    except (ValueError, TypeError):
+        return None
+
+
+def set_nastroyka_content(
+    model_name: str, content_type: str, text: str = "", file_id: str = "", caption: str = ""
+):
+    set_setting(
+        f"nastroyka:{model_name}",
+        json.dumps(
+            {"type": content_type, "text": text, "file_id": file_id, "caption": caption}
+        ),
+    )
+
+
+def delete_nastroyka_content(model_name: str):
+    with get_conn() as conn:
+        conn.execute("DELETE FROM app_settings WHERE key = ?", (f"nastroyka:{model_name}",))
+
+
 # ---------------- 🏆 Free Fire turnirlar / 🎮 Free Fire akkauntlar ----------------
 # "Nima gap?" bo'limi uchun: admin panel orqali qo'shiladigan, oddiy JSON
 # (app_settings jadvali) sifatida saqlanadigan kontent. Alohida jadval
