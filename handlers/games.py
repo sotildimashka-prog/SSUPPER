@@ -149,18 +149,27 @@ async def on_my_account_button(update: Update, context: ContextTypes.DEFAULT_TYP
 
 
 async def on_myacc_pay_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """👛 Hisobim ichidagi 💰 To'lov usullari tugmasi."""
-    from keyboards import payments_menu_keyboard
+    """👛 Balansim ichidagi 💰 To'lov usullari tugmasi."""
+    from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+
+    from keyboards import payments_menu_keyboard, START_ACCOUNT_CB
 
     query = update.callback_query
     await query.answer()
+
+    # MUHIM: Foydalanuvchi so'rovi bo'yicha bu yerga "⬅️ Orqaga" tugmasi
+    # qo'shildi - Admin/Humo tanlovidan Balansim ekraniga qaytish uchun.
+    keyboard_rows = list(payments_menu_keyboard().inline_keyboard) + [
+        [InlineKeyboardButton("⬅️ Orqaga", callback_data=START_ACCOUNT_CB)]
+    ]
+
     await safe_edit_message(query,
         "💰 <b>To'lov usullari</b>\n\n"
         "Hisobingizni to'ldirish uchun quyidagi usullardan birini tanlang 👇\n\n"
         "👤 <b>Admin orqali</b> — admin bilan bog'lanib to'lov qilasiz\n"
         "💳 <b>Humo/Uzcard orqali</b> — karta orqali to'g'ridan-to'g'ri to'ldirasiz",
         parse_mode="HTML",
-        reply_markup=payments_menu_keyboard(),
+        reply_markup=InlineKeyboardMarkup(keyboard_rows),
     )
 
 
