@@ -271,27 +271,29 @@ SVC_ALL_PREFIX = "svcall"
 # (BTN_MAIN_RASM, BTN_MAIN_VIDEO va h.k.) va tegishli handlerlar hech
 # narsa o'chirilmagan - faqat shu ro'yxatdan olib tashlandi, kerak bo'lsa
 # pastdagi izohlangan qatorlarni qaytarish mumkin.
+# MUHIM: Foydalanuvchi so'rovi bo'yicha "🛠️ Barcha xizmatlar" ro'yxatidagi
+# BARCHA bandlar OLIB TASHLANDI (ro'yxat bo'shatildi). Har bir bandning
+# kodi (BTN_M2_SERVICES, BTN_M2_SETTINGS va h.k.) va tegishli handlerlar
+# hech narsa o'chirilmagan - faqat shu ro'yxatdan olib tashlandi, kerak
+# bo'lsa pastdagi izohlangan qatorlarni qaytarish mumkin.
 _ALL_SERVICES_ITEMS = [
-    (BTN_M2_SERVICES, f"{SVC_ALL_PREFIX}:services"),
-    (BTN_M2_SETTINGS, f"{SVC_ALL_PREFIX}:settings"),
-    (BTN_M2_NICKS, f"{SVC_ALL_PREFIX}:nicks"),
+    # (BTN_M2_SERVICES, f"{SVC_ALL_PREFIX}:services"),
+    # (BTN_M2_SETTINGS, f"{SVC_ALL_PREFIX}:settings"),
+    # (BTN_M2_NICKS, f"{SVC_ALL_PREFIX}:nicks"),
     # (BTN_MAIN_RASM, f"{SVC_ALL_PREFIX}:rasm"),
     # (BTN_MAIN_VIDEO, f"{SVC_ALL_PREFIX}:video"),
     # (BTN_MAIN_MUSIC, f"{SVC_ALL_PREFIX}:music"),
     # (BTN_STORE, f"{SVC_ALL_PREFIX}:store"),
-    (BTN_M2_PAYMENTS, f"{SVC_ALL_PREFIX}:payments"),
-    (BTN_MINI_GAMES, f"{SVC_ALL_PREFIX}:games"),
-    (BTN_GIFTS, f"{SVC_ALL_PREFIX}:gifts"),
-    # MUHIM: Foydalanuvchi so'rovi bo'yicha "👑 Pro obuna" ro'yxatdan olib
-    # tashlandi. Kodi (BTN_PRO_SUB va tegishli handlerlar) o'chirilmagan -
-    # kerak bo'lsa quyidagi qatorni qayta izohdan chiqarib qaytarish mumkin.
+    # (BTN_M2_PAYMENTS, f"{SVC_ALL_PREFIX}:payments"),
+    # (BTN_MINI_GAMES, f"{SVC_ALL_PREFIX}:games"),
+    # (BTN_GIFTS, f"{SVC_ALL_PREFIX}:gifts"),
     # (BTN_PRO_SUB, f"{SVC_ALL_PREFIX}:prosub"),
-    (BTN_WITHDRAW_WIN, f"{SVC_ALL_PREFIX}:withdrawwin"),
-    (BTN_ORDERS_CHANNEL, f"{SVC_ALL_PREFIX}:orders"),
+    # (BTN_WITHDRAW_WIN, f"{SVC_ALL_PREFIX}:withdrawwin"),
+    # (BTN_ORDERS_CHANNEL, f"{SVC_ALL_PREFIX}:orders"),
     # (BTN_GIFT_ORDER, f"{SVC_ALL_PREFIX}:giftorder"),
-    (BTN_M2_DIAMONDS, f"{SVC_ALL_PREFIX}:diamonds"),
-    (BTN_WITHDRAW, f"{SVC_ALL_PREFIX}:withdraw"),
-    (BTN_WEBSITE, f"{SVC_ALL_PREFIX}:turnirlar"),
+    # (BTN_M2_DIAMONDS, f"{SVC_ALL_PREFIX}:diamonds"),
+    # (BTN_WITHDRAW, f"{SVC_ALL_PREFIX}:withdraw"),
+    # (BTN_WEBSITE, f"{SVC_ALL_PREFIX}:turnirlar"),
 ]
 
 
@@ -342,6 +344,7 @@ TOURNAMENT_SLOT_LABELS = dict(TOURNAMENT_SLOTS)
 def nimagap_menu_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
+            [_ikb(BTN_WEBSITE, callback_data=NIMAGAP_TOURNAMENTS_CB)],
             [_ikb("🎮 Free Fire akkauntlar", callback_data=NIMAGAP_ACCOUNTS_CB)],
             [_ikb("⬅️ Bosh menyu", callback_data="start:back")],
         ]
