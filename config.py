@@ -19,11 +19,11 @@ ADMIN_ID = int(os.getenv("ADMIN_ID", "8969109663"))
 # username formatida (bot shu kanallarda ADMIN bo'lishi shart, aks holda
 # obuna tekshiruvi ishlamaydi)
 REQUIRED_CHANNELS = [
-    {"name": "Free Fire Panel Chat", "username": "freefirepanelchit"},
-    {"name": "Free Fire Chat UZ", "username": "FREEFIRECHAT_UZBEKI"},
-    {"name": "Free Fire O'zbekiston", "username": "FREE_FIRE_OZBEKISTON_17"},
-    {"name": "FF Panel Chat", "username": "ffpanelchit"},
-    {"name": "Xon Fire Stream", "username": "xonfirestream"},
+    {"name": "Free Fire Panel Chat", "username": "freefirepanelchit", "emoji": "🛠"},
+    {"name": "Free Fire Chat UZ", "username": "FREEFIRECHAT_UZBEKI", "emoji": "💬"},
+    {"name": "Free Fire O'zbekiston", "username": "FREE_FIRE_OZBEKISTON_17", "emoji": "🇺🇿"},
+    {"name": "FF Panel Chat", "username": "ffpanelchit", "emoji": "⚡️"},
+    {"name": "Xon Fire Stream", "username": "xonfirestream", "emoji": "🔥"},
 ]
 
 # /yangiliklar bosilganda avtomatik yo'naltiriladigan kanal
