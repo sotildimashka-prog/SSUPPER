@@ -234,17 +234,17 @@ START_SERVICES_CB = "start:services"
 
 
 def start_inline_keyboard() -> InlineKeyboardMarkup:
-    """/start bosilganda chiqadigan inline tugmalar: 🛠️ Barcha xizmatlar
-    va 📰 Yangiliklar. MUHIM: Foydalanuvchi so'rovi bo'yicha "👛 Hisobim"
-    tugmasi bu yerdan OLIB TASHLANDI (kodi/handleri o'chirilmagan, faqat
-    shu klaviaturada ko'rsatilmayapti - kerak bo'lsa pastdagi qatorni
-    qayta izohdan chiqarib qaytarish mumkin)."""
+    """/start bosilganda chiqadigan inline tugma: faqat 👛 Hisobim.
+    MUHIM: Foydalanuvchi so'rovi bo'yicha "🛠️ Barcha xizmatlar" va
+    "📰 Yangiliklar" tugmalari OLIB TASHLANDI (kodi/handlerlari
+    o'chirilmagan, faqat shu klaviaturada ko'rsatilmayapti - kerak
+    bo'lsa pastdagi qatorlarni qayta izohdan chiqarib qaytarish mumkin)."""
     return InlineKeyboardMarkup(
         [
-            [_ikb("🛠️ Barcha xizmatlar", callback_data=START_SERVICES_CB)],
+            # [_ikb("🛠️ Barcha xizmatlar", callback_data=START_SERVICES_CB)],
             [
                 _ikb(BTN_MY_ACCOUNT, callback_data=START_ACCOUNT_CB),
-                _ikb("📰 Yangiliklar", url=f"https://t.me/{NEWS_CHANNEL_USERNAME}"),
+                # _ikb("📰 Yangiliklar", url=f"https://t.me/{NEWS_CHANNEL_USERNAME}"),
             ],
         ]
     )
