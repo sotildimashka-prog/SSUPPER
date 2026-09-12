@@ -7,6 +7,7 @@ from telegram.ext import ContextTypes, ConversationHandler
 
 from keyboards import nick_creation_back_keyboard
 from data.nicknames_data import generate_custom_nicknames
+from handlers.start import on_start_back_callback
 
 WAITING_NICK_NAME = 70
 
@@ -75,4 +76,13 @@ async def cancel_nick_creation(update: Update, context: ContextTypes.DEFAULT_TYP
     await update.message.reply_text(
         "❌ Bekor qilindi.", reply_markup=_BACK_TO_START_KB
     )
+    return ConversationHandler.END
+
+
+async def back_to_start_from_nick(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """"⬅️ Bosh menyu" tugmasi "Nik yaratish" jarayonida (ism so'ralayotganda)
+    bosilsa - jarayon TO'XTATILADI (aks holda keyingi yuborilgan matn
+    yana nik nomi sifatida qabul qilinaverardi) va foydalanuvchi ASL
+    /start xabariga qaytariladi."""
+    await on_start_back_callback(update, context)
     return ConversationHandler.END
