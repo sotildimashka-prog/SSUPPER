@@ -70,6 +70,7 @@ from keyboards import (
     BTN_ORDERS_CHANNEL,
     BTN_BACK,
     BTN_PORTAL,
+    BTN_FF_ADMIN_PANEL,
     orders_channel_keyboard,
     subscription_keyboard,
 )
@@ -224,6 +225,32 @@ from handlers.admin import (
     receive_new_text,
     cancel_edit_text,
     WAITING_EDIT_TEXT,
+    on_ff_admin_panel_button,
+    on_ff_admin_panel_refresh,
+    on_ff_admin_close,
+    on_ff_admin_tour_open,
+    on_ff_admin_tour_add_start,
+    receive_fftour_content,
+    skip_fftour_channel,
+    receive_fftour_channel,
+    cancel_fftour,
+    on_ff_admin_tour_delete,
+    on_ff_admin_acc_open,
+    on_ff_admin_acc_add_start,
+    receive_ffacc_content,
+    receive_ffacc_link,
+    cancel_ffacc,
+    on_ff_admin_acc_delete,
+    WAITING_FFTOUR_CONTENT,
+    WAITING_FFTOUR_CHANNEL,
+    WAITING_FFACC_CONTENT,
+    WAITING_FFACC_LINK,
+)
+from handlers.nimagap import (
+    on_nimagap_open,
+    on_nimagap_tournaments_menu,
+    on_nimagap_accounts,
+    on_fftour_slot_detail,
 )
 from handlers.admin_credit import (
     on_admin_credit_button,
@@ -689,6 +716,12 @@ def build_application() -> Application:
     app.add_handler(CallbackQueryHandler(on_start_services_callback, pattern="^start:services$"))
     app.add_handler(CallbackQueryHandler(on_start_back_callback, pattern="^start:back$"))
 
+    # ---------- 🎮 "Nima gap?" bo'limi (Free Fire turnirlar / akkauntlar) ----------
+    app.add_handler(CallbackQueryHandler(on_nimagap_open, pattern="^nimagap:menu$"))
+    app.add_handler(CallbackQueryHandler(on_nimagap_tournaments_menu, pattern="^nimagap:tournaments$"))
+    app.add_handler(CallbackQueryHandler(on_nimagap_accounts, pattern="^nimagap:accounts$"))
+    app.add_handler(CallbackQueryHandler(on_fftour_slot_detail, pattern="^fftour:"))
+
     # ---------- 🔓 Maxsus xizmat (Proxy/Cheat/FF ID) ----------
     hack_ffid_conv = ConversationHandler(
         entry_points=[CallbackQueryHandler(on_hack_ffid, pattern="^hack:ffid$")],
@@ -831,6 +864,48 @@ def build_application() -> Application:
     )
     app.add_handler(CallbackQueryHandler(choose_text_to_edit, pattern="^edittext:"))
     app.add_handler(edit_texts_conv)
+
+    # ---------- 🗂 Turnir/Akkaunt boshqaruvi (faqat admin) ----------
+    app.add_handler(MessageHandler(_exact(BTN_FF_ADMIN_PANEL), on_ff_admin_panel_button))
+    app.add_handler(CallbackQueryHandler(on_ff_admin_panel_refresh, pattern="^ffadmin:panel$"))
+    app.add_handler(CallbackQueryHandler(on_ff_admin_close, pattern="^ffadmin:close$"))
+    app.add_handler(CallbackQueryHandler(on_ff_admin_tour_open, pattern="^ffadmin:tour:"))
+    app.add_handler(CallbackQueryHandler(on_ff_admin_tour_delete, pattern="^ffadmin:tourdel:"))
+    app.add_handler(CallbackQueryHandler(on_ff_admin_acc_open, pattern="^ffadmin:acc$"))
+    app.add_handler(CallbackQueryHandler(on_ff_admin_acc_delete, pattern="^ffadmin:accdel$"))
+
+    fftour_conv = ConversationHandler(
+        entry_points=[CallbackQueryHandler(on_ff_admin_tour_add_start, pattern="^ffadmin:touradd:")],
+        states={
+            WAITING_FFTOUR_CONTENT: [
+                CommandHandler("bekor", cancel_fftour),
+                MessageHandler((filters.TEXT | filters.PHOTO) & ~filters.COMMAND, receive_fftour_content),
+            ],
+            WAITING_FFTOUR_CHANNEL: [
+                CommandHandler("bekor", cancel_fftour),
+                CommandHandler("otkazib_yuborish", skip_fftour_channel),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_fftour_channel),
+            ],
+        },
+        fallbacks=[CommandHandler("bekor", cancel_fftour)],
+    )
+    app.add_handler(fftour_conv)
+
+    ffacc_conv = ConversationHandler(
+        entry_points=[CallbackQueryHandler(on_ff_admin_acc_add_start, pattern="^ffadmin:accadd$")],
+        states={
+            WAITING_FFACC_CONTENT: [
+                CommandHandler("bekor", cancel_ffacc),
+                MessageHandler((filters.TEXT | filters.PHOTO) & ~filters.COMMAND, receive_ffacc_content),
+            ],
+            WAITING_FFACC_LINK: [
+                CommandHandler("bekor", cancel_ffacc),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_ffacc_link),
+            ],
+        },
+        fallbacks=[CommandHandler("bekor", cancel_ffacc)],
+    )
+    app.add_handler(ffacc_conv)
 
     # ---------- 🛠 Admin buyrug'i (qo'lda pul/almaz berish, faqat admin) ----------
     app.add_handler(MessageHandler(_exact(BTN_ADMIN_CREDIT), on_admin_credit_button))
