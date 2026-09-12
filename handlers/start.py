@@ -70,16 +70,39 @@ def first_greeting_text(first_name: str, lang: str = "uz") -> str:
 def subscribe_text(lang: str = "uz") -> str:
     if lang == "ru":
         return (
-            "📢 <b>Чтобы пользоваться ботом, сначала подпишитесь на каналы ниже!</b>\n\n"
-            "Если вы не подписаны, бот пока не будет работать ⛔️\n"
-            "После подписки на все каналы нажмите кнопку "
-            "<b>✅ Я подписался</b> внизу 👇"
+            "🎮 <b>Добро пожаловать в лучший Free Fire бот!</b> 🔥\n\n"
+            "Здесь вас ждут крутые ники, настройки, подарки, алмазы и "
+            "куча других полезных фишек! 💎✨\n\n"
+            "🙏 <b>Пожалуйста, дорогой друг!</b> Чтобы полноценно "
+            "пользоваться ботом, сначала подпишитесь на наши официальные "
+            "каналы ниже 👇\n\n"
+            "После подписки на ВСЕ каналы нажмите кнопку "
+            "<b>✅ Я подписался</b> внизу."
         )
     return (
-        "📢 <b>Botdan foydalanish uchun avval quyidagi kanallarga obuna bo'ling!</b>\n\n"
-        "Obuna bo'lmasangiz, bot hali ishlamaydi ⛔️\n"
-        "Barcha kanallarga obuna bo'lgach, pastdagi <b>✅ Obuna bo'ldim</b> "
-        "tugmasini bosing 👇"
+        "🔥 <b>Assalomu alaykum va Free Fire olamiga xush kelibsiz!</b> 🎮\n\n"
+        "Bu yerda sizni eng zo'r niklar, nastroykalar, sovg'alar, almazlar "
+        "va yana ko'plab qiziqarli imkoniyatlar kutmoqda! 💎✨\n\n"
+        "🙏 <b>Iltimos, aka/opa!</b> Botimizdan to'liq va bepul foydalanish "
+        "uchun avval quyidagi rasmiy kanallarimizga obuna bo'lib chiqing — "
+        "bu bizga yangi loyihalar va bonuslar tayyorlashda katta kuch-quvvat "
+        "beradi 💪\n\n"
+        "👇 <b>Quyidagi kanallarga obuna bo'ling:</b>"
+    )
+
+
+def subscription_confirmed_text(lang: str = "uz") -> str:
+    if lang == "ru":
+        return (
+            "✅ <b>Ваша подписка подтверждена, дорогой друг!</b> 🎉\n\n"
+            "Теперь вы можете свободно пользоваться всеми функциями бота.\n\n"
+            "🚀 Чтобы продолжить, отправьте команду <b>/start</b>."
+        )
+    return (
+        "✅ <b>Obunangiz tasdiqlandi, jigarim!</b> 🎉\n\n"
+        "Endi botimizning barcha imkoniyatlaridan bemalol foydalanishingiz "
+        "mumkin.\n\n"
+        "🚀 Davom etish uchun pastga <b>/start</b> deb yozing."
     )
 
 
@@ -206,9 +229,11 @@ async def _continue_after_language(update: Update, context: ContextTypes.DEFAULT
 START_PHOTO_PATH = "assets/start_banner.jpg"
 
 START_CAPTION_TEXT = (
-    "👋 <b>Xush kelibsiz!</b>\n\n"
-    "🤖 Men Free Fire o'yini uchun mukammal xizmat ko'rsatadigan botman.\n\n"
-    "👇 Kerakli bo'limni tanlang:"
+    "🔥 <b>Assalomu alaykum, aziz do'stim!</b> 👋\n\n"
+    "🎮 Free Fire olamining eng zo'r yordamchisi — botimizga xush kelibsiz!\n"
+    "Bu yerda nastroykalar, noyob niklar, sovg'alar, almazlar va yana "
+    "ko'plab qiziqarli imkoniyatlar sizni kutmoqda ✨💎\n\n"
+    "👇 Boshlash uchun pastdagi tugmani bosing:"
 )
 
 
@@ -241,6 +266,20 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         except TelegramError:
             pass
+
+    # ---------- 🔒 Majburiy obuna tekshiruvi ----------
+    # Admin bundan mustasno - botni har doim boshqara olishi kerak.
+    if user.id != ADMIN_ID:
+        lang = db.get_user_language(user.id) or "uz"
+        unsubscribed = await get_unsubscribed_channels(user.id, context)
+        if unsubscribed:
+            await context.bot.send_message(
+                chat_id=user.id,
+                text=subscribe_text(lang),
+                parse_mode="HTML",
+                reply_markup=subscription_keyboard(),
+            )
+            return
 
     await _send_start_message(context, user.id)
 
@@ -532,26 +571,34 @@ async def check_subscription_callback(update: Update, context: ContextTypes.DEFA
     unsubscribed = await get_unsubscribed_channels(user.id, context)
     if unsubscribed:
         alert_text = (
-            "⛔️ Бот пока не работает! Сначала подпишитесь на все каналы."
+            "⛔️ Вы ещё не подписались на все каналы! Подпишитесь и попробуйте снова."
             if lang == "ru"
-            else "⛔️ Bot hali ishlamaydi! Avval barcha kanallarga obuna bo'ling."
+            else "⛔️ Siz hali barcha kanallarga obuna bo'lmadingiz! Obuna bo'lib, qaytadan urinib ko'ring."
         )
         await query.answer(alert_text, show_alert=True)
         return
 
-    is_admin = user.id == ADMIN_ID
+    # ✅ Obuna tasdiqlandi - foydalanuvchini yangi /start buyrug'ini
+    # yuborishga taklif qilamiz (menyu to'g'ridan-to'g'ri shu yerda
+    # ochilmaydi, chunki start_command o'zi kreativ salomlashuvni
+    # ko'rsatadi).
     try:
-        await query.message.delete()
+        await query.edit_message_text(
+            subscription_confirmed_text(lang), parse_mode="HTML"
+        )
     except TelegramError:
-        pass
-
-    # 3) Asosiy menyu
-    await context.bot.send_message(
-        chat_id=user.id,
-        text=main_menu_ready_text(lang),
-        reply_markup=main_menu_keyboard(is_admin),
-    )
-    await _send_official_site_message(context, user.id, lang)
+        try:
+            await query.message.delete()
+        except TelegramError:
+            pass
+        try:
+            await context.bot.send_message(
+                chat_id=user.id,
+                text=subscription_confirmed_text(lang),
+                parse_mode="HTML",
+            )
+        except TelegramError:
+            pass
 
 
 async def on_player_type_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
