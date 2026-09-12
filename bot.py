@@ -71,6 +71,7 @@ from keyboards import (
     BTN_BACK,
     BTN_PORTAL,
     BTN_FF_ADMIN_PANEL,
+    BTN_NASTROYKA_ADD,
     orders_channel_keyboard,
     subscription_keyboard,
 )
@@ -245,6 +246,17 @@ from handlers.admin import (
     WAITING_FFTOUR_CHANNEL,
     WAITING_FFACC_CONTENT,
     WAITING_FFACC_LINK,
+    on_nastroyka_admin_start,
+    on_nastroyka_admin_close,
+    on_nastroyka_admin_brand,
+    on_nastroyka_admin_back_brands,
+    on_nastroyka_admin_model,
+    on_nastroyka_admin_back_models,
+    on_nastroyka_admin_delete,
+    on_nastroyka_type_selected,
+    receive_nastroyka_content,
+    cancel_nastroyka,
+    WAITING_NASTROYKA_CONTENT,
 )
 from handlers.nimagap import (
     on_nimagap_open,
@@ -906,6 +918,30 @@ def build_application() -> Application:
         fallbacks=[CommandHandler("bekor", cancel_ffacc)],
     )
     app.add_handler(ffacc_conv)
+
+    # ---------- ➕ Nastroyka qo'shish (telefon modellariga kontent, faqat admin) ----------
+    app.add_handler(MessageHandler(_exact(BTN_NASTROYKA_ADD), on_nastroyka_admin_start))
+    app.add_handler(CallbackQueryHandler(on_nastroyka_admin_close, pattern="^nadmin:close$"))
+    app.add_handler(CallbackQueryHandler(on_nastroyka_admin_brand, pattern="^nadmin:brand:"))
+    app.add_handler(CallbackQueryHandler(on_nastroyka_admin_back_brands, pattern="^nadmin:back_brands$"))
+    app.add_handler(CallbackQueryHandler(on_nastroyka_admin_model, pattern="^nadmin:model:"))
+    app.add_handler(CallbackQueryHandler(on_nastroyka_admin_back_models, pattern="^nadmin:back_models$"))
+    app.add_handler(CallbackQueryHandler(on_nastroyka_admin_delete, pattern="^nadmin:delete$"))
+
+    nastroyka_conv = ConversationHandler(
+        entry_points=[CallbackQueryHandler(on_nastroyka_type_selected, pattern="^nadmin:type:")],
+        states={
+            WAITING_NASTROYKA_CONTENT: [
+                CommandHandler("bekor", cancel_nastroyka),
+                MessageHandler(
+                    (filters.TEXT | filters.PHOTO | filters.VIDEO) & ~filters.COMMAND,
+                    receive_nastroyka_content,
+                ),
+            ],
+        },
+        fallbacks=[CommandHandler("bekor", cancel_nastroyka)],
+    )
+    app.add_handler(nastroyka_conv)
 
     # ---------- 🛠 Admin buyrug'i (qo'lda pul/almaz berish, faqat admin) ----------
     app.add_handler(MessageHandler(_exact(BTN_ADMIN_CREDIT), on_admin_credit_button))
