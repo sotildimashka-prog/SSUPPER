@@ -337,8 +337,7 @@ async def on_start_account_callback(update: Update, context: ContextTypes.DEFAUL
     text = (
         "👛 <b>Balansim</b>\n\n"
         f"💎 Almaz: <b>{diamonds}</b>\n"
-        f"💵 Pul: <b>{money:,} so'm</b>\n\n".replace(",", ".")
-        + "Barcha to'lov usullari haqida ma'lumot olish uchun pastdagi tugmani bosing 👇"
+        f"💵 Pul: <b>{money:,} so'm</b>".replace(",", ".")
     )
     await _edit_in_place(query, text, _with_back_to_start_row(my_account_keyboard()))
 
