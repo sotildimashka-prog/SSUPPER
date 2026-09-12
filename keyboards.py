@@ -251,7 +251,7 @@ def start_inline_keyboard() -> InlineKeyboardMarkup:
                 _ikb("✨ Nik yaratish", callback_data=f"{SVC_ALL_PREFIX}:nicks"),
             ],
             [
-                _ikb("🎮 Nima gap?", callback_data=NIMAGAP_CB),
+                _ikb("📰 News", callback_data=NIMAGAP_CB),
                 _ikb("👤 Hisobim", callback_data=START_ACCOUNT_CB),
             ],
         ]
@@ -408,6 +408,11 @@ def turnirlar_detail_keyboard(turnirlar: list, index: int, is_admin: bool = Fals
 
 def ff_admin_panel_keyboard(tournament_status: dict, account_added: bool) -> InlineKeyboardMarkup:
     rows = []
+    for slot, label in TOURNAMENT_SLOTS:
+        mark = "✅" if tournament_status.get(slot) else "❌"
+        rows.append(
+            [_ikb(f"{mark} {label}", callback_data=f"ffadmin:tour:{slot}")]
+        )
     acc_mark = "✅" if account_added else "❌"
     rows.append([_ikb(f"{acc_mark} 🎮 Free Fire akkaunt", callback_data="ffadmin:acc")])
     rows.append([_ikb("🔙 Yopish", callback_data="ffadmin:close")])
@@ -1328,9 +1333,13 @@ def payments_back_keyboard() -> InlineKeyboardMarkup:
 # ---------- 👛 Hisobim -> 💰 To'lov usullari ----------
 
 def my_account_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        [[_ikb("💰 To'lov usullari", callback_data="myacc:pay")]]
-    )
+    # MUHIM: Foydalanuvchi so'rovi bo'yicha "💰 To'lov usullari" tugmasi
+    # olib tashlandi. Kodi (myacc:pay callback va handler) o'chirilmagan -
+    # kerak bo'lsa quyidagi qatorni qayta izohdan chiqarib qaytarish mumkin.
+    return InlineKeyboardMarkup([])
+    # return InlineKeyboardMarkup(
+    #     [[_ikb("💰 To'lov usullari", callback_data="myacc:pay")]]
+    # )
 
 
 # ---------- 👑 Pro obuna ----------
