@@ -25,6 +25,8 @@ from keyboards import (
     nastroyka_admin_models_keyboard,
     nastroyka_admin_type_keyboard,
     NASTROYKA_CONTENT_TYPES,
+    turnirlar_list_keyboard,
+    turnirlar_detail_keyboard,
 )
 from data.settings_data import PHONES
 
@@ -39,6 +41,12 @@ WAITING_FFACC_CONTENT = 102
 WAITING_FFACC_LINK = 103
 
 WAITING_NASTROYKA_CONTENT = 104
+
+WAITING_TURNIR_DAY = 105
+WAITING_TURNIR_TITLE = 106
+WAITING_TURNIR_FORMAT = 107
+WAITING_TURNIR_TIME = 108
+WAITING_TURNIR_NOTE = 109
 
 TEXT_LABELS = {
     "help_text": "🎧 Yordam matni",
@@ -587,6 +595,135 @@ async def on_ff_admin_acc_delete(update: Update, context: ContextTypes.DEFAULT_T
         )
     except TelegramError:
         pass
+
+
+# ---------- 🏆 Free Fire Turnirlar (ochiq ro'yxat) - qo'shish / o'chirish, faqat admin ----------
+# Bu "🏆 Free Fire Turnirlar" pastki tugmasi ostida ko'rinadigan, admin
+# xohlagancha (bir kunda 3-4 tasi bo'lsa ham) turnir qo'shishi mumkin bo'lgan
+# bo'lim. Foydalanuvchi tomoni handlers/turnirlar.py faylida.
+
+from handlers.turnirlar import _list_caption  # noqa: E402
+
+
+async def on_turniradmin_add_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    if not _admin_only(update):
+        await query.answer("Bu funksiya faqat admin uchun.", show_alert=True)
+        return ConversationHandler.END
+    await query.answer()
+    context.user_data["turnir_new"] = {}
+    await query.message.reply_text(
+        "🗓 Yangi turnir uchun <b>kunini</b> kiriting (masalan: "
+        "<i>13-Sentabr, Shanba</i> yoki <i>Bugun</i>, <i>Ertaga</i>):\n\n"
+        "Bekor qilish uchun /bekor.",
+        parse_mode="HTML",
+    )
+    return WAITING_TURNIR_DAY
+
+
+async def receive_turnir_day(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data.setdefault("turnir_new", {})["day_label"] = (update.message.text or "").strip()
+    await update.message.reply_text(
+        "🏷 Endi turnir <b>nomini</b> kiriting (masalan: <i>Free Fire Cup #1</i>):\n\n"
+        "Bekor qilish uchun /bekor.",
+        parse_mode="HTML",
+    )
+    return WAITING_TURNIR_TITLE
+
+
+async def receive_turnir_title(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data.setdefault("turnir_new", {})["title"] = (update.message.text or "").strip()
+    await update.message.reply_text(
+        "⚔️ Endi turnir <b>formatini</b> kiriting "
+        "(masalan: <i>3/3 Skvad</i>, <i>2/2 Duo</i>, <i>1/1 Solo</i>):\n\n"
+        "Bekor qilish uchun /bekor.",
+        parse_mode="HTML",
+    )
+    return WAITING_TURNIR_FORMAT
+
+
+async def receive_turnir_format(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data.setdefault("turnir_new", {})["format_text"] = (update.message.text or "").strip()
+    await update.message.reply_text(
+        "🕐 Endi turnir <b>boshlanish vaqtini</b> kiriting (masalan: "
+        "<i>19:00</i>):\n\n"
+        "Bekor qilish uchun /bekor.",
+        parse_mode="HTML",
+    )
+    return WAITING_TURNIR_TIME
+
+
+async def receive_turnir_time(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data.setdefault("turnir_new", {})["time_text"] = (update.message.text or "").strip()
+    await update.message.reply_text(
+        "🎁 Sovrina jamg'armasi yoki qo'shimcha izoh kiriting.\n\n"
+        "Kerak bo'lmasa /otkazib_yuborish deb yozing.\n"
+        "Bekor qilish uchun /bekor.",
+        parse_mode="HTML",
+    )
+    return WAITING_TURNIR_NOTE
+
+
+async def _save_new_turnir(update: Update, context: ContextTypes.DEFAULT_TYPE, note: str):
+    data = context.user_data.pop("turnir_new", None)
+    if not data:
+        await update.message.reply_text(
+            "⚠️ Xatolik yuz berdi. Qaytadan boshlang.",
+            reply_markup=main_menu_keyboard(True),
+        )
+        return ConversationHandler.END
+
+    db.add_turnir(
+        day_label=data.get("day_label", ""),
+        title=data.get("title", ""),
+        format_text=data.get("format_text", ""),
+        time_text=data.get("time_text", ""),
+        note=note,
+    )
+    await update.message.reply_text(
+        "✅ Yangi turnir muvaffaqiyatli qo'shildi va foydalanuvchilarga "
+        "\"🏆 Free Fire Turnirlar\" bo'limida ko'rinadi!",
+        reply_markup=main_menu_keyboard(True),
+    )
+    return ConversationHandler.END
+
+
+async def skip_turnir_note(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    return await _save_new_turnir(update, context, "")
+
+
+async def receive_turnir_note(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    note = (update.message.text or "").strip()
+    return await _save_new_turnir(update, context, note)
+
+
+async def cancel_turnir_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data.pop("turnir_new", None)
+    await update.message.reply_text(
+        "❌ Bekor qilindi.", reply_markup=main_menu_keyboard(True)
+    )
+    return ConversationHandler.END
+
+
+async def on_turniradmin_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    if not _admin_only(update):
+        await query.answer("Bu funksiya faqat admin uchun.", show_alert=True)
+        return
+    turnir_id = int(query.data.split(":", 2)[2])
+    db.delete_turnir_by_id(turnir_id)
+    await query.answer("🗑 Turnir o'chirildi.")
+
+    turnirlar = db.get_turnirlar_list()
+    caption = _list_caption(turnirlar)
+    kb = turnirlar_list_keyboard(turnirlar, True)
+    try:
+        await query.edit_message_caption(caption=caption, parse_mode="HTML", reply_markup=kb)
+    except TelegramError:
+        try:
+            await query.edit_message_text(text=caption, parse_mode="HTML", reply_markup=kb)
+        except TelegramError:
+            pass
 
 
 # ---------- ➕ Nastroyka qo'shish (telefon modellariga kontent, faqat admin) ----------
