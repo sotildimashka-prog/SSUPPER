@@ -531,6 +531,14 @@ async def enforce_subscription_gate(update: Update, context: ContextTypes.DEFAUL
     QAYSI tugma ishlamaydi, faqat obuna bo'lish taklifi ko'rsatiladi.
     Obuna bo'lgandan keyin barcha tugmalar odatdagidek ishlay boshlaydi.
     """
+    # MUHIM: Foydalanuvchi so'rovi bo'yicha majburiy obuna tekshiruvi
+    # BUTUNLAY O'CHIRILDI - endi hech kim uchun (admin ham, oddiy
+    # foydalanuvchi ham) hech qanday tugma obuna bilan bloklanmaydi.
+    # Funksiyaning qolgan qismi (pastda) ishlatilmay qoladi, lekin kodi
+    # o'chirilmagan - kerak bo'lsa shu "return" qatorini olib tashlab,
+    # obunani qayta yoqish mumkin.
+    return
+
     user = update.effective_user
     if not user:
         return
