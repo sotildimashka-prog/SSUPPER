@@ -21,7 +21,12 @@ from keyboards import (
     ffadmin_tour_actions_keyboard,
     ffadmin_acc_actions_keyboard,
     TOURNAMENT_SLOT_LABELS,
+    nastroyka_admin_brands_keyboard,
+    nastroyka_admin_models_keyboard,
+    nastroyka_admin_type_keyboard,
+    NASTROYKA_CONTENT_TYPES,
 )
+from data.settings_data import PHONES
 
 WAITING_BROADCAST = 2
 WAITING_POST_TEXT = 3
@@ -32,6 +37,8 @@ WAITING_FFTOUR_CONTENT = 100
 WAITING_FFTOUR_CHANNEL = 101
 WAITING_FFACC_CONTENT = 102
 WAITING_FFACC_LINK = 103
+
+WAITING_NASTROYKA_CONTENT = 104
 
 TEXT_LABELS = {
     "help_text": "🎧 Yordam matni",
@@ -580,3 +587,246 @@ async def on_ff_admin_acc_delete(update: Update, context: ContextTypes.DEFAULT_T
         )
     except TelegramError:
         pass
+
+
+# ---------- ➕ Nastroyka qo'shish (telefon modellariga kontent, faqat admin) ----------
+# Oqim: brend tanlash -> model tanlash -> kontent turini tanlash
+# (TEXT / RASM / VIDEO / TEXT+RASM / VIDEO+TEXT) -> admin ma'lumotni
+# yuboradi -> shu telefon modeliga saqlanadi (database.set_nastroyka_content).
+
+NASTROYKA_TYPE_LABELS = dict(NASTROYKA_CONTENT_TYPES)
+
+NASTROYKA_TYPE_PROMPTS = {
+    "text": "📝 Endi shu model uchun matnni yuboring.",
+    "photo": "🖼 Endi shu model uchun rasmni yuboring (izohsiz).",
+    "video": "🎬 Endi shu model uchun videoni yuboring (izohsiz).",
+    "phototext": (
+        "📦 Endi shu model uchun rasmni yuboring va matnni rasmga izoh "
+        "(caption) qilib yozing."
+    ),
+    "videotext": (
+        "🎬 Endi shu model uchun videoni yuboring va matnni videoga izoh "
+        "(caption) qilib yozing."
+    ),
+}
+
+
+async def on_nastroyka_admin_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not _admin_only(update):
+        return
+    await update.message.reply_text(
+        "👑 <b>Nastroyka qo'shish</b>\n\nTelefon brendini tanlang 👇",
+        parse_mode="HTML",
+        reply_markup=nastroyka_admin_brands_keyboard(),
+    )
+
+
+async def on_nastroyka_admin_close(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    try:
+        await query.message.delete()
+    except TelegramError:
+        pass
+
+
+async def on_nastroyka_admin_brand(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    if not _admin_only(update):
+        await query.answer("Bu funksiya faqat admin uchun.", show_alert=True)
+        return
+    await query.answer()
+    brand = query.data.split(":", 2)[2]
+    if brand not in PHONES:
+        return
+    context.user_data["nastroyka_brand"] = brand
+    try:
+        await query.edit_message_text(
+            f"👑 <b>{brand}</b>\n\nModelni tanlang 👇\n"
+            "✅ — kontent qo'shilgan, ❌ — hali qo'shilmagan.",
+            parse_mode="HTML",
+            reply_markup=nastroyka_admin_models_keyboard(brand),
+        )
+    except TelegramError:
+        pass
+
+
+async def on_nastroyka_admin_back_brands(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    if not _admin_only(update):
+        await query.answer("Bu funksiya faqat admin uchun.", show_alert=True)
+        return
+    await query.answer()
+    try:
+        await query.edit_message_text(
+            "👑 <b>Nastroyka qo'shish</b>\n\nTelefon brendini tanlang 👇",
+            parse_mode="HTML",
+            reply_markup=nastroyka_admin_brands_keyboard(),
+        )
+    except TelegramError:
+        pass
+
+
+async def on_nastroyka_admin_model(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    if not _admin_only(update):
+        await query.answer("Bu funksiya faqat admin uchun.", show_alert=True)
+        return
+    await query.answer()
+    model_name = query.data.split(":", 2)[2]
+    context.user_data["nastroyka_model"] = model_name
+    has_content = db.get_nastroyka_content(model_name) is not None
+    status = "✅ Kontent mavjud." if has_content else "❌ Hali kontent qo'shilmagan."
+    try:
+        await query.edit_message_text(
+            f"📱 <b>{model_name}</b>\n\n{status}\n\nKontent turini tanlang 👇",
+            parse_mode="HTML",
+            reply_markup=nastroyka_admin_type_keyboard(model_name, has_content),
+        )
+    except TelegramError:
+        pass
+
+
+async def on_nastroyka_admin_back_models(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    if not _admin_only(update):
+        await query.answer("Bu funksiya faqat admin uchun.", show_alert=True)
+        return
+    await query.answer()
+    brand = context.user_data.get("nastroyka_brand")
+    if not brand or brand not in PHONES:
+        try:
+            await query.edit_message_text(
+                "👑 <b>Nastroyka qo'shish</b>\n\nTelefon brendini tanlang 👇",
+                parse_mode="HTML",
+                reply_markup=nastroyka_admin_brands_keyboard(),
+            )
+        except TelegramError:
+            pass
+        return
+    try:
+        await query.edit_message_text(
+            f"👑 <b>{brand}</b>\n\nModelni tanlang 👇\n"
+            "✅ — kontent qo'shilgan, ❌ — hali qo'shilmagan.",
+            parse_mode="HTML",
+            reply_markup=nastroyka_admin_models_keyboard(brand),
+        )
+    except TelegramError:
+        pass
+
+
+async def on_nastroyka_admin_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    if not _admin_only(update):
+        await query.answer("Bu funksiya faqat admin uchun.", show_alert=True)
+        return
+    model_name = context.user_data.get("nastroyka_model")
+    if not model_name:
+        await query.answer()
+        return
+    db.delete_nastroyka_content(model_name)
+    await query.answer("🗑 O'chirildi.")
+    try:
+        await query.edit_message_text(
+            f"📱 <b>{model_name}</b>\n\n❌ Hali kontent qo'shilmagan.\n\n"
+            "Kontent turini tanlang 👇",
+            parse_mode="HTML",
+            reply_markup=nastroyka_admin_type_keyboard(model_name, False),
+        )
+    except TelegramError:
+        pass
+
+
+async def on_nastroyka_type_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    if not _admin_only(update):
+        await query.answer("Bu funksiya faqat admin uchun.", show_alert=True)
+        return ConversationHandler.END
+    await query.answer()
+    type_key = query.data.split(":", 2)[2]
+    model_name = context.user_data.get("nastroyka_model")
+    if not model_name or type_key not in NASTROYKA_TYPE_PROMPTS:
+        return ConversationHandler.END
+    context.user_data["nastroyka_type"] = type_key
+    label = NASTROYKA_TYPE_LABELS.get(type_key, type_key)
+    await query.message.reply_text(
+        f"👑 <b>{model_name}</b> — {label}\n\n"
+        f"{NASTROYKA_TYPE_PROMPTS[type_key]}\n\nBekor qilish uchun /bekor.",
+        parse_mode="HTML",
+    )
+    return WAITING_NASTROYKA_CONTENT
+
+
+async def receive_nastroyka_content(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not _admin_only(update):
+        return ConversationHandler.END
+
+    message = update.message
+    model_name = context.user_data.get("nastroyka_model")
+    type_key = context.user_data.get("nastroyka_type")
+    if not model_name or not type_key:
+        await message.reply_text(
+            "⚠️ Xatolik yuz berdi. Qaytadan boshlang.",
+            reply_markup=main_menu_keyboard(True),
+        )
+        return ConversationHandler.END
+
+    if type_key == "text":
+        if not message.text:
+            await message.reply_text("📝 Iltimos, matn yuboring.")
+            return WAITING_NASTROYKA_CONTENT
+        db.set_nastroyka_content(
+            model_name, "text", text=message.text_html or message.text
+        )
+    elif type_key == "photo":
+        if not message.photo:
+            await message.reply_text("🖼 Iltimos, rasm yuboring.")
+            return WAITING_NASTROYKA_CONTENT
+        db.set_nastroyka_content(
+            model_name, "photo", file_id=message.photo[-1].file_id
+        )
+    elif type_key == "video":
+        if not message.video:
+            await message.reply_text("🎬 Iltimos, video yuboring.")
+            return WAITING_NASTROYKA_CONTENT
+        db.set_nastroyka_content(
+            model_name, "video", file_id=message.video.file_id
+        )
+    elif type_key == "phototext":
+        if not message.photo:
+            await message.reply_text("📦 Iltimos, rasm yuboring (matnni izoh qilib yozing).")
+            return WAITING_NASTROYKA_CONTENT
+        db.set_nastroyka_content(
+            model_name,
+            "photo",
+            file_id=message.photo[-1].file_id,
+            caption=message.caption_html or message.caption or "",
+        )
+    elif type_key == "videotext":
+        if not message.video:
+            await message.reply_text("🎬 Iltimos, video yuboring (matnni izoh qilib yozing).")
+            return WAITING_NASTROYKA_CONTENT
+        db.set_nastroyka_content(
+            model_name,
+            "video",
+            file_id=message.video.file_id,
+            caption=message.caption_html or message.caption or "",
+        )
+    else:
+        return ConversationHandler.END
+
+    context.user_data.pop("nastroyka_type", None)
+    await message.reply_text(
+        f"✅ <b>{model_name}</b> uchun nastroyka muvaffaqiyatli saqlandi!",
+        parse_mode="HTML",
+        reply_markup=main_menu_keyboard(True),
+    )
+    return ConversationHandler.END
+
+
+async def cancel_nastroyka(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data.pop("nastroyka_type", None)
+    await update.message.reply_text(
+        "❌ Bekor qilindi.", reply_markup=main_menu_keyboard(True)
+    )
+    return ConversationHandler.END
