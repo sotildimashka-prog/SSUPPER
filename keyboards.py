@@ -137,7 +137,7 @@ BTN_M2_FAQ = "📬 Savollar (FAQ)"
 BTN_GIFTS = "🎁 Sovg'alar"
 BTN_PORTAL = "🗺 Free Fire Portal 🚀"
 BTN_MINI_GAMES = "🎮 Mini O'yinlar"
-BTN_MY_ACCOUNT = "👛 Hisobim"
+BTN_MY_ACCOUNT = "👛 Balansim"
 
 # ---------- 🖼️ Rasm Yasash / 🎬 Video Yasash (Bosh menyu) ----------
 
