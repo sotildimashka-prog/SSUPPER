@@ -519,6 +519,10 @@ def _load_all_services_handlers():
         "diamonds": on_m2_diamonds_button,
         "withdraw": on_withdraw_button,
     }
+
+    from handlers.turnirlar import on_turnirlar_button
+
+    _ALL_SERVICES_HANDLERS["turnirlar"] = on_turnirlar_button
     return _ALL_SERVICES_HANDLERS
 
 
