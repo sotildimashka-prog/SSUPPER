@@ -234,9 +234,11 @@ START_SERVICES_CB = "start:services"
 
 
 def start_inline_keyboard() -> InlineKeyboardMarkup:
-    """/start bosilganda rasm ostiga chiqadigan 3 ta inline tugma:
-    tepada 🛠️ Barcha xizmatlar (yagona, kattaroq), pastda 👛 Hisobim va
-    📰 Yangiliklar (ikkitasi yonma-yon)."""
+    """/start bosilganda chiqadigan inline tugmalar: 🛠️ Barcha xizmatlar
+    va 📰 Yangiliklar. MUHIM: Foydalanuvchi so'rovi bo'yicha "👛 Hisobim"
+    tugmasi bu yerdan OLIB TASHLANDI (kodi/handleri o'chirilmagan, faqat
+    shu klaviaturada ko'rsatilmayapti - kerak bo'lsa pastdagi qatorni
+    qayta izohdan chiqarib qaytarish mumkin)."""
     return InlineKeyboardMarkup(
         [
             [_ikb("🛠️ Barcha xizmatlar", callback_data=START_SERVICES_CB)],
@@ -1017,6 +1019,9 @@ def profile_keyboard() -> InlineKeyboardMarkup:
 # ---------- 💎 Almaz olish ----------
 
 def diamonds_get_keyboard() -> InlineKeyboardMarkup:
+    # MUHIM: Foydalanuvchi so'rovi bo'yicha "🆓 Tekin Almaz" tugmasi olib
+    # tashlandi (kodi/handleri o'chirilmagan, faqat shu yerda
+    # ko'rsatilmayapti).
     return InlineKeyboardMarkup(
         [
             [
@@ -1124,6 +1129,9 @@ def service_channel_keyboard() -> InlineKeyboardMarkup:
 # ---------- 🎁 Sovg'alar (bosh menyu tugmasi) ----------
 
 def gifts_keyboard() -> InlineKeyboardMarkup:
+    # MUHIM: Foydalanuvchi so'rovi bo'yicha "🆓 Tekin almaz" tugmasi olib
+    # tashlandi (kodi/handleri o'chirilmagan, faqat shu yerda
+    # ko'rsatilmayapti).
     return InlineKeyboardMarkup(
         [
             [_ikb("🆓 Tekin almaz", callback_data="gift:free_diamond")],
