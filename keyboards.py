@@ -405,16 +405,13 @@ def language_keyboard() -> InlineKeyboardMarkup:
 # ---------- Majburiy obuna ----------
 
 def subscription_keyboard() -> InlineKeyboardMarkup:
-    rows = []
-    channels = REQUIRED_CHANNELS
-    for i in range(0, len(channels), 2):
-        chunk = channels[i:i + 2]
-        rows.append(
-            [
-                _ikb(f"📡 {ch['name']}", url=f"https://t.me/{ch['username']}")
-                for ch in chunk
-            ]
-        )
+    """Majburiy obuna kanallari - har biri o'z emojisi bilan, alohida
+    qatorda (chiroyliroq va o'qish oson bo'lishi uchun), ostida
+    "✅ Obuna bo'ldim" (tekshirish) tugmasi."""
+    rows = [
+        [_ikb(f"{ch.get('emoji', '📡')} {ch['name']}", url=f"https://t.me/{ch['username']}")]
+        for ch in REQUIRED_CHANNELS
+    ]
     rows.append([_ikb("✅ Obuna bo'ldim", callback_data="check_sub")])
     return InlineKeyboardMarkup(rows)
 
