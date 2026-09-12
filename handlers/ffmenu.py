@@ -25,11 +25,19 @@ async def on_back_to_ff(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+SETTINGS_INTRO_TEXT = (
+    "📱 <b>TELEFON MODELINGIZNI TANLANG!</b>\n\n"
+    "✨ Qurilmangizga mos Free Fire nastroykasini tanlang va qulay "
+    "sozlamalardan foydalaning.\n\n"
+    "Telefon brendini tanlang 👇"
+)
+
+
 async def on_ff_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     await safe_edit_message(query,
-        "📱⚙️ <b>Telefon nastroyka</b>\n\nTelefon brendini tanlang 👇",
+        SETTINGS_INTRO_TEXT,
         parse_mode="HTML",
         reply_markup=brands_keyboard(),
     )
