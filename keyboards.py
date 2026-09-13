@@ -243,6 +243,27 @@ def back_reply_keyboard() -> ReplyKeyboardMarkup:
     )
 
 
+# ---------- 🛠 Admin paneli (faqat ADMIN_ID uchun ko'rinadigan pastki menyu) ----------
+# Eslatma: bosh menyu endi hamma uchun (admin uchun ham) inline tugmalarga
+# o'tkazilgan (main_menu_keyboard() endi ReplyKeyboardRemove() qaytaradi),
+# shu sabab quyidagi tugmalar (Statistika, Nastroyka qo'shish, Turnir
+# boshqaruvi va h.k.) hech qayerda ko'rinmay qolgan edi - handler'lari
+# hali ham ishlaydi, lekin ularni bosish uchun panel kerak edi. Shu panel
+# /admin buyrug'i orqali ochiladi (faqat ADMIN_ID uchun).
+def admin_panel_keyboard() -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        [
+            [_kb(BTN_STATS), _kb(BTN_ADMIN_CREDIT)],
+            [_kb(BTN_BROADCAST), _kb(BTN_GIFT_ALL)],
+            [_kb(BTN_POST), _kb(BTN_EDIT_TEXTS)],
+            [_kb(BTN_NASTROYKA_ADD), _kb(BTN_FF_ADMIN_PANEL)],
+            [_kb(BTN_BACK)],
+        ],
+        resize_keyboard=True,
+        is_persistent=True,
+    )
+
+
 VIDEO_MIN_BALANCE = 30000
 
 ORDERS_CHANNEL_USERNAME = ORDERS_CHANNEL_ID.lstrip("@")
