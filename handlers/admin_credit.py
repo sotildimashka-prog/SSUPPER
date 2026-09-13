@@ -19,6 +19,7 @@ from keyboards import (
 WAITING_CREDIT_AMOUNT, WAITING_CREDIT_USER_ID = range(30, 32)
 WAITING_GIFT_AMOUNT = 33
 WAITING_DEDUCT_USERNAME, WAITING_DEDUCT_AMOUNT = range(34, 36)
+WAITING_BLOCK_USER_ID = 36
 
 
 async def on_admin_credit_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -38,14 +39,50 @@ async def on_credit_type_selected(update: Update, context: ContextTypes.DEFAULT_
         return ConversationHandler.END
     await query.answer()
 
-    credit_type = query.data.split(":", 1)[1]  # "money" yoki "diamond"
+    credit_type = query.data.split(":", 1)[1]  # "money", "diamond" yoki "block"
     context.user_data["credit_type"] = credit_type
+
+    if credit_type == "block":
+        await query.message.reply_text(
+            "🚫 <b>Foydalanuvchini bloklash</b>\n\n"
+            "Bloklamoqchi bo'lgan foydalanuvchining Telegram ID'sini yozing:\n\n"
+            "Bekor qilish uchun /bekor.",
+            parse_mode="HTML",
+        )
+        return WAITING_BLOCK_USER_ID
 
     label = "so'm (pul)" if credit_type == "money" else "dona almaz"
     await query.message.reply_text(
         f"💵 Qancha {label} yubormoqchisiz? (faqat raqam)\n\nBekor qilish uchun /bekor."
     )
     return WAITING_CREDIT_AMOUNT
+
+
+async def receive_block_user_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    raw = (update.message.text or "").strip()
+    if not raw.isdigit():
+        await update.message.reply_text(
+            "⚠️ Noto'g'ri format. Faqat raqamlardan iborat Telegram ID yuboring."
+        )
+        return WAITING_BLOCK_USER_ID
+
+    target_user_id = int(raw)
+    db.block_user(target_user_id)
+
+    target = db.get_user(target_user_id)
+    who = ""
+    if target:
+        who = f" ({target['first_name'] or '-'} / @{target['username'] or '—'})"
+
+    await update.message.reply_text(
+        f"🚫 Foydalanuvchi <code>{target_user_id}</code>{who} botdan bloklandi.\n\n"
+        "Endi u botdan foydalana olmaydi.",
+        parse_mode="HTML",
+        reply_markup=main_menu_keyboard(True),
+    )
+
+    context.user_data.pop("credit_type", None)
+    return ConversationHandler.END
 
 
 async def receive_credit_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
