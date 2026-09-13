@@ -156,6 +156,12 @@ def _with_ff_menu_and_help(markup, skip_nav: bool = False):
         [_ikb("🔐 Yordam", style="danger", url=HELP_ADMIN_URL)]
     )
 
+    # "Yordam" tugmasi tagida, HAR DOIM (bot ichidagi barcha inline
+    # menyularda) - ko'k rangdagi "🏆 Top foydalanuvchilar" tugmasi.
+    rows.append(
+        [_ikb("🏆 Top foydalanuvchilar", style="primary", callback_data=TOP_USERS_CB)]
+    )
+
     return InlineKeyboardMarkup(rows)
 
 
@@ -313,6 +319,29 @@ ALMAZ_PAGE3_CB = "almazish:3"
 ALMAZ_GO_CB = "almazish:go"
 ALMAZ_CONVERT_CB = "almazish:convert"
 ALMAZ_ACCOUNT_CB = "almazish:account"
+
+
+# ---------- 🏆 Top foydalanuvchilar reytingi ----------
+
+TOP_USERS_CB = "topusers:show"
+TOP_USERS_REF_CB = "topusers:ref"
+TOP_USERS_DIAMOND_CB = "topusers:dia"
+
+
+def top_users_keyboard(active: str = "ref") -> InlineKeyboardMarkup:
+    """active: 'ref' (referallar) yoki 'dia' (almazlar) - hozir qaysi
+    bo'lim ko'rsatilayotganini belgilaydi (u tugma bosilmaydigan holatda
+    ko'rsatiladi)."""
+    ref_label = "✅ 👥 Referallar" if active == "ref" else "👥 Referallar"
+    dia_label = "✅ 💎 Almazlar" if active == "dia" else "💎 Almazlar"
+    return InlineKeyboardMarkup(
+        [
+            [
+                _ikb(ref_label, callback_data=TOP_USERS_REF_CB),
+                _ikb(dia_label, callback_data=TOP_USERS_DIAMOND_CB),
+            ],
+        ]
+    )
 
 
 def start_inline_keyboard() -> InlineKeyboardMarkup:
