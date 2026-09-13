@@ -234,6 +234,27 @@ def init_db():
             )
             """
         )
+        # ---------- 🚫 Bloklangan foydalanuvchilar (admin tomonidan) ----------
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS blocked_users (
+                user_id INTEGER PRIMARY KEY,
+                blocked_at TEXT
+            )
+            """
+        )
+        # ---------- 💘 Headshot Pro - "Nastroykani olish" (telefon modeli) ----------
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS hspro_settings_requests (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                order_id INTEGER,
+                user_id INTEGER,
+                phone_model TEXT,
+                created_at TEXT
+            )
+            """
+        )
 
 
 def set_user_language(user_id: int, language: str):
@@ -788,6 +809,43 @@ def update_hspro_order_status(order_id: int, status: str):
         conn.execute(
             "UPDATE hspro_orders SET status = ? WHERE id = ?", (status, order_id)
         )
+
+
+def save_hspro_phone_model(order_id: int, user_id: int, phone_model: str):
+    """'🔧 Nastroykani olish' bosilib, foydalanuvchi telefon modelini
+    yozganda shu yerda saqlanadi (admin uchun tarix/hisobot sifatida)."""
+    now = datetime.utcnow().isoformat()
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT INTO hspro_settings_requests (order_id, user_id, phone_model, created_at) "
+            "VALUES (?, ?, ?, ?)",
+            (order_id, user_id, phone_model, now),
+        )
+
+
+# ---------------- 🚫 Bloklangan foydalanuvchilar ----------------
+
+def block_user(user_id: int):
+    now = datetime.utcnow().isoformat()
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT INTO blocked_users (user_id, blocked_at) VALUES (?, ?) "
+            "ON CONFLICT(user_id) DO UPDATE SET blocked_at = excluded.blocked_at",
+            (user_id, now),
+        )
+
+
+def unblock_user(user_id: int):
+    with get_conn() as conn:
+        conn.execute("DELETE FROM blocked_users WHERE user_id = ?", (user_id,))
+
+
+def is_user_blocked(user_id: int) -> bool:
+    with get_conn() as conn:
+        cur = conn.execute(
+            "SELECT 1 FROM blocked_users WHERE user_id = ?", (user_id,)
+        )
+        return cur.fetchone() is not None
 
 
 # ---------------- Almaz buyurtmalari ----------------
