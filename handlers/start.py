@@ -256,12 +256,49 @@ async def _send_start_message(context: ContextTypes.DEFAULT_TYPE, chat_id: int):
     )
 
 
+async def _try_credit_referral(context: ContextTypes.DEFAULT_TYPE, user_id: int):
+    """Foydalanuvchi (referal havolasi orqali kirgan bo'lsa) majburiy
+    obunani yakunlaganda chaqiriladi: agar hali mukofot berilmagan bo'lsa,
+    taklif qiluvchi va taklif qilingan ikkalasiga ham 🍎 beradi va
+    ikkalasiga ham xabar yuboradi."""
+    referrer_id = db.credit_referral_if_pending(user_id)
+    if not referrer_id:
+        return
+    reward = db.REFERRAL_APPLE_REWARD
+    try:
+        await context.bot.send_message(
+            chat_id=user_id,
+            text=f"🎉 Xush kelibsiz! Do'stingiz taklifi uchun sizga +{reward} 🍎 berildi!",
+        )
+    except TelegramError:
+        pass
+    try:
+        await context.bot.send_message(
+            chat_id=referrer_id,
+            text=(
+                f"🎉 Taklifingiz orqali yangi do'stingiz botga qo'shildi!\n"
+                f"Sizga +{reward} 🍎 berildi!"
+            ),
+        )
+    except TelegramError:
+        pass
+
+
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     is_new = db.add_user_if_new(user.id, user.first_name or "", user.username or "")
 
     if is_new:
         await notify_admin_new_user(context, user)
+
+    # ---------- 🍎 Referal havolasi orqali kirilgan bo'lsa ----------
+    # Faqat YANGI foydalanuvchi uchun ro'yxatga olinadi (mavjud
+    # foydalanuvchi eski havolani qayta bosib mukofot ololmasin).
+    if is_new and context.args:
+        payload = context.args[0]
+        if payload.startswith("ref") and payload[3:].isdigit():
+            referrer_id = int(payload[3:])
+            db.register_referral(user.id, referrer_id)
 
     if user.id in PROMO_USER_IDS and not db.has_promo_credit(user.id):
         db.add_quiz_diamonds(user.id, PROMO_DIAMOND_AMOUNT)
@@ -286,6 +323,10 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_markup=subscription_keyboard(),
             )
             return
+
+    # ✅ Obuna talabidan o'tdi (yoki admin) - agar referal orqali kirgan
+    # bo'lsa va hali mukofot berilmagan bo'lsa, hozir beriladi.
+    await _try_credit_referral(context, user.id)
 
     await _send_start_message(context, user.id)
 
@@ -593,6 +634,10 @@ async def check_subscription_callback(update: Update, context: ContextTypes.DEFA
         return
 
     await query.answer()
+
+    # 🍎 Agar referal orqali kirgan bo'lsa va hali mukofot berilmagan
+    # bo'lsa - obuna endi tasdiqlangani uchun hozir beriladi.
+    await _try_credit_referral(context, user.id)
 
     # ✅ Obuna tasdiqlandi - foydalanuvchini yangi /start buyrug'ini
     # yuborishga taklif qilamiz (menyu to'g'ridan-to'g'ri shu yerda
