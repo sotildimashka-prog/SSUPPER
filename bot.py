@@ -133,6 +133,21 @@ from handlers.menu import (
     on_ff2017_button,
     on_gotomainmenu_callback,
 )
+from handlers.headshot_pro import (
+    on_hspro_intro,
+    on_hspro_prices,
+    on_hspro_buy,
+    on_hspro_pay_method,
+    on_hspro_done,
+    receive_hspro_amount,
+    receive_hspro_receipt,
+    cancel_hspro,
+    hspro_approved,
+    hspro_rejected,
+    on_almaz_ishlash,
+    WAITING_HSPRO_AMOUNT,
+    WAITING_HSPRO_RECEIPT,
+)
 from handlers.settings import on_brand_selected, on_back_to_brands, on_model_selected
 from handlers.tablet import (
     on_tablet_button,
@@ -1103,6 +1118,36 @@ def build_application() -> Application:
         fallbacks=[CommandHandler("bekor", cancel_topup)],
     )
     app.add_handler(topup_conv)
+
+    # ---------- 💘 Headshot Pro (pullik nastroyka sotib olish) ----------
+    app.add_handler(CallbackQueryHandler(on_hspro_intro, pattern="^hspro:start$"))
+    app.add_handler(CallbackQueryHandler(on_hspro_prices, pattern="^hspro:prices$"))
+    app.add_handler(CallbackQueryHandler(on_hspro_buy, pattern="^hspro:buy$"))
+    app.add_handler(CallbackQueryHandler(on_hspro_pay_method, pattern="^hspro:pay:"))
+    app.add_handler(CallbackQueryHandler(hspro_approved, pattern="^hspro_ok:"))
+    app.add_handler(CallbackQueryHandler(hspro_rejected, pattern="^hspro_no:"))
+    app.add_handler(CallbackQueryHandler(on_almaz_ishlash, pattern="^almazish:start$"))
+
+    hspro_conv = ConversationHandler(
+        entry_points=[CallbackQueryHandler(on_hspro_done, pattern="^hspro:done:")],
+        states={
+            WAITING_HSPRO_AMOUNT: [
+                CommandHandler("bekor", cancel_hspro),
+                CallbackQueryHandler(cancel_hspro, pattern="^hspro:cancel$"),
+                CallbackQueryHandler(cancel_hspro, pattern="^hspro:buy$"),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_hspro_amount),
+            ],
+            WAITING_HSPRO_RECEIPT: [
+                CommandHandler("bekor", cancel_hspro),
+                CallbackQueryHandler(cancel_hspro, pattern="^hspro:cancel$"),
+                MessageHandler(
+                    (filters.PHOTO | filters.VIDEO) & ~filters.COMMAND, receive_hspro_receipt
+                ),
+            ],
+        },
+        fallbacks=[CommandHandler("bekor", cancel_hspro)],
+    )
+    app.add_handler(hspro_conv)
 
     # ---------- 🔥 Oddiy Rasm (nom/matn -> uslub tanlash -> natija) ----------
     oddiy_rasm_conv = ConversationHandler(
