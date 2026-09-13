@@ -679,6 +679,20 @@ def deduct_quiz_diamonds(user_id: int, amount: int) -> int:
         return actually_deducted
 
 
+def deduct_diamonds_all_users() -> int:
+    """Barcha foydalanuvchilarning 💎 almaz hisobini nolga tushiradi
+    (ommaviy yechish - foydalanuvchilarga xabar yubormaydi, buni chaqiruvchi
+    handler o'zi hal qiladi). Balansi 0 dan katta bo'lgan nechta
+    foydalanuvchidan almaz olib tashlanganini qaytaradi."""
+    with get_conn() as conn:
+        cur = conn.execute(
+            "SELECT COUNT(*) AS c FROM quiz_diamonds WHERE diamonds > 0"
+        )
+        affected = cur.fetchone()["c"]
+        conn.execute("UPDATE quiz_diamonds SET diamonds = 0")
+        return affected
+
+
 def reset_quiz_diamonds(user_id: int):
     """Foydalanuvchi 'Tekin almaz'dan yig'gan almazlarini yechib olgach, 0 ga tushiradi."""
     with get_conn() as conn:
