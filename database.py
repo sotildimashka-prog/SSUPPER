@@ -276,6 +276,16 @@ def init_db():
             )
             """
         )
+        # ---------- 🏆 Top foydalanuvchilar reytingi (har kuni yangilanadigan keshi) ----------
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS leaderboard_cache (
+                cache_key TEXT PRIMARY KEY,
+                data TEXT,
+                updated_at TEXT
+            )
+            """
+        )
 
         # ---------- 🍎➡️💎 / ⚠️ Eski bazalarni yangi ustunlar bilan ----------
         # to'ldirish (jarima tizimi uchun). CREATE TABLE IF NOT EXISTS eski
@@ -798,9 +808,9 @@ def add_balance(user_id: int, amount: int):
 
 REFERRAL_APPLE_REWARD = 2
 
-# 🍎 -> 💎 aylantirish kursi: har 10 dona 🍎 = 5 dona 💎.
+# 🍎 -> 💎 aylantirish kursi: har 10 dona 🍎 = 10 dona 💎.
 APPLE_TO_DIAMOND_RATE = 10  # bitta "guruh" hajmi (necha dona 🍎 kerak)
-APPLE_TO_DIAMOND_YIELD = 5  # bitta guruh evaziga necha dona 💎 beriladi
+APPLE_TO_DIAMOND_YIELD = 10  # bitta guruh evaziga necha dona 💎 beriladi
 
 # ⚠️ Jarima: do'st referal orqali qo'shilib, mukofot berilgach, agar
 # quyidagi soat ichida (taxminan 1-2 kun) majburiy kanallardan chiqib
@@ -1440,3 +1450,120 @@ def set_pro_user(user_id: int, is_pro: bool = True):
             )
         else:
             conn.execute("DELETE FROM pro_users WHERE user_id = ?", (user_id,))
+
+
+# ==================== 🏆 Top foydalanuvchilar reytingi ====================
+# Ikkita reyting yuritiladi: eng ko'p referal olib kelganlar va eng ko'p
+# 💎 almaz yig'ganlar. Natija leaderboard_cache jadvalida saqlanadi va
+# bot.py dagi kunlik JobQueue vazifasi orqali har kuni avtomatik
+# yangilanadi (foydalanuvchi tugmani bosganda esa faqat shu keshdan
+# o'qiladi - tezkor javob uchun).
+
+LEADERBOARD_TOP_LIMIT = 10
+
+
+def _display_name(first_name: str | None, username: str | None) -> str:
+    name = (first_name or "").strip() or "Foydalanuvchi"
+    if username:
+        return f"{name} (@{username})"
+    return name
+
+
+def get_top_referrers(limit: int = LEADERBOARD_TOP_LIMIT) -> list[dict]:
+    """Eng ko'p referal olib kelgan (mukofoti tasdiqlangan do'stlar soni
+    bo'yicha) foydalanuvchilarni qaytaradi."""
+    with get_conn() as conn:
+        cur = conn.execute(
+            """
+            SELECT r.referrer_id AS user_id,
+                   COUNT(*) AS cnt,
+                   u.first_name AS first_name,
+                   u.username AS username
+            FROM referrals r
+            LEFT JOIN users u ON u.user_id = r.referrer_id
+            WHERE r.credited = 1
+            GROUP BY r.referrer_id
+            ORDER BY cnt DESC
+            LIMIT ?
+            """,
+            (limit,),
+        )
+        rows = cur.fetchall()
+        return [
+            {
+                "user_id": row["user_id"],
+                "name": _display_name(row["first_name"], row["username"]),
+                "value": row["cnt"],
+            }
+            for row in rows
+        ]
+
+
+def get_top_diamond_holders(limit: int = LEADERBOARD_TOP_LIMIT) -> list[dict]:
+    """Hisobida eng ko'p 💎 almazi bor foydalanuvchilarni qaytaradi."""
+    with get_conn() as conn:
+        cur = conn.execute(
+            """
+            SELECT q.user_id AS user_id,
+                   q.diamonds AS diamonds,
+                   u.first_name AS first_name,
+                   u.username AS username
+            FROM quiz_diamonds q
+            LEFT JOIN users u ON u.user_id = q.user_id
+            WHERE q.diamonds > 0
+            ORDER BY q.diamonds DESC
+            LIMIT ?
+            """,
+            (limit,),
+        )
+        rows = cur.fetchall()
+        return [
+            {
+                "user_id": row["user_id"],
+                "name": _display_name(row["first_name"], row["username"]),
+                "value": row["diamonds"],
+            }
+            for row in rows
+        ]
+
+
+def refresh_leaderboard_cache():
+    """Ikkala reytingni (referal va almaz) qayta hisoblab, keshga yozadi.
+    Bot ishga tushganda va har kuni (JobQueue orqali, bot.py) chaqiriladi."""
+    now = datetime.utcnow().isoformat()
+    top_referrers = get_top_referrers()
+    top_diamonds = get_top_diamond_holders()
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT INTO leaderboard_cache (cache_key, data, updated_at) "
+            "VALUES ('top_referrers', ?, ?) "
+            "ON CONFLICT(cache_key) DO UPDATE SET data = excluded.data, "
+            "updated_at = excluded.updated_at",
+            (json.dumps(top_referrers), now),
+        )
+        conn.execute(
+            "INSERT INTO leaderboard_cache (cache_key, data, updated_at) "
+            "VALUES ('top_diamonds', ?, ?) "
+            "ON CONFLICT(cache_key) DO UPDATE SET data = excluded.data, "
+            "updated_at = excluded.updated_at",
+            (json.dumps(top_diamonds), now),
+        )
+    return top_referrers, top_diamonds
+
+
+def get_cached_leaderboard(cache_key: str) -> tuple[list, str | None]:
+    """cache_key: 'top_referrers' yoki 'top_diamonds'. Keshda mavjud bo'lsa
+    (ro'yxat, oxirgi_yangilanish_vaqti) qaytaradi, aks holda ([], None)."""
+    with get_conn() as conn:
+        cur = conn.execute(
+            "SELECT data, updated_at FROM leaderboard_cache WHERE cache_key = ?",
+            (cache_key,),
+        )
+        row = cur.fetchone()
+        if not row or not row["data"]:
+            return [], None
+        try:
+            data = json.loads(row["data"])
+        except (TypeError, ValueError):
+            data = []
+        return data, row["updated_at"]
