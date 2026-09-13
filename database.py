@@ -87,6 +87,20 @@ def init_db():
         )
         cur.execute(
             """
+            CREATE TABLE IF NOT EXISTS hspro_orders (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                method TEXT,
+                amount INTEGER,
+                file_id TEXT,
+                file_type TEXT,
+                status TEXT DEFAULT 'pending',
+                created_at TEXT
+            )
+            """
+        )
+        cur.execute(
+            """
             CREATE TABLE IF NOT EXISTS diamond_orders (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER,
@@ -747,6 +761,32 @@ def update_topup_status(request_id: int, status: str):
     with get_conn() as conn:
         conn.execute(
             "UPDATE topup_requests SET status = ? WHERE id = ?", (status, request_id)
+        )
+
+
+# ---------------- 💘 Headshot Pro (pullik nastroyka) buyurtmalari ----------------
+
+def create_hspro_order(user_id: int, method: str, amount: int, file_id: str, file_type: str) -> int:
+    now = datetime.utcnow().isoformat()
+    with get_conn() as conn:
+        cur = conn.execute(
+            "INSERT INTO hspro_orders (user_id, method, amount, file_id, file_type, status, created_at) "
+            "VALUES (?, ?, ?, ?, ?, 'pending', ?)",
+            (user_id, method, amount, file_id, file_type, now),
+        )
+        return cur.lastrowid
+
+
+def get_hspro_order(order_id: int):
+    with get_conn() as conn:
+        cur = conn.execute("SELECT * FROM hspro_orders WHERE id = ?", (order_id,))
+        return cur.fetchone()
+
+
+def update_hspro_order_status(order_id: int, status: str):
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE hspro_orders SET status = ? WHERE id = ?", (status, order_id)
         )
 
 
