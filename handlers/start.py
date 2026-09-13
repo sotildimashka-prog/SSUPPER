@@ -259,16 +259,16 @@ async def _send_start_message(context: ContextTypes.DEFAULT_TYPE, chat_id: int):
 async def _try_credit_referral(context: ContextTypes.DEFAULT_TYPE, user_id: int):
     """Foydalanuvchi (referal havolasi orqali kirgan bo'lsa) majburiy
     obunani yakunlaganda chaqiriladi: agar hali mukofot berilmagan bo'lsa,
-    taklif qiluvchi va taklif qilingan ikkalasiga ham 🍎 beradi va
+    taklif qiluvchi va taklif qilingan ikkalasiga ham 💎 almaz beradi va
     ikkalasiga ham xabar yuboradi."""
     referrer_id = db.credit_referral_if_pending(user_id)
     if not referrer_id:
         return
-    reward = db.REFERRAL_APPLE_REWARD
+    reward = db.REFERRAL_DIAMOND_REWARD
     try:
         await context.bot.send_message(
             chat_id=user_id,
-            text=f"🎉 Xush kelibsiz! Do'stingiz taklifi uchun sizga +{reward} 🍎 berildi!",
+            text=f"🎉 Xush kelibsiz! Do'stingiz taklifi uchun sizga +{reward} 💎 berildi!",
         )
     except TelegramError:
         pass
@@ -277,7 +277,7 @@ async def _try_credit_referral(context: ContextTypes.DEFAULT_TYPE, user_id: int)
             chat_id=referrer_id,
             text=(
                 f"🎉 Taklifingiz orqali yangi do'stingiz botga qo'shildi!\n"
-                f"Sizga +{reward} 🍎 berildi!"
+                f"Sizga +{reward} 💎 berildi!"
             ),
         )
     except TelegramError:
