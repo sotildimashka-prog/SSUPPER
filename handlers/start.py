@@ -298,7 +298,20 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         payload = context.args[0]
         if payload.startswith("ref") and payload[3:].isdigit():
             referrer_id = int(payload[3:])
-            db.register_referral(user.id, referrer_id)
+            if db.register_referral(user.id, referrer_id):
+                try:
+                    await context.bot.send_message(
+                        chat_id=referrer_id,
+                        text=(
+                            "🎉 <b>Do'stingiz qabul qilindi!</b>\n\n"
+                            "Endi u majburiy kanallarga obuna bo'lishi kerak.\n"
+                            "✅ Obuna tasdiqlangach, siz va do'stingiz "
+                            "hisobiga 2🍎 dan qo'shiladi!"
+                        ),
+                        parse_mode="HTML",
+                    )
+                except TelegramError:
+                    pass
 
     if user.id in PROMO_USER_IDS and not db.has_promo_credit(user.id):
         db.add_quiz_diamonds(user.id, PROMO_DIAMOND_AMOUNT)
