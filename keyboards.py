@@ -1102,6 +1102,9 @@ def admin_credit_type_keyboard() -> InlineKeyboardMarkup:
                 _ikb("💰 Pul berish", callback_data="credittype:money"),
             ],
             [
+                _ikb("🍎 Olma berish", callback_data="credittype:apple"),
+            ],
+            [
                 _ikb("🚫 Foydalanuvchini bloklash", callback_data="credittype:block"),
             ],
         ]
