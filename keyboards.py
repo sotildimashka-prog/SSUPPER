@@ -379,6 +379,14 @@ def admin_hspro_review_keyboard(order_id: int) -> InlineKeyboardMarkup:
     )
 
 
+def hspro_get_settings_keyboard(order_id: int) -> InlineKeyboardMarkup:
+    """To'lov qabul qilingandan keyin foydalanuvchiga chiqadigan
+    "🔧 Nastroykani olish" tugmasi - bosilsa telefon modeli so'raladi."""
+    return InlineKeyboardMarkup(
+        [[_ikb("🔧 Nastroykani olish", callback_data=f"hspro_getset:{order_id}")]]
+    )
+
+
 # ---------- 🆕 "🛠️ Barcha xizmatlar" - TO'LIQ INLINE ro'yxat ----------
 # MUHIM: bu klaviaturada BIRORTA HAM pastki (Reply) tugma yo'q - hammasi
 # inline. Har bir band bosilganda eski (reply tugmali) handlerlar hech
@@ -1026,7 +1034,10 @@ def admin_credit_type_keyboard() -> InlineKeyboardMarkup:
             [
                 _ikb("💎 Almaz berish", callback_data="credittype:diamond"),
                 _ikb("💰 Pul berish", callback_data="credittype:money"),
-            ]
+            ],
+            [
+                _ikb("🚫 Foydalanuvchini bloklash", callback_data="credittype:block"),
+            ],
         ]
     )
 
