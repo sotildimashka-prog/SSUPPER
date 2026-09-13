@@ -63,6 +63,11 @@ CARD_NUMBER = os.getenv("CARD_NUMBER", "9860 0366 3090 0060")
 CARD_HOLDER_NAME = os.getenv("CARD_HOLDER_NAME", "Bilolxonova Tursunoy")
 CARD_PHONE = os.getenv("CARD_PHONE", "+998 94 595 92 06")
 
+# --- 💘 Headshot Pro (pullik nastroyka) - "Bankomat orqali" karta raqami ---
+# Holder ismi va ulangan raqam yuqoridagi CARD_HOLDER_NAME / CARD_PHONE bilan
+# bir xil ishlatiladi - faqat karta raqami boshqacha.
+HSPRO_CARD_NUMBER = os.getenv("HSPRO_CARD_NUMBER", "5614 6848 9395 3933")
+
 # --- Ma'lumotlar bazasi ---
 DB_PATH = os.getenv("DB_PATH", "database.db")
 
