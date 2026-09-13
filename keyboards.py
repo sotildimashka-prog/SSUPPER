@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """Reply va Inline klaviaturalarni yaratish."""
 
+from urllib.parse import quote
+
 from telegram import (
     ReplyKeyboardMarkup,
     ReplyKeyboardRemove,
@@ -287,6 +289,7 @@ ALMAZ_PAGE2_CB = "almazish:2"
 ALMAZ_PAGE3_CB = "almazish:3"
 ALMAZ_GO_CB = "almazish:go"
 ALMAZ_CONVERT_CB = "almazish:convert"
+ALMAZ_ACCOUNT_CB = "almazish:account"
 
 
 def start_inline_keyboard() -> InlineKeyboardMarkup:
@@ -345,12 +348,28 @@ def almaz_page3_keyboard() -> InlineKeyboardMarkup:
     )
 
 
-def almaz_dashboard_keyboard() -> InlineKeyboardMarkup:
+def almaz_dashboard_keyboard(share_link: str) -> InlineKeyboardMarkup:
+    """🍎 Olma ishlash paneli tugmalari - ixcham ko'rinishi uchun asosiy
+    tugmalar 2 tadan yonma-yon joylashtirilgan."""
+    share_url = f"https://t.me/share/url?url={quote(share_link, safe='')}"
     return InlineKeyboardMarkup(
         [
-            [_ikb("💎 Olmalarni almazga aylantirish", style="primary", callback_data=ALMAZ_CONVERT_CB)],
+            [
+                _ikb("📤 Referalni ulashish", url=share_url),
+                _ikb("🍎 Olma ishlash", callback_data=ALMAZ_GO_CB),
+            ],
+            [
+                _ikb("👤 Hisobim", callback_data=ALMAZ_ACCOUNT_CB),
+                _ikb("💎 Almazga aylantirish", style="primary", callback_data=ALMAZ_CONVERT_CB),
+            ],
             [_ikb("🔙 Ortga", callback_data=ALMAZ_PAGE3_CB)],
         ]
+    )
+
+
+def almaz_account_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[_ikb("🔙 Ortga", callback_data=ALMAZ_GO_CB)]]
     )
 
 
