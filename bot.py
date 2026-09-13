@@ -131,6 +131,7 @@ from handlers.menu import (
     on_news_button,
     on_music_button,
     on_ff2017_button,
+    on_gotomainmenu_callback,
 )
 from handlers.settings import on_brand_selected, on_back_to_brands, on_model_selected
 from handlers.tablet import (
@@ -736,6 +737,12 @@ def build_application() -> Application:
 
     app.add_handler(CommandHandler("pro", grant_pro_command))
     app.add_handler(CommandHandler("nopro", revoke_pro_command))
+
+    # ---------- 🎮 Universal "Free Fire menyu" tugmasi ----------
+    # keyboards.py dagi har bir inline klaviaturaga avtomatik qo'shiladigan
+    # "🎮 Free Fire menyu" tugmasi shu yerda ushlanadi (istalgan bo'limdan
+    # bosh menyuga qaytarish uchun).
+    app.add_handler(CallbackQueryHandler(on_gotomainmenu_callback, pattern="^gotomainmenu$"))
 
     # ---------- 🌐 Til tanlash ----------
     app.add_handler(CallbackQueryHandler(on_language_selected, pattern="^lang:"))
