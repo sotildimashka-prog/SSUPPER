@@ -148,9 +148,15 @@ from handlers.headshot_pro import (
     receive_hspro_phone_model,
     cancel_hspro_get_settings,
     WAITING_HSPRO_PHONE_MODEL,
-    on_almaz_ishlash,
     WAITING_HSPRO_AMOUNT,
     WAITING_HSPRO_RECEIPT,
+)
+from handlers.almaz_ishlash import (
+    on_almaz_page1,
+    on_almaz_page2,
+    on_almaz_page3,
+    on_almaz_dashboard,
+    on_almaz_convert,
 )
 from handlers.settings import on_brand_selected, on_back_to_brands, on_model_selected
 from handlers.tablet import (
@@ -1200,7 +1206,12 @@ def build_application() -> Application:
     app.add_handler(CallbackQueryHandler(on_hspro_pay_method, pattern="^hspro:pay:"))
     app.add_handler(CallbackQueryHandler(hspro_approved, pattern="^hspro_ok:"))
     app.add_handler(CallbackQueryHandler(hspro_rejected, pattern="^hspro_no:"))
-    app.add_handler(CallbackQueryHandler(on_almaz_ishlash, pattern="^almazish:start$"))
+    app.add_handler(CallbackQueryHandler(on_almaz_page1, pattern="^almazish:start$"))
+    app.add_handler(CallbackQueryHandler(on_almaz_page1, pattern="^almazish:1$"))
+    app.add_handler(CallbackQueryHandler(on_almaz_page2, pattern="^almazish:2$"))
+    app.add_handler(CallbackQueryHandler(on_almaz_page3, pattern="^almazish:3$"))
+    app.add_handler(CallbackQueryHandler(on_almaz_dashboard, pattern="^almazish:go$"))
+    app.add_handler(CallbackQueryHandler(on_almaz_convert, pattern="^almazish:convert$"))
 
     hspro_conv = ConversationHandler(
         entry_points=[CallbackQueryHandler(on_hspro_done, pattern="^hspro:done:")],
