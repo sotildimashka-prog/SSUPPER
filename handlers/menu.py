@@ -3,11 +3,13 @@
 
 from telegram import Update, ReplyKeyboardRemove
 from telegram.ext import ContextTypes
+from telegram.error import BadRequest
 
 import database as db
 from config import ADMIN_ID, BOT_NAME, HELP_CONTACT, PREMIUM_CONTACT, NEWS_CHANNEL_URL, MUSIC_URL, WEBSITE_URL
 from keyboards import (
     main_menu_keyboard,
+    full_menu_keyboard,
     MENU_VERSION,
     brands_keyboard,
     nicknames_keyboard,
@@ -218,3 +220,32 @@ async def saytimiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         f"🌐 Saytimiz: {WEBSITE_URL}", reply_markup=website_keyboard()
     )
+
+
+# ---------- 🎮 "Free Fire menyu" - istalgan inline klaviaturaning tagidagi
+# universal tugma (avtomatik qo'shiladi, ko'ring keyboards.py) ----------
+
+async def on_gotomainmenu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Har qanday bo'limdagi "🎮 Free Fire menyu" tugmasi bosilganda
+    foydalanuvchini BOTNING TO'LIQ ASOSIY MENYUSIGA qaytaradi (barcha
+    oddiy xizmat tugmalari bilan - admin bo'lsa qo'shimcha admin
+    tugmalari bilan birga). MUHIM: shu yerda ataylab main_menu_keyboard()
+    EMAS, balki full_menu_keyboard() ishlatiladi - chunki main_menu_keyboard()
+    admin uchun FAQAT admin-panel tugmalarini (Statistika, Xabar yuborish
+    va h.k.) ko'rsatadi, oddiy foydalanuvchi tugmalari umuman ko'rinmaydi.
+    Natijada admin "🎮 Free Fire menyu" tugmasini bossa, kutilmaganda
+    "boshqacha" (faqat admin) tugmalarga tushib qolardi. full_menu_keyboard()
+    esa har doim BARCHA oddiy xizmat tugmalarini ko'rsatadi (admin bo'lsa
+    ular ustiga qo'shimcha admin tugmalari ham qo'shiladi) - shu sabab bu
+    yerda foydalanuvchi hech qachon "adashib qolmaydi"."""
+    query = update.callback_query
+    await query.answer()
+    is_admin = _is_admin(query.from_user.id)
+    try:
+        await query.message.reply_text(
+            "🏠 <b>Bosh menyu</b>\n\nKerakli bo'limni tanlang 👇",
+            parse_mode="HTML",
+            reply_markup=full_menu_keyboard(is_admin),
+        )
+    except BadRequest:
+        pass
