@@ -156,12 +156,6 @@ def _with_ff_menu_and_help(markup, skip_nav: bool = False):
         [_ikb("🔐 Yordam", style="danger", url=HELP_ADMIN_URL)]
     )
 
-    # "Yordam" tugmasi tagida, HAR DOIM (bot ichidagi barcha inline
-    # menyularda) - ko'k rangdagi "🏆 Top foydalanuvchilar" tugmasi.
-    rows.append(
-        [_ikb("🏆 Top foydalanuvchilar", style="primary", callback_data=TOP_USERS_CB)]
-    )
-
     return InlineKeyboardMarkup(rows)
 
 
@@ -356,7 +350,10 @@ def start_inline_keyboard() -> InlineKeyboardMarkup:
     """/start bosilganda chiqadigan inline tugmalar: ⚙️ Nastroykalar,
     ✨ Nik yaratish, 🎮 Nima gap?, 👤 Hisobim va yangi 💘 Headshot Pro /
     💎 Almaz ishlash. Chiroyli ko'rinishi uchun 2 tadan yonma-yon
-    joylashtirilgan."""
+    joylashtirilgan.
+
+    🏆 "Top foydalanuvchilar" tugmasi ATAYLAB faqat shu (asosiy) menyuda
+    ko'rsatiladi - botning boshqa hech bir bo'limida chiqmaydi."""
     return InlineKeyboardMarkup(
         [
             [
@@ -371,6 +368,7 @@ def start_inline_keyboard() -> InlineKeyboardMarkup:
                 _ikb("💘 Headshot Pro", callback_data=HSPRO_INTRO_CB),
                 _ikb("💎 Almaz ishlash", callback_data=ALMAZ_ISHLASH_CB),
             ],
+            [_ikb("🏆 Top foydalanuvchilar", style="primary", callback_data=TOP_USERS_CB)],
         ]
     )
 
