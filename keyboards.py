@@ -131,23 +131,27 @@ def _has_nav_button(rows) -> bool:
     return False
 
 
-def _with_ff_menu_and_help(markup):
+def _with_ff_menu_and_help(markup, skip_nav: bool = False):
     """Har qanday InlineKeyboardMarkup obyektini qabul qilib, tagiga
     kerak bo'lsa "🎮 Free Fire menyu" va har doim qizil "🎧 Yordam"
     tugmalarini qo'shib qaytaradi. Boshqa turdagi qiymatlar (masalan
-    ReplyKeyboardMarkup yoki None) o'zgarishsiz qaytariladi."""
+    ReplyKeyboardMarkup yoki None) o'zgarishsiz qaytariladi.
+
+    skip_nav=True bo'lsa, "🎮 Free Fire menyu" tugmasi HECH QACHON
+    qo'shilmaydi (masalan, bu klaviaturaning o'zi allaqachon bosh
+    menyu bo'lsa - start_inline_keyboard())."""
     if not isinstance(markup, InlineKeyboardMarkup):
         return markup
 
     rows = [list(row) for row in markup.inline_keyboard]
 
-    if not _has_nav_button(rows):
+    if not skip_nav and not _has_nav_button(rows):
         rows.append(
             [_ikb("🎮 Free Fire menyu", style="success", callback_data=GOTOMAINMENU_CB)]
         )
 
     rows.append(
-        [_ikb("🎧 Yordam", style="danger", url=HELP_ADMIN_URL)]
+        [_ikb("🔐 Yordam", style="danger", url=HELP_ADMIN_URL)]
     )
 
     return InlineKeyboardMarkup(rows)
@@ -250,52 +254,19 @@ MENU_VERSION = 10
 
 
 def full_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
-    """Barcha xizmatlar ochilgan TO'LIQ pastki menyu (eski asosiy menyu).
-    "🛠️ Barcha xizmatlar" inline tugmasi bosilganda shu klaviatura
-    yuboriladi - hech qanday handler o'zgarmagani uchun barcha eski
-    tugmalar oldingidek to'liq ishlayveradi."""
-    buttons: list[tuple[str, dict]] = [
-        (BTN_PORTAL, {"web_app": WebAppInfo(url=WEBAPP_URL)}),
-        (BTN_M2_SERVICES, {}),
-        (BTN_M2_SETTINGS, {}),
-        (BTN_M2_NICKS, {}),
-        (BTN_MAIN_RASM, {}),
-        (BTN_MAIN_VIDEO, {}),
-        (BTN_MAIN_MUSIC, {}),
-        (BTN_STORE, {}),
-        (BTN_MY_ACCOUNT, {}),
-        (BTN_M2_PAYMENTS, {}),
-        (BTN_MINI_GAMES, {}),
-        (BTN_GIFTS, {}),
-        (BTN_PRO_SUB, {}),
-        (BTN_WITHDRAW_WIN, {}),
-        (BTN_ORDERS_CHANNEL, {}),
-        (BTN_GIFT_ORDER, {}),
-        (BTN_M2_FAQ, {}),
-        (BTN_M2_DIAMONDS, {}),
-    ]
+    """MUHIM (foydalanuvchi so'rovi bo'yicha): ESKI, katta pastki
+    (Reply) menyu (🛒 Do'kon, 🎁 Giftlar, 👑 Pro obuna, 🏆 Yutiqni
+    chiqarish va h.k. - o'nlab tugma) ENDI BOTNING HECH BIR JOYIDA
+    ko'RSATILMAYDI. Butun botda endi FAQAT yangi menyu (inline: ⚙️
+    Nastroykalar / ✨ Nik yaratish / 📰 News / 👤 Hisobim -
+    start_inline_keyboard()) va har bir bo'lim tagidagi qizil
+    "🔐 Yordam" tugmasi ishlatiladi.
 
-    if is_admin:
-        buttons.extend(
-            [
-                (BTN_STATS, {}),
-                (BTN_BROADCAST, {}),
-                (BTN_POST, {}),
-                (BTN_EDIT_TEXTS, {}),
-                (BTN_ADMIN_CREDIT, {}),
-                (BTN_GIFT_ALL, {}),
-                (BTN_DEDUCT_DIAMOND, {}),
-                (BTN_FF_ADMIN_PANEL, {}),
-                (BTN_NASTROYKA_ADD, {}),
-            ]
-        )
-
-    rows = []
-    for i in range(0, len(buttons), 2):
-        chunk = buttons[i:i + 2]
-        rows.append([_kb(text, **kwargs) for text, kwargs in chunk])
-
-    return ReplyKeyboardMarkup(rows, resize_keyboard=True, is_persistent=True)
+    Funksiya butunlay o'chirilmagan (faqat bo'sh natija qaytaradi) -
+    shunchaki uni chaqiradigan o'nlab joy (handlers/*.py) buzilib
+    qolmasligi uchun. Mavjud bo'lsa, foydalanuvchidagi eski pastki
+    tugmalar oynasini ham olib tashlaydi (ReplyKeyboardRemove)."""
+    return ReplyKeyboardRemove()
 
 
 # ---------- 🆕 /start xabari (rasm + 3 ta inline tugma) ----------
@@ -505,81 +476,16 @@ def ffadmin_acc_actions_keyboard(added: bool) -> InlineKeyboardMarkup:
 
 
 def main_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
-    # Barcha tugmalar (matn, qo'shimcha kwarg) tartibida - keyin 2 tadan
-    # qatorlarga bo'linadi. Tartib chiroyli juftlashishi uchun махсус
-    # tanlangan (funksiyalarning o'zi o'zgarmaydi, faqat joylashuvi):
-    #   🗺 Free Fire Portal | 🛍 Xizmatlar
-    #   ⚙️ Nastroykalar      | 🎉 Free Fire Niklar
-    #   🖼️ Rasm Yasash       | 🎬 Video Yasash
-    #   🎵 Musiqa yaratish   | 🛒 Free Fire Do'koni
-    #   👛 Hisobim           | 💰 To'lov usullari
-    #   🎮 Mini O'yinlar     | 🎁 Sovg'alar
-    #   👑 Pro obuna         | 🏆 Yutiqni chiqarish
-    #   📢 Buyurtmalar       | 🎁 Giftlar
-    #   📬 Savollar (FAQ)    | 💎 Almaz olish
-    # MUHIM: Foydalanuvchi so'rovi bo'yicha asosiy menyudagi barcha
-    # tugmalar vaqtincha o'chirilgan - faqat "👛 Hisobim" tugmasi qoladi.
-    # Boshqa tugmalarning kodlari (BTN_PORTAL, BTN_M2_SERVICES va h.k.)
-    # va ularga tegishli handlerlar/ma'lumotlar hech qanday o'chirilmadi -
-    # ular shunchaki quyidagi ro'yxatdan olib tashlandi. Kerak bo'lsa,
-    # pastdagi qatorlarni qayta izohdan chiqarib qaytarish mumkin.
-    buttons: list[tuple[str, dict]] = [
-        # MUHIM: Foydalanuvchi so'rovi bo'yicha "👛 Hisobim" pastki (reply)
-        # tugmasi ham olib tashlandi - endi asosiy pastki menyuda (admin
-        # bo'lmagan foydalanuvchilar uchun) hech qanday tugma qolmaydi.
-        # Kodning o'zi (BTN_MY_ACCOUNT va h.k.) o'chirilmagan - kerak
-        # bo'lsa pastdagi qatorni qayta izohdan chiqarib qaytarish mumkin.
-        # (BTN_MY_ACCOUNT, {}),
-        # (BTN_PORTAL, {"web_app": WebAppInfo(url=WEBAPP_URL)}),
-        # (BTN_M2_SERVICES, {}),
-        # (BTN_M2_SETTINGS, {}),
-        # (BTN_M2_NICKS, {}),
-        # (BTN_MAIN_RASM, {}),
-        # (BTN_MAIN_VIDEO, {}),
-        # (BTN_MAIN_MUSIC, {}),
-        # (BTN_STORE, {}),
-        # (BTN_M2_PAYMENTS, {}),
-        # (BTN_MINI_GAMES, {}),
-        # (BTN_GIFTS, {}),
-        # (BTN_PRO_SUB, {}),
-        # (BTN_WITHDRAW_WIN, {}),
-        # (BTN_ORDERS_CHANNEL, {}),
-        # (BTN_GIFT_ORDER, {}),
-        # (BTN_M2_FAQ, {}),
-        # (BTN_M2_DIAMONDS, {}),
-    ]
+    """MUHIM (foydalanuvchi so'rovi bo'yicha): ESKI pastki (Reply) menyu
+    endi ADMIN uchun ham, oddiy foydalanuvchi uchun ham BUTUNLAY
+    ko'RSATILMAYDI. Butun botda navigatsiya endi FAQAT yangi menyu
+    (start_inline_keyboard()) va har bir bo'lim tagidagi qizil
+    "🔐 Yordam" tugmasi orqali amalga oshiriladi.
 
-    if is_admin:
-        buttons.extend(
-            [
-                (BTN_STATS, {}),
-                (BTN_BROADCAST, {}),
-                (BTN_POST, {}),
-                (BTN_EDIT_TEXTS, {}),
-                (BTN_ADMIN_CREDIT, {}),
-                (BTN_GIFT_ALL, {}),
-                (BTN_DEDUCT_DIAMOND, {}),
-                (BTN_FF_ADMIN_PANEL, {}),
-                (BTN_NASTROYKA_ADD, {}),
-            ]
-        )
-
-    # 2 tadan qilib qatorlarga bo'lish (funksiyalarga tegilmaydi, faqat
-    # joylashuv o'zgaradi).
-    rows = []
-    for i in range(0, len(buttons), 2):
-        chunk = buttons[i:i + 2]
-        rows.append([_kb(text, **kwargs) for text, kwargs in chunk])
-
-    # MUHIM: Foydalanuvchi so'rovi bo'yicha - agar chiqadigan pastki (reply)
-    # tugma umuman bo'lmasa (admin bo'lmagan foydalanuvchilar uchun), bo'sh
-    # ReplyKeyboardMarkup o'rniga ReplyKeyboardRemove qaytariladi - shunda
-    # ekranda "bo'sh"/qulaysiz klaviatura paneli ko'rinmaydi, u butunlay
-    # OLIB TASHLANADI (hech qanday tugma qolmaydi).
-    if not rows:
-        return ReplyKeyboardRemove()
-
-    return ReplyKeyboardMarkup(rows, resize_keyboard=True, is_persistent=True)
+    Funksiya o'zi o'chirilmagan (chaqiradigan o'nlab joy buzilmasligi
+    uchun) - shunchaki endi har doim ReplyKeyboardRemove() qaytaradi,
+    ya'ni mavjud bo'lsa eski pastki tugmalar oynasini olib tashlaydi."""
+    return ReplyKeyboardRemove()
 
 
 # ---------- 🌐 Til tanlash ----------
@@ -1657,10 +1563,21 @@ def withdraw_win_cash_not_enough_keyboard() -> InlineKeyboardMarkup:
 # "🎮 Free Fire menyu" va qizil "🎧 Yordam" tugmalari o'zi qo'shiladi.
 # ============================================================================
 
+# start_inline_keyboard() - bu allaqachon "🎮 Free Fire menyu" tugmasi
+# bosilganda ko'rsatiladigan YANGI asosiy (bosh) menyuning o'zi (⚙️
+# Nastroykalar, ✨ Nik yaratish, 📰 News, 👤 Hisobim). Shu sabab unga яна
+# bir marta "🎮 Free Fire menyu" tugmasini qo'shish shart emas (o'zini
+# o'ziga qaytaradigan ortiqcha tugma bo'lib qolardi) - faqat qizil
+# "🎧 Yordam" tugmasi qo'shiladi.
+_SKIP_NAV_BUTTON_FUNCS = {"start_inline_keyboard"}
+
+
 def _wrap_inline_keyboard_func(func):
+    skip_nav = func.__name__ in _SKIP_NAV_BUTTON_FUNCS
+
     @functools.wraps(func)
     def _wrapper(*args, **kwargs):
-        return _with_ff_menu_and_help(func(*args, **kwargs))
+        return _with_ff_menu_and_help(func(*args, **kwargs), skip_nav=skip_nav)
     return _wrapper
 
 
