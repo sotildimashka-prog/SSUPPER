@@ -333,9 +333,12 @@ def top_users_keyboard(active: str = "ref") -> InlineKeyboardMarkup:
     bo'lim ko'rsatilayotganini belgilaydi (u tugma bosilmaydigan holatda
     ko'rsatiladi).
 
-    MUHIM: pastda "🔙 Orqaga" tugmasi ataylab qo'yilgan - shu matn
-    tufayli _with_ff_menu_and_help() bu yerga endi "🎮 Free Fire menyu"
-    tugmasini QO'SHMAYDI (chunki nav tugmasi allaqachon mavjud deb topadi)."""
+    MUHIM: pastdagi "🔙 Orqaga" tugmasi ataylab "start:back" ga
+    ulangan - shu orqali foydalanuvchi haqiqiy asosiy menyuga (📰 News,
+    ⚙️ Nastroykalar, ✨ Nik yaratish, 👤 Hisobim va h.k. tugmalari bilan)
+    qaytadi. Bundan tashqari, shu matn ("orqaga") tufayli
+    _with_ff_menu_and_help() bu yerga "🎮 Free Fire menyu" tugmasini
+    endi QO'SHMAYDI (chunki nav tugmasi allaqachon mavjud deb topadi)."""
     ref_label = "✅ 👥 Referallar" if active == "ref" else "👥 Referallar"
     dia_label = "✅ 💎 Almazlar" if active == "dia" else "💎 Almazlar"
     return InlineKeyboardMarkup(
@@ -344,7 +347,7 @@ def top_users_keyboard(active: str = "ref") -> InlineKeyboardMarkup:
                 _ikb(ref_label, callback_data=TOP_USERS_REF_CB),
                 _ikb(dia_label, callback_data=TOP_USERS_DIAMOND_CB),
             ],
-            [_ikb("🔙 Orqaga", callback_data=GOTOMAINMENU_CB)],
+            [_ikb("🔙 Orqaga", callback_data="start:back")],
         ]
     )
 
