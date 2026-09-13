@@ -331,7 +331,11 @@ TOP_USERS_DIAMOND_CB = "topusers:dia"
 def top_users_keyboard(active: str = "ref") -> InlineKeyboardMarkup:
     """active: 'ref' (referallar) yoki 'dia' (almazlar) - hozir qaysi
     bo'lim ko'rsatilayotganini belgilaydi (u tugma bosilmaydigan holatda
-    ko'rsatiladi)."""
+    ko'rsatiladi).
+
+    MUHIM: pastda "🔙 Orqaga" tugmasi ataylab qo'yilgan - shu matn
+    tufayli _with_ff_menu_and_help() bu yerga endi "🎮 Free Fire menyu"
+    tugmasini QO'SHMAYDI (chunki nav tugmasi allaqachon mavjud deb topadi)."""
     ref_label = "✅ 👥 Referallar" if active == "ref" else "👥 Referallar"
     dia_label = "✅ 💎 Almazlar" if active == "dia" else "💎 Almazlar"
     return InlineKeyboardMarkup(
@@ -340,6 +344,7 @@ def top_users_keyboard(active: str = "ref") -> InlineKeyboardMarkup:
                 _ikb(ref_label, callback_data=TOP_USERS_REF_CB),
                 _ikb(dia_label, callback_data=TOP_USERS_DIAMOND_CB),
             ],
+            [_ikb("🔙 Orqaga", callback_data=GOTOMAINMENU_CB)],
         ]
     )
 
@@ -400,6 +405,11 @@ def almaz_page3_keyboard() -> InlineKeyboardMarkup:
     )
 
 
+ALMAZ_WITHDRAW_ACCOUNT_CB = "almazwd:account"
+ALMAZ_WITHDRAW_START_CB = "almazwd:start"
+ALMAZ_WITHDRAW_CANCEL_CB = "almazwd:cancel"
+
+
 def almaz_dashboard_keyboard(share_link: str) -> InlineKeyboardMarkup:
     """🍎 Olma ishlash paneli tugmalari - ixcham ko'rinishi uchun asosiy
     tugmalar 2 tadan yonma-yon joylashtirilgan."""
@@ -414,6 +424,7 @@ def almaz_dashboard_keyboard(share_link: str) -> InlineKeyboardMarkup:
                 _ikb("👤 Hisobim", callback_data=ALMAZ_ACCOUNT_CB),
                 _ikb("💎 Almazga aylantirish", style="primary", callback_data=ALMAZ_CONVERT_CB),
             ],
+            [_ikb("💎 Almaz yechish", style="primary", callback_data=ALMAZ_WITHDRAW_ACCOUNT_CB)],
             [_ikb("🔙 Ortga", callback_data=ALMAZ_PAGE3_CB)],
         ]
     )
@@ -422,6 +433,30 @@ def almaz_dashboard_keyboard(share_link: str) -> InlineKeyboardMarkup:
 def almaz_account_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [[_ikb("🔙 Ortga", callback_data=ALMAZ_GO_CB)]]
+    )
+
+
+# ---------- 💎 Almaz yechish (Referal berish bo'limi ichidan) ----------
+
+def almaz_withdraw_account_keyboard() -> InlineKeyboardMarkup:
+    """💎 jami almaz + "Almazimni yechish" tugmasi ko'rsatiladigan ekran."""
+    return InlineKeyboardMarkup(
+        [
+            [_ikb("💎 Almazimni yechish", style="primary", callback_data=ALMAZ_WITHDRAW_START_CB)],
+            [_ikb("🔙 Ortga", callback_data=ALMAZ_GO_CB)],
+        ]
+    )
+
+
+def almaz_withdraw_not_enough_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[_ikb("⬅️ Orqaga", callback_data=ALMAZ_WITHDRAW_ACCOUNT_CB)]]
+    )
+
+
+def almaz_withdraw_cancel_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[_ikb("❌ Bekor qilish", callback_data=ALMAZ_WITHDRAW_CANCEL_CB)]]
     )
 
 
@@ -591,8 +626,10 @@ TOURNAMENT_SLOT_LABELS = dict(TOURNAMENT_SLOTS)
 def nimagap_menu_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
-            [_ikb(BTN_WEBSITE, callback_data=NIMAGAP_TOURNAMENTS_CB)],
-            [_ikb("🎮 Free Fire akkauntlar", callback_data=NIMAGAP_ACCOUNTS_CB)],
+            [
+                _ikb(BTN_WEBSITE, style="success", callback_data=NIMAGAP_TOURNAMENTS_CB),
+                _ikb("🎮 Free Fire akkauntlar", style="success", callback_data=NIMAGAP_ACCOUNTS_CB),
+            ],
             [_ikb("⬅️ Bosh menyu", callback_data="start:back")],
         ]
     )
