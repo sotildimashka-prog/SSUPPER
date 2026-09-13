@@ -26,11 +26,13 @@ from keyboards import (
     hspro_card_keyboard,
     hspro_amount_nav_keyboard,
     admin_hspro_review_keyboard,
+    hspro_get_settings_keyboard,
     start_inline_keyboard,
 )
 
 WAITING_HSPRO_AMOUNT = 501
 WAITING_HSPRO_RECEIPT = 502
+WAITING_HSPRO_PHONE_MODEL = 503
 
 METHOD_LABELS = {
     "atm": "🏧 Bankomat orqali",
@@ -245,9 +247,11 @@ async def hspro_approved(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text=(
                 "🎉 <b>To'lovingiz qabul qilindi!</b>\n\n"
                 "💘 Headshot Pro nastroykangiz tez orada admin tomonidan "
-                "shaxsiy chatga yuboriladi."
+                "shaxsiy chatga yuboriladi.\n\n"
+                "👇 Nastroykangizni olish uchun pastdagi tugmani bosing."
             ),
             parse_mode="HTML",
+            reply_markup=hspro_get_settings_keyboard(order_id),
         )
     except TelegramError:
         pass
@@ -294,6 +298,83 @@ async def hspro_rejected(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
     except TelegramError:
         pass
+
+
+async def on_hspro_get_settings_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """"🔧 Nastroykani olish" tugmasi bosilganda - telefon modelini so'raydi."""
+    query = update.callback_query
+
+    order_id = int(query.data.split(":", 1)[1])
+    order = db.get_hspro_order(order_id)
+
+    if not order or order["status"] != "approved":
+        await query.answer("⚠️ Bu buyurtma topilmadi yoki hali tasdiqlanmagan.", show_alert=True)
+        return ConversationHandler.END
+
+    if query.from_user.id != order["user_id"]:
+        await query.answer("Bu tugma faqat shu buyurtma egasi uchun.", show_alert=True)
+        return ConversationHandler.END
+
+    await query.answer()
+    context.user_data["hspro_getset_order_id"] = order_id
+
+    await query.message.reply_text(
+        "📱 Telefon modelingizni kiriting (masalan: <code>iPhone 13</code> "
+        "yoki <code>Samsung A54</code>):",
+        parse_mode="HTML",
+    )
+    return WAITING_HSPRO_PHONE_MODEL
+
+
+async def receive_hspro_phone_model(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    phone_model = (update.message.text or "").strip()
+    if not phone_model:
+        await update.message.reply_text("⚠️ Iltimos, telefon modelini matn ko'rinishida yuboring.")
+        return WAITING_HSPRO_PHONE_MODEL
+
+    order_id = context.user_data.get("hspro_getset_order_id")
+    order = db.get_hspro_order(order_id) if order_id else None
+
+    if not order:
+        await update.message.reply_text(
+            "⚠️ Xatolik yuz berdi. Qaytadan boshlang.",
+            reply_markup=start_inline_keyboard(),
+        )
+        context.user_data.pop("hspro_getset_order_id", None)
+        return ConversationHandler.END
+
+    user = update.effective_user
+    db.save_hspro_phone_model(order_id, user.id, phone_model)
+
+    await update.message.reply_text(
+        "✅ <b>Nastroykangiz hozir tayyor!</b>\n\n"
+        "🛠 Admin tez orada shaxsiy chatga nastroykani yuboradi.",
+        parse_mode="HTML",
+    )
+
+    try:
+        await context.bot.send_message(
+            chat_id=ADMIN_ID,
+            text=(
+                "🔧 <b>Nastroykani olish so'rovi</b>\n\n"
+                f"👤 Foydalanuvchi: {user.first_name or '-'} (@{user.username or '—'})\n"
+                f"🆔 Telegram ID: <code>{user.id}</code>\n"
+                f"🧾 Buyurtma: #{order_id}\n"
+                f"📱 Telefon modeli: <b>{phone_model}</b>"
+            ),
+            parse_mode="HTML",
+        )
+    except TelegramError:
+        pass
+
+    context.user_data.pop("hspro_getset_order_id", None)
+    return ConversationHandler.END
+
+
+async def cancel_hspro_get_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data.pop("hspro_getset_order_id", None)
+    await update.message.reply_text("❌ Bekor qilindi.")
+    return ConversationHandler.END
 
 
 async def on_almaz_ishlash(update: Update, context: ContextTypes.DEFAULT_TYPE):
