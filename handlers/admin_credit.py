@@ -14,6 +14,7 @@ from keyboards import (
     admin_credit_type_keyboard,
     gift_all_type_keyboard,
     gift_all_confirm_keyboard,
+    deduct_all_diamonds_confirm_keyboard,
 )
 
 WAITING_CREDIT_AMOUNT, WAITING_CREDIT_USER_ID = range(30, 32)
@@ -364,6 +365,48 @@ async def receive_deduct_amount(update: Update, context: ContextTypes.DEFAULT_TY
     context.user_data.pop("deduct_target_username", None)
     context.user_data.pop("deduct_target_first_name", None)
     return ConversationHandler.END
+
+
+# ==================== 🗑 Hammadan almazni yechish (ommaviy, xabarsiz) ====================
+
+
+async def on_deduct_all_diamonds_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """🗑 Hammadan almaz yechish tugmasi - BARCHA foydalanuvchilarning 💎
+    hisobini nolga tushiradi. Foydalanuvchilarga hech qanday xabar
+    yuborilmaydi (admin so'rovi bo'yicha)."""
+    if update.effective_user.id != ADMIN_ID:
+        return
+    total_users = len(db.get_all_user_ids())
+    await update.message.reply_text(
+        "🗑 <b>Hammadan almazni yechish</b>\n\n"
+        f"⚠️ Diqqat! Bu amal <b>barcha</b> foydalanuvchilarning (jami "
+        f"{total_users} ta) 💎 almaz hisobini <b>nolga</b> tushiradi.\n"
+        "Foydalanuvchilarga bu haqda hech qanday xabar yuborilmaydi.\n\n"
+        "Davom etasizmi?",
+        parse_mode="HTML",
+        reply_markup=deduct_all_diamonds_confirm_keyboard(),
+    )
+
+
+async def on_deduct_all_diamonds_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    if query.from_user.id != ADMIN_ID:
+        await query.answer("Bu funksiya faqat admin uchun.", show_alert=True)
+        return
+    await query.answer()
+
+    if query.data.endswith(":no"):
+        await query.message.edit_text("❌ Bekor qilindi.")
+        return
+
+    affected = db.deduct_diamonds_all_users()
+    await query.message.edit_text(
+        "✅ <b>Bajarildi!</b>\n\n"
+        f"💎 Jami <b>{affected}</b> ta foydalanuvchining almaz hisobi "
+        "nolga tushirildi.\n"
+        "ℹ️ Foydalanuvchilarga xabar yuborilmadi.",
+        parse_mode="HTML",
+    )
 
 
 async def cancel_deduct(update: Update, context: ContextTypes.DEFAULT_TYPE):
