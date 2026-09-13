@@ -18,6 +18,7 @@ from config import (
     WEBAPP_URL,
     NEWS_CHANNEL_URL,
     ORDERS_CHANNEL_ID,
+    ADMIN_USERNAME,
 )
 from data.settings_data import PHONES
 from data.tablet_data import TABLETS
@@ -27,6 +28,8 @@ from data.diamonds_data import PACKAGES, SUBSCRIPTIONS, button_label
 
 
 import re
+import inspect
+import functools
 
 from data.premium_emoji_ids import EMOJI_IDS
 
@@ -83,6 +86,72 @@ def _kb(text, style=None, **kwargs):
         # ko'rinmasligining oldini olish uchun MUHIM fallback).
         kwargs.pop("icon_custom_emoji_id", None)
         return KeyboardButton(text, **kwargs)
+
+# ============================================================================
+# 🆘 Har bir INLINE menyuning tagiga avtomatik qo'shiladigan qatorlar:
+#   1) Agar menyuda hech qanday "orqaga/bosh menyu" tugmasi bo'lmasa -
+#      "🎮 Free Fire menyu" tugmasi (bosh menyuga qaytaradi).
+#   2) Har doim, eng pastda - QIZIL rangdagi "🎧 Yordam" tugmasi. Bu tugma
+#      callback emas, balki to'g'ridan-to'g'ri admin (@auwsn) bilan
+#      shaxsiy chatga o'tkazadigan URL tugmasi.
+# ============================================================================
+
+GOTOMAINMENU_CB = "gotomainmenu"
+HELP_ADMIN_URL = f"https://t.me/{ADMIN_USERNAME}"
+
+_NAV_HINT_WORDS = (
+    "orqaga",
+    "ortga",
+    "menyu",
+    "yopish",
+    "bekor",
+    "ro'yxat",
+    "royxat",
+    "qaytish",
+    "qaytar",
+)
+
+
+def _looks_like_nav_button(text: str, callback_data) -> bool:
+    lowered = (text or "").lower()
+    if any(word in lowered for word in _NAV_HINT_WORDS):
+        return True
+    if isinstance(callback_data, str):
+        cb = callback_data.lower()
+        if cb.endswith(":back") or "back" in cb or cb == GOTOMAINMENU_CB:
+            return True
+    return False
+
+
+def _has_nav_button(rows) -> bool:
+    for row in rows:
+        for btn in row:
+            if _looks_like_nav_button(getattr(btn, "text", ""), getattr(btn, "callback_data", None)):
+                return True
+    return False
+
+
+def _with_ff_menu_and_help(markup):
+    """Har qanday InlineKeyboardMarkup obyektini qabul qilib, tagiga
+    kerak bo'lsa "🎮 Free Fire menyu" va har doim qizil "🎧 Yordam"
+    tugmalarini qo'shib qaytaradi. Boshqa turdagi qiymatlar (masalan
+    ReplyKeyboardMarkup yoki None) o'zgarishsiz qaytariladi."""
+    if not isinstance(markup, InlineKeyboardMarkup):
+        return markup
+
+    rows = [list(row) for row in markup.inline_keyboard]
+
+    if not _has_nav_button(rows):
+        rows.append(
+            [_ikb("🎮 Free Fire menyu", style="success", callback_data=GOTOMAINMENU_CB)]
+        )
+
+    rows.append(
+        [_ikb("🎧 Yordam", style="danger", url=HELP_ADMIN_URL)]
+    )
+
+    return InlineKeyboardMarkup(rows)
+
 
 # ---------- Asosiy menyu (ReplyKeyboard) ----------
 
@@ -1577,3 +1646,43 @@ def withdraw_win_cash_not_enough_keyboard() -> InlineKeyboardMarkup:
             [_ikb("⬅️ Orqaga", callback_data="winwd:back")],
         ]
     )
+
+
+# ============================================================================
+# 🆘 AVTOMATIK: yuqoridagi BARCHA "*_keyboard" funksiyalari (InlineKeyboardMarkup
+# qaytaradiganlari) shu yerda avtomatik "o'raladi" - har biri chaqirilganda
+# natijaviy klaviatura _with_ff_menu_and_help() orqali o'tkaziladi. Shu
+# sababli yangi funksiya qo'shilganda ham (agar u "_keyboard" bilan tugasa
+# va InlineKeyboardMarkup qaytarsa) qo'lda hech narsa qilish shart emas -
+# "🎮 Free Fire menyu" va qizil "🎧 Yordam" tugmalari o'zi qo'shiladi.
+# ============================================================================
+
+def _wrap_inline_keyboard_func(func):
+    @functools.wraps(func)
+    def _wrapper(*args, **kwargs):
+        return _with_ff_menu_and_help(func(*args, **kwargs))
+    return _wrapper
+
+
+def _auto_wrap_all_inline_keyboards():
+    module = inspect.getmodule(_auto_wrap_all_inline_keyboards)
+    module_globals = vars(module)
+    for name, obj in list(module_globals.items()):
+        if not name.endswith("_keyboard"):
+            continue
+        if not inspect.isfunction(obj):
+            continue
+        if getattr(obj, "_ff_menu_help_wrapped", False):
+            continue
+        try:
+            ret_annotation = inspect.signature(obj).return_annotation
+        except (TypeError, ValueError):
+            continue
+        if ret_annotation is not InlineKeyboardMarkup:
+            continue
+        wrapped = _wrap_inline_keyboard_func(obj)
+        wrapped._ff_menu_help_wrapped = True
+        module_globals[name] = wrapped
+
+
+_auto_wrap_all_inline_keyboards()
