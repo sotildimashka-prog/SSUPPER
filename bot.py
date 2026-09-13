@@ -144,6 +144,10 @@ from handlers.headshot_pro import (
     cancel_hspro,
     hspro_approved,
     hspro_rejected,
+    on_hspro_get_settings_start,
+    receive_hspro_phone_model,
+    cancel_hspro_get_settings,
+    WAITING_HSPRO_PHONE_MODEL,
     on_almaz_ishlash,
     WAITING_HSPRO_AMOUNT,
     WAITING_HSPRO_RECEIPT,
@@ -305,9 +309,11 @@ from handlers.admin_credit import (
     on_credit_type_selected,
     receive_credit_amount,
     receive_credit_user_id,
+    receive_block_user_id,
     cancel_credit,
     WAITING_CREDIT_AMOUNT,
     WAITING_CREDIT_USER_ID,
+    WAITING_BLOCK_USER_ID,
     on_gift_all_button,
     on_gift_type_selected,
     receive_gift_amount,
@@ -600,6 +606,39 @@ async def _auto_refresh_menu_if_needed(update: Update, context: ContextTypes.DEF
 SUBSCRIPTION_EXEMPT_CALLBACK_PREFIXES = ("lang:", "check_sub", "player:")
 
 
+async def enforce_block_gate(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Har qanday xabar yoki tugma bosilishidan ENG OLDIN ishlaydi.
+
+    Agar foydalanuvchi admin tomonidan bloklangan bo'lsa - hech qanday
+    tugma yoki xabar ishlamaydi, faqat "bloklangansiz" degan xabar
+    ko'rsatiladi. Admin bloklashdan mustasno.
+    """
+    user = update.effective_user
+    if not user or user.id == ADMIN_ID:
+        return
+
+    if not db.is_user_blocked(user.id):
+        return
+
+    query = update.callback_query
+    block_text = "🚫 Siz botdan bloklangansiz. Admin bilan bog'laning."
+    if query is not None:
+        try:
+            await query.answer(block_text, show_alert=True)
+        except TelegramError:
+            pass
+    else:
+        target = update.effective_message
+        if target is not None:
+            try:
+                await target.reply_text(block_text)
+            except TelegramError:
+                pass
+
+    # Bloklangan foydalanuvchi uchun boshqa hech qaysi handler ishlamasin.
+    raise ApplicationHandlerStop
+
+
 async def enforce_subscription_gate(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Har qanday tugma (reply yoki inline) bosilishidan OLDIN ishlaydi.
 
@@ -710,6 +749,11 @@ def build_application() -> Application:
     app = Application.builder().token(BOT_TOKEN).post_init(post_init).build()
     app.add_error_handler(on_error)
 
+    # ---------- 🚫 Bloklangan foydalanuvchilar - ENG BIRINCHI tekshiriladi ----------
+    # group=-2 -> hatto majburiy obuna tekshiruvidan ham OLDIN ishga tushadi.
+    app.add_handler(MessageHandler(filters.ALL, enforce_block_gate), group=-2)
+    app.add_handler(CallbackQueryHandler(enforce_block_gate, pattern=None), group=-2)
+
     # ---------- 🔒 Majburiy obuna - HAMMA tugmalardan OLDIN tekshiriladi ----------
     # group=-1 -> boshqa har qanday handlerdan (guruh 0, guruh 1, ...) oldin
     # ishga tushadi. Agar foydalanuvchi obuna bo'lmasa, ApplicationHandlerStop
@@ -752,6 +796,32 @@ def build_application() -> Application:
 
     app.add_handler(CommandHandler("pro", grant_pro_command))
     app.add_handler(CommandHandler("nopro", revoke_pro_command))
+
+    # ---------- 🚫 Admin: Foydalanuvchini bloklash/blokdan chiqarish (buyruq orqali ham) ----------
+    async def block_user_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if update.effective_user.id != ADMIN_ID:
+            return
+        args = context.args
+        if not args or not args[0].isdigit():
+            await update.message.reply_text("Foydalanish: /block <telegram_id>")
+            return
+        target_id = int(args[0])
+        db.block_user(target_id)
+        await update.message.reply_text(f"🚫 <code>{target_id}</code> botdan bloklandi.", parse_mode="HTML")
+
+    async def unblock_user_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if update.effective_user.id != ADMIN_ID:
+            return
+        args = context.args
+        if not args or not args[0].isdigit():
+            await update.message.reply_text("Foydalanish: /unblock <telegram_id>")
+            return
+        target_id = int(args[0])
+        db.unblock_user(target_id)
+        await update.message.reply_text(f"✅ <code>{target_id}</code> uchun blok bekor qilindi.", parse_mode="HTML")
+
+    app.add_handler(CommandHandler("block", block_user_command))
+    app.add_handler(CommandHandler("unblock", unblock_user_command))
 
     # ---------- 🎮 Universal "Free Fire menyu" tugmasi ----------
     # keyboards.py dagi har bir inline klaviaturaga avtomatik qo'shiladigan
@@ -1024,6 +1094,10 @@ def build_application() -> Application:
                 CommandHandler("bekor", cancel_credit),
                 MessageHandler(filters.TEXT & ~filters.COMMAND, receive_credit_user_id),
             ],
+            WAITING_BLOCK_USER_ID: [
+                CommandHandler("bekor", cancel_credit),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_block_user_id),
+            ],
         },
         fallbacks=[CommandHandler("bekor", cancel_credit)],
     )
@@ -1148,6 +1222,19 @@ def build_application() -> Application:
         fallbacks=[CommandHandler("bekor", cancel_hspro)],
     )
     app.add_handler(hspro_conv)
+
+    # ---------- 🔧 Headshot Pro - "Nastroykani olish" (telefon modeli so'rash) ----------
+    hspro_getset_conv = ConversationHandler(
+        entry_points=[CallbackQueryHandler(on_hspro_get_settings_start, pattern="^hspro_getset:")],
+        states={
+            WAITING_HSPRO_PHONE_MODEL: [
+                CommandHandler("bekor", cancel_hspro_get_settings),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_hspro_phone_model),
+            ],
+        },
+        fallbacks=[CommandHandler("bekor", cancel_hspro_get_settings)],
+    )
+    app.add_handler(hspro_getset_conv)
 
     # ---------- 🔥 Oddiy Rasm (nom/matn -> uslub tanlash -> natija) ----------
     oddiy_rasm_conv = ConversationHandler(
