@@ -578,6 +578,10 @@ def brands_keyboard() -> InlineKeyboardMarkup:
         rows.append(
             [_ikb(b, callback_data=f"brand:{b}") for b in chunk]
         )
+    # QIZIL "⬅️ Orqaga" tugmasi - Bosh menyuga qaytaradi. Bu tugma
+    # borligi sababli avtomatik "🎮 Free Fire menyu" tugmasi endi
+    # bu yerga QO'SHILMAYDI (_has_nav_button uni aniqlaydi).
+    rows.append([_ikb("⬅️ Orqaga", style="danger", callback_data="start:back")])
     return InlineKeyboardMarkup(rows)
 
 
@@ -589,11 +593,18 @@ def models_keyboard(brand: str) -> InlineKeyboardMarkup:
         rows.append(
             [_ikb(m, callback_data=f"model:{m}") for m in chunk]
         )
+    # QIZIL "⬅️ Orqaga" tugmasi - brendlar ro'yxatiga qaytaradi.
+    rows.append([_ikb("⬅️ Orqaga", style="danger", callback_data="back_to_brands")])
     return InlineKeyboardMarkup(rows)
 
 
 def model_back_keyboard(brand: str) -> InlineKeyboardMarkup:
-    return None
+    # QIZIL "⬅️ Orqaga" tugmasi - shu brendning modellar ro'yxatiga
+    # qaytaradi (ilgari bu funksiya None qaytarardi va umuman tugma
+    # ko'rinmasdi - shu sabab "orqaga" tugmasi ishlamayotgandek tuyulardi).
+    return InlineKeyboardMarkup(
+        [[_ikb("⬅️ Orqaga", style="danger", callback_data=f"brand:{brand}")]]
+    )
 
 
 # ---------- 👑 Admin: Nastroyka qo'shish (brend -> model -> kontent turi) ----------
@@ -796,6 +807,8 @@ def account_keyboard() -> InlineKeyboardMarkup:
                 _ikb("💳 Humo/Uzcard orqali to'ldirish", callback_data="acc:card"),
             ],
             [_ikb("🎁 Bonus", callback_data="acc:bonus")],
+            # QIZIL "⬅️ Orqaga" tugmasi - Bosh menyuga qaytaradi.
+            [_ikb("⬅️ Orqaga", style="danger", callback_data="start:back")],
         ]
     )
 
@@ -804,7 +817,7 @@ def account_admin_keyboard(admin_username: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
             [_ikb("💬 Admin bilan bog'lanish", url=f"https://t.me/{admin_username}")],
-            [_ikb("⬅️ Orqaga", callback_data="acc:back")],
+            [_ikb("⬅️ Orqaga", style="danger", callback_data="acc:back")],
         ]
     )
 
@@ -1217,13 +1230,15 @@ def new_nicks_menu_keyboard() -> InlineKeyboardMarkup:
                 _ikb("✨ Chiroyli Niklar", callback_data="newnick:chiroyli"),
                 _ikb("🛠 Nik Yasash", callback_data="ffmenu:nick"),
             ],
+            # QIZIL "⬅️ Orqaga" tugmasi - Bosh menyuga qaytaradi.
+            [_ikb("⬅️ Orqaga", style="danger", callback_data="start:back")],
         ]
     )
 
 
 def new_nicks_back_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
-        [[_ikb("⬅️ Orqaga", callback_data="newnick:back")]]
+        [[_ikb("⬅️ Orqaga", style="danger", callback_data="newnick:back")]]
     )
 
 
