@@ -19,18 +19,24 @@ check_referral_penalties_job (JobQueue orqali davriy ishga tushadi)
 buni aniqlab, ikkala tomondan ham 🍎 ayiradi.
 """
 
+from telegram import Update
 from telegram.error import TelegramError
-from telegram.ext import ContextTypes
+from telegram.ext import ContextTypes, ConversationHandler
 
 from handlers.message_utils import safe_edit_message
 from handlers.subscription import get_unsubscribed_channels
 import database as db
+from config import ADMIN_ID
 from keyboards import (
     almaz_page1_keyboard,
     almaz_page2_keyboard,
     almaz_page3_keyboard,
     almaz_dashboard_keyboard,
     almaz_account_keyboard,
+    almaz_withdraw_account_keyboard,
+    almaz_withdraw_not_enough_keyboard,
+    almaz_withdraw_cancel_keyboard,
+    withdraw_admin_review_keyboard,
 )
 
 PAGE1_TEXT = (
@@ -183,6 +189,168 @@ async def on_almaz_convert(update, context: ContextTypes.DEFAULT_TYPE):
     await safe_edit_message(
         query, text, parse_mode="HTML", reply_markup=almaz_dashboard_keyboard(link)
     )
+
+
+# ==================== 💎 Almaz yechish (Referal berish bo'limi ichidan) ====================
+
+WAITING_ALMAZWD_FF_ID = 210
+WAITING_ALMAZWD_AMOUNT = 211
+
+MIN_ALMAZ_WITHDRAW = 200
+
+NOT_ENOUGH_ALMAZWD_TEXT = (
+    "💎 Hisobingizda almaz yetarli emas. Minimum 200 almaz yig'ing."
+)
+
+
+def _almazwd_account_text(diamonds: int) -> str:
+    return (
+        "💎 <b>Almaz yechish</b>\n\n"
+        f"Jami almazlaringiz: <b>{diamonds}</b> 💎\n\n"
+        "Yechib olish uchun pastdagi tugmani bosing 👇"
+    )
+
+
+async def on_almaz_withdraw_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """💎 Almaz yechish tugmasi (referal berish bo'limida) bosilganda -
+    foydalanuvchining jami almazi va "Almazimni yechish" tugmasi chiqadi."""
+    query = update.callback_query
+    await query.answer()
+
+    diamonds = db.get_quiz_diamonds(query.from_user.id)
+    await safe_edit_message(
+        query,
+        _almazwd_account_text(diamonds),
+        parse_mode="HTML",
+        reply_markup=almaz_withdraw_account_keyboard(),
+    )
+
+
+async def on_almaz_withdraw_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """💎 Almazimni yechish tugmasi - 200+ bo'lsa ID so'raladi, aks holda
+    "almaz yetarli emas" xabari chiqadi."""
+    query = update.callback_query
+    await query.answer()
+
+    user_id = query.from_user.id
+    diamonds = db.get_quiz_diamonds(user_id)
+
+    if diamonds < MIN_ALMAZ_WITHDRAW:
+        await safe_edit_message(
+            query,
+            NOT_ENOUGH_ALMAZWD_TEXT,
+            reply_markup=almaz_withdraw_not_enough_keyboard(),
+        )
+        return ConversationHandler.END
+
+    await safe_edit_message(
+        query,
+        "🆔 Free Fire UID (ID) raqamingizni yuboring:\n\n"
+        "Bekor qilish uchun /bekor yozing yoki pastdagi tugmani bosing.",
+        reply_markup=almaz_withdraw_cancel_keyboard(),
+    )
+    return WAITING_ALMAZWD_FF_ID
+
+
+async def receive_almazwd_ff_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    ff_id = (update.message.text or "").strip()
+
+    if not ff_id.isdigit():
+        await update.message.reply_text(
+            "⚠️ Noto'g'ri format. Faqat raqamlardan iborat Free Fire UID yuboring.",
+            reply_markup=almaz_withdraw_cancel_keyboard(),
+        )
+        return WAITING_ALMAZWD_FF_ID
+
+    context.user_data["almazwd_ff_id"] = ff_id
+
+    diamonds = db.get_quiz_diamonds(update.effective_user.id)
+    await update.message.reply_text(
+        "💎 Necha dona almaz yechmoqchisiz?\n\n"
+        f"(Kamida {MIN_ALMAZ_WITHDRAW}, hisobingizda {diamonds} dona bor)\n\n"
+        "Bekor qilish uchun /bekor yozing yoki pastdagi tugmani bosing.",
+        reply_markup=almaz_withdraw_cancel_keyboard(),
+    )
+    return WAITING_ALMAZWD_AMOUNT
+
+
+async def receive_almazwd_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    raw = (update.message.text or "").strip()
+    user = update.effective_user
+
+    if not raw.isdigit():
+        await update.message.reply_text(
+            "⚠️ Noto'g'ri format. Faqat raqam kiriting (masalan: 500).",
+            reply_markup=almaz_withdraw_cancel_keyboard(),
+        )
+        return WAITING_ALMAZWD_AMOUNT
+
+    amount = int(raw)
+    current = db.get_quiz_diamonds(user.id)
+
+    if amount < MIN_ALMAZ_WITHDRAW:
+        await update.message.reply_text(
+            f"⚠️ Kamida {MIN_ALMAZ_WITHDRAW} dona almaz yechishingiz kerak. Qaytadan kiriting:",
+            reply_markup=almaz_withdraw_cancel_keyboard(),
+        )
+        return WAITING_ALMAZWD_AMOUNT
+
+    if amount > current:
+        await update.message.reply_text(
+            f"⚠️ Sizda faqat {current} dona almaz bor. Qaytadan kiriting:",
+            reply_markup=almaz_withdraw_cancel_keyboard(),
+        )
+        return WAITING_ALMAZWD_AMOUNT
+
+    ff_id = context.user_data.get("almazwd_ff_id", "")
+    db.deduct_quiz_diamonds(user.id, amount)
+
+    await update.message.reply_text(
+        "✅ <b>So'rovingiz qabul qilindi!</b>\n\n"
+        f"💎 <b>{amount}</b> dona almaz tez orada Free Fire hisobingizga o'tkaziladi.",
+        parse_mode="HTML",
+    )
+
+    admin_text = (
+        "💎 <b>Yangi almaz yechish so'rovi (Referal bo'limi)</b>\n\n"
+        f"👤 Foydalanuvchi: {user.first_name or '-'} (@{user.username or '—'})\n"
+        f"🆔 Telegram ID: <code>{user.id}</code>\n"
+        f"🎮 Free Fire UID: <code>{ff_id}</code>\n"
+        f"💎 Miqdor: <b>{amount}</b> dona almaz\n\n"
+        "Yuborgach, pastdagi tugmani bosing 👇"
+    )
+    try:
+        await context.bot.send_message(
+            chat_id=ADMIN_ID,
+            text=admin_text,
+            parse_mode="HTML",
+            reply_markup=withdraw_admin_review_keyboard(user.id, amount, ff_id),
+        )
+    except TelegramError:
+        pass
+
+    context.user_data.pop("almazwd_ff_id", None)
+    return ConversationHandler.END
+
+
+async def on_almaz_withdraw_cancel_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    context.user_data.pop("almazwd_ff_id", None)
+    diamonds = db.get_quiz_diamonds(query.from_user.id)
+    await safe_edit_message(
+        query,
+        _almazwd_account_text(diamonds),
+        parse_mode="HTML",
+        reply_markup=almaz_withdraw_account_keyboard(),
+    )
+    return ConversationHandler.END
+
+
+async def cancel_almazwd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data.pop("almazwd_ff_id", None)
+    await update.message.reply_text("❌ Bekor qilindi.")
+    return ConversationHandler.END
 
 
 # ==================== ⚠️ Jarima tizimi (davriy tekshiruv) ====================
