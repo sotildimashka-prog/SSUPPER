@@ -51,7 +51,11 @@ async def on_credit_type_selected(update: Update, context: ContextTypes.DEFAULT_
         )
         return WAITING_BLOCK_USER_ID
 
-    label = "so'm (pul)" if credit_type == "money" else "dona almaz"
+    label = {
+        "money": "so'm (pul)",
+        "diamond": "dona almaz",
+        "apple": "dona 🍎 olma",
+    }.get(credit_type, "dona")
     await query.message.reply_text(
         f"💵 Qancha {label} yubormoqchisiz? (faqat raqam)\n\nBekor qilish uchun /bekor."
     )
@@ -120,6 +124,9 @@ async def receive_credit_user_id(update: Update, context: ContextTypes.DEFAULT_T
     if credit_type == "money":
         db.add_balance(target_user_id, amount)
         unit_text = f"{amount:,} so'm".replace(",", ".")
+    elif credit_type == "apple":
+        db.add_apples(target_user_id, amount)
+        unit_text = f"{amount} dona 🍎 olma"
     else:
         db.add_quiz_diamonds(target_user_id, amount)
         unit_text = f"{amount} dona almaz"
