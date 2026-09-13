@@ -1852,7 +1852,11 @@ def withdraw_win_cash_not_enough_keyboard() -> InlineKeyboardMarkup:
 # bir marta "🎮 Free Fire menyu" tugmasini qo'shish shart emas (o'zini
 # o'ziga qaytaradigan ortiqcha tugma bo'lib qolardi) - faqat qizil
 # "🎧 Yordam" tugmasi qo'shiladi.
-_SKIP_NAV_BUTTON_FUNCS = {"start_inline_keyboard"}
+# subscription_keyboard() - majburiy obuna ekrani. Foydalanuvchi hali
+# kanallarga obuna bo'lmagan bo'lishi mumkin, shu sabab bu yerda
+# "🎮 Free Fire menyu" tugmasi ko'rsatilmaydi ("✅ Obuna bo'ldim"
+# tugmasi tagida ortiqcha/chalg'ituvchi bo'lib qolardi).
+_SKIP_NAV_BUTTON_FUNCS = {"start_inline_keyboard", "subscription_keyboard"}
 
 
 def _wrap_inline_keyboard_func(func):
