@@ -952,6 +952,36 @@ def convert_apples_to_diamonds(
 # ==================== ⚠️ Referal jarima tizimi ====================
 
 
+def get_referral_admin_stats():
+    """Admin uchun 🍎 Olma ishlash / Referal tizimi bo'yicha umumiy
+    statistika: jami havola bosishlar, tasdiqlangan (mukofotli)
+    referallar, hali jarima tekshiruvini kutayotganlar, jami muomaladagi
+    🍎 va jami qo'llangan jarima hodisalari (taxminan)."""
+    with get_conn() as conn:
+        total_links = conn.execute("SELECT COUNT(*) c FROM referrals").fetchone()["c"]
+        total_credited = conn.execute(
+            "SELECT COUNT(*) c FROM referrals WHERE credited = 1"
+        ).fetchone()["c"]
+        pending_check = conn.execute(
+            "SELECT COUNT(*) c FROM referrals WHERE credited = 1 AND penalty_applied = 0"
+        ).fetchone()["c"]
+        total_apples = conn.execute(
+            "SELECT COALESCE(SUM(apples), 0) s FROM apples"
+        ).fetchone()["s"]
+        # Har bir jarima hodisasi ikkala tomonga ham +1 penalties qo'shadi,
+        # shu sabab yig'indini 2 ga bo'lib taxminiy hodisalar sonini olamiz.
+        total_penalty_points = conn.execute(
+            "SELECT COALESCE(SUM(penalties), 0) s FROM apples"
+        ).fetchone()["s"]
+    return {
+        "total_links": total_links,
+        "total_credited": total_credited,
+        "pending_check": pending_check,
+        "total_apples": total_apples,
+        "total_penalty_events": total_penalty_points // 2,
+    }
+
+
 def get_pending_penalty_checks(older_than_hours: int = REFERRAL_PENALTY_CHECK_HOURS):
     """Mukofot berilgan (credited=1), hali jarima tekshiruvidan
     o'tmagan (penalty_applied=0) va mukofot berilganiga kamida
