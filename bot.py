@@ -163,6 +163,14 @@ from handlers.almaz_ishlash import (
     on_almaz_convert,
     on_almaz_account,
     check_referral_penalties_job,
+    on_almaz_withdraw_account,
+    on_almaz_withdraw_start,
+    receive_almazwd_ff_id,
+    receive_almazwd_amount,
+    on_almaz_withdraw_cancel_callback,
+    cancel_almazwd,
+    WAITING_ALMAZWD_FF_ID,
+    WAITING_ALMAZWD_AMOUNT,
 )
 from handlers.settings import on_brand_selected, on_back_to_brands, on_model_selected
 from handlers.tablet import (
@@ -1287,6 +1295,30 @@ def build_application() -> Application:
     app.add_handler(CallbackQueryHandler(on_almaz_dashboard, pattern="^almazish:go$"))
     app.add_handler(CallbackQueryHandler(on_almaz_convert, pattern="^almazish:convert$"))
     app.add_handler(CallbackQueryHandler(on_almaz_account, pattern="^almazish:account$"))
+
+    # ---------- 💎 Almaz yechish (Referal berish bo'limi ichidan) ----------
+    app.add_handler(
+        CallbackQueryHandler(on_almaz_withdraw_account, pattern="^almazwd:account$")
+    )
+    almazwd_conv = ConversationHandler(
+        entry_points=[
+            CallbackQueryHandler(on_almaz_withdraw_start, pattern="^almazwd:start$")
+        ],
+        states={
+            WAITING_ALMAZWD_FF_ID: [
+                CommandHandler("bekor", cancel_almazwd),
+                CallbackQueryHandler(on_almaz_withdraw_cancel_callback, pattern="^almazwd:cancel$"),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_almazwd_ff_id),
+            ],
+            WAITING_ALMAZWD_AMOUNT: [
+                CommandHandler("bekor", cancel_almazwd),
+                CallbackQueryHandler(on_almaz_withdraw_cancel_callback, pattern="^almazwd:cancel$"),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_almazwd_amount),
+            ],
+        },
+        fallbacks=[CommandHandler("bekor", cancel_almazwd)],
+    )
+    app.add_handler(almazwd_conv)
 
     hspro_conv = ConversationHandler(
         entry_points=[CallbackQueryHandler(on_hspro_done, pattern="^hspro:done:")],
