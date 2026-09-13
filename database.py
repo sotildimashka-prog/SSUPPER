@@ -7,7 +7,7 @@ buni README.md faylida batafsil tushuntirilgan.
 
 import sqlite3
 import json
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from contextlib import contextmanager
 
 from config import DB_PATH
@@ -77,7 +77,8 @@ def init_db():
             """
             CREATE TABLE IF NOT EXISTS apples (
                 user_id INTEGER PRIMARY KEY,
-                apples INTEGER DEFAULT 0
+                apples INTEGER DEFAULT 0,
+                penalties INTEGER DEFAULT 0
             )
             """
         )
@@ -87,7 +88,9 @@ def init_db():
                 referred_id INTEGER PRIMARY KEY,
                 referrer_id INTEGER,
                 credited INTEGER DEFAULT 0,
-                created_at TEXT
+                created_at TEXT,
+                credited_at TEXT,
+                penalty_applied INTEGER DEFAULT 0
             )
             """
         )
@@ -273,6 +276,21 @@ def init_db():
             )
             """
         )
+
+        # ---------- 🍎➡️💎 / ⚠️ Eski bazalarni yangi ustunlar bilan ----------
+        # to'ldirish (jarima tizimi uchun). CREATE TABLE IF NOT EXISTS eski
+        # (allaqachon yaratilgan) jadvalga yangi ustun qo'shmaydi, shu sabab
+        # bu yerda alohida ALTER TABLE bilan qo'shib qo'yamiz - agar ustun
+        # allaqachon mavjud bo'lsa xato e'tiborsiz qoldiriladi.
+        for alter_sql in (
+            "ALTER TABLE apples ADD COLUMN penalties INTEGER DEFAULT 0",
+            "ALTER TABLE referrals ADD COLUMN credited_at TEXT",
+            "ALTER TABLE referrals ADD COLUMN penalty_applied INTEGER DEFAULT 0",
+        ):
+            try:
+                cur.execute(alter_sql)
+            except sqlite3.OperationalError:
+                pass
 
 
 def set_user_language(user_id: int, language: str):
@@ -766,10 +784,15 @@ def add_balance(user_id: int, amount: int):
 
 REFERRAL_APPLE_REWARD = 2
 
-# 🍎 -> 💎 aylantirish kursi: har 10 dona 🍎 = 1 dona 💎.
-# (Spec'da aniq kurs berilmagan - bu standart/default qiymat, kerak bo'lsa
-# shu yerda o'zgartirish mumkin.)
-APPLE_TO_DIAMOND_RATE = 10
+# 🍎 -> 💎 aylantirish kursi: har 10 dona 🍎 = 5 dona 💎.
+APPLE_TO_DIAMOND_RATE = 10  # bitta "guruh" hajmi (necha dona 🍎 kerak)
+APPLE_TO_DIAMOND_YIELD = 5  # bitta guruh evaziga necha dona 💎 beriladi
+
+# ⚠️ Jarima: do'st referal orqali qo'shilib, mukofot berilgach, agar
+# quyidagi soat ichida (taxminan 1-2 kun) majburiy kanallardan chiqib
+# ketsa - ikkalasining hisobidan ham shuncha 🍎 ayiriladi.
+REFERRAL_PENALTY_APPLES = 2
+REFERRAL_PENALTY_CHECK_HOURS = 36
 
 
 def get_apples(user_id: int) -> int:
@@ -841,8 +864,9 @@ def credit_referral_if_pending(referred_id: int) -> int | None:
             return None
         referrer_id = row["referrer_id"]
         updated = conn.execute(
-            "UPDATE referrals SET credited = 1 WHERE referred_id = ? AND credited = 0",
-            (referred_id,),
+            "UPDATE referrals SET credited = 1, credited_at = ? "
+            "WHERE referred_id = ? AND credited = 0",
+            (datetime.utcnow().isoformat(), referred_id),
         )
         if updated.rowcount == 0:
             return None
@@ -856,8 +880,8 @@ def credit_referral_if_pending(referred_id: int) -> int | None:
 
 
 def count_referrals(user_id: int) -> int:
-    """Shu foydalanuvchi taklif qilgan va mukofot berilgan do'stlar sonini
-    qaytaradi."""
+    """Shu foydalanuvchi taklif qilgan va mukofot berilgan (obunasi
+    tasdiqlangan) do'stlar sonini qaytaradi."""
     with get_conn() as conn:
         cur = conn.execute(
             "SELECT COUNT(*) AS c FROM referrals WHERE referrer_id = ? AND credited = 1",
@@ -867,21 +891,49 @@ def count_referrals(user_id: int) -> int:
         return row["c"] if row else 0
 
 
-def convert_apples_to_diamonds(user_id: int, rate: int = APPLE_TO_DIAMOND_RATE):
-    """Foydalanuvchining 🍎 balansidagi to'liq guruhlarni (har `rate` dona
-    🍎 = 1 💎) Almazga aylantiradi. Qolgan (guruhga yetmagan) 🍎lar
-    hisobda saqlanib qoladi. (diamonds_berildi, ishlatilgan_olma) ni
-    qaytaradi - agar yetarli 🍎 bo'lmasa (0, 0) qaytadi."""
+def count_referral_links(user_id: int) -> int:
+    """Shu foydalanuvchining referal havolasi orqali /start bosgan barcha
+    foydalanuvchilar sonini (hali obunasi tasdiqlanmaganlar ham) qaytaradi."""
+    with get_conn() as conn:
+        cur = conn.execute(
+            "SELECT COUNT(*) AS c FROM referrals WHERE referrer_id = ?",
+            (user_id,),
+        )
+        row = cur.fetchone()
+        return row["c"] if row else 0
+
+
+def get_penalties(user_id: int) -> int:
+    """Foydalanuvchiga qo'llangan jarimalar sonini qaytaradi."""
+    with get_conn() as conn:
+        cur = conn.execute(
+            "SELECT penalties FROM apples WHERE user_id = ?", (user_id,)
+        )
+        row = cur.fetchone()
+        return row["penalties"] if row else 0
+
+
+def convert_apples_to_diamonds(
+    user_id: int,
+    group_size: int = APPLE_TO_DIAMOND_RATE,
+    yield_per_group: int = APPLE_TO_DIAMOND_YIELD,
+):
+    """Foydalanuvchining 🍎 balansidagi to'liq guruhlarni (har `group_size`
+    dona 🍎 = `yield_per_group` dona 💎) Almazga aylantiradi. Qolgan
+    (guruhga yetmagan) 🍎lar hisobda saqlanib qoladi. (diamonds_berildi,
+    ishlatilgan_olma) ni qaytaradi - agar yetarli 🍎 bo'lmasa (0, 0)
+    qaytadi."""
     with get_conn() as conn:
         cur = conn.execute("SELECT apples FROM apples WHERE user_id = ?", (user_id,))
         row = cur.fetchone()
         current = row["apples"] if row else 0
 
-        diamonds = current // rate
-        if diamonds <= 0:
+        groups = current // group_size
+        if groups <= 0:
             return 0, 0
 
-        used = diamonds * rate
+        used = groups * group_size
+        diamonds = groups * yield_per_group
         remaining = current - used
 
         conn.execute(
@@ -895,6 +947,59 @@ def convert_apples_to_diamonds(user_id: int, rate: int = APPLE_TO_DIAMOND_RATE):
             (user_id, diamonds),
         )
         return diamonds, used
+
+
+# ==================== ⚠️ Referal jarima tizimi ====================
+
+
+def get_pending_penalty_checks(older_than_hours: int = REFERRAL_PENALTY_CHECK_HOURS):
+    """Mukofot berilgan (credited=1), hali jarima tekshiruvidan
+    o'tmagan (penalty_applied=0) va mukofot berilganiga kamida
+    `older_than_hours` soat bo'lgan referallar ro'yxatini qaytaradi:
+    [(referred_id, referrer_id), ...]."""
+    cutoff = (datetime.utcnow() - timedelta(hours=older_than_hours)).isoformat()
+    with get_conn() as conn:
+        cur = conn.execute(
+            "SELECT referred_id, referrer_id FROM referrals "
+            "WHERE credited = 1 AND penalty_applied = 0 "
+            "AND credited_at IS NOT NULL AND credited_at <= ?",
+            (cutoff,),
+        )
+        return [(r["referred_id"], r["referrer_id"]) for r in cur.fetchall()]
+
+
+def mark_penalty_checked(referred_id: int):
+    """Referalni jarima tekshiruvidan o'tgan deb belgilaydi (jarima
+    qo'llanganmi yoki yo'qmi - farqi yo'q, qayta tekshirilmasligi uchun)."""
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE referrals SET penalty_applied = 1 WHERE referred_id = ?",
+            (referred_id,),
+        )
+
+
+def apply_referral_penalty(
+    referred_id: int, referrer_id: int, amount: int = REFERRAL_PENALTY_APPLES
+):
+    """Do'st majburiy kanaldan chiqib ketgani uchun ikkala tomondan ham
+    `amount` dona 🍎 ayiradi (0 dan pastga tushmaydi) va jarima
+    hisoblagichini oshiradi, so'ng referalni tekshirilgan deb belgilaydi."""
+    with get_conn() as conn:
+        for uid in (referred_id, referrer_id):
+            cur = conn.execute("SELECT apples FROM apples WHERE user_id = ?", (uid,))
+            row = cur.fetchone()
+            current = row["apples"] if row else 0
+            new_apples = max(0, current - amount)
+            conn.execute(
+                "INSERT INTO apples (user_id, apples, penalties) VALUES (?, ?, 1) "
+                "ON CONFLICT(user_id) DO UPDATE SET "
+                "apples = excluded.apples, penalties = penalties + 1",
+                (uid, new_apples),
+            )
+        conn.execute(
+            "UPDATE referrals SET penalty_applied = 1 WHERE referred_id = ?",
+            (referred_id,),
+        )
 
 
 def deduct_balance(user_id: int, amount: int) -> bool:
