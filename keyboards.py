@@ -282,6 +282,11 @@ NIMAGAP_CB = "nimagap:menu"
 
 HSPRO_INTRO_CB = "hspro:start"
 ALMAZ_ISHLASH_CB = "almazish:start"
+ALMAZ_PAGE1_CB = "almazish:1"
+ALMAZ_PAGE2_CB = "almazish:2"
+ALMAZ_PAGE3_CB = "almazish:3"
+ALMAZ_GO_CB = "almazish:go"
+ALMAZ_CONVERT_CB = "almazish:convert"
 
 
 def start_inline_keyboard() -> InlineKeyboardMarkup:
@@ -303,6 +308,48 @@ def start_inline_keyboard() -> InlineKeyboardMarkup:
                 _ikb("💘 Headshot Pro", callback_data=HSPRO_INTRO_CB),
                 _ikb("💎 Almaz ishlash", callback_data=ALMAZ_ISHLASH_CB),
             ],
+        ]
+    )
+
+
+# ---------- 🍎 Almaz ishlash (Olma yig'ish + Referal) ----------
+
+def almaz_page1_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                _ikb("⬅️ Orqaga", callback_data="start:back"),
+                _ikb("➡️ Keyingisi", callback_data=ALMAZ_PAGE2_CB),
+            ]
+        ]
+    )
+
+
+def almaz_page2_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                _ikb("🔙 Ortga", callback_data=ALMAZ_PAGE1_CB),
+                _ikb("➡️ Keyingisi", callback_data=ALMAZ_PAGE3_CB),
+            ]
+        ]
+    )
+
+
+def almaz_page3_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [_ikb("🔙 Ortga", callback_data=ALMAZ_PAGE2_CB)],
+            [_ikb("🔵 🍎 Olma ishlash", style="primary", callback_data=ALMAZ_GO_CB)],
+        ]
+    )
+
+
+def almaz_dashboard_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [_ikb("💎 Olmalarni almazga aylantirish", style="primary", callback_data=ALMAZ_CONVERT_CB)],
+            [_ikb("🔙 Ortga", callback_data=ALMAZ_PAGE3_CB)],
         ]
     )
 
