@@ -280,10 +280,15 @@ START_SERVICES_CB = "start:services"
 NIMAGAP_CB = "nimagap:menu"
 
 
+HSPRO_INTRO_CB = "hspro:start"
+ALMAZ_ISHLASH_CB = "almazish:start"
+
+
 def start_inline_keyboard() -> InlineKeyboardMarkup:
     """/start bosilganda chiqadigan inline tugmalar: ⚙️ Nastroykalar,
-    ✨ Nik yaratish, 🎮 Nima gap? va eng pastda 👤 Hisobim.
-    Chiroyli ko'rinishi uchun 2 tadan yonma-yon joylashtirilgan."""
+    ✨ Nik yaratish, 🎮 Nima gap?, 👤 Hisobim va yangi 💘 Headshot Pro /
+    💎 Almaz ishlash. Chiroyli ko'rinishi uchun 2 tadan yonma-yon
+    joylashtirilgan."""
     return InlineKeyboardMarkup(
         [
             [
@@ -294,6 +299,82 @@ def start_inline_keyboard() -> InlineKeyboardMarkup:
                 _ikb("📰 News", callback_data=NIMAGAP_CB),
                 _ikb("👤 Hisobim", callback_data=START_ACCOUNT_CB),
             ],
+            [
+                _ikb("💘 Headshot Pro", callback_data=HSPRO_INTRO_CB),
+                _ikb("💎 Almaz ishlash", callback_data=ALMAZ_ISHLASH_CB),
+            ],
+        ]
+    )
+
+
+# ---------- 💘 Headshot Pro (pullik nastroyka sotib olish) ----------
+
+HSPRO_PRICES_CB = "hspro:prices"
+HSPRO_BUY_CB = "hspro:buy"
+HSPRO_CANCEL_CB = "hspro:cancel"
+
+
+def hspro_intro_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                _ikb("⬅️ Orqaga", callback_data="start:back"),
+                _ikb("Keyingisi ➡️", callback_data=HSPRO_PRICES_CB),
+            ]
+        ]
+    )
+
+
+def hspro_prices_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                _ikb("⬅️ Orqaga", callback_data=HSPRO_INTRO_CB),
+                _ikb("🛒 Sotib olaman", callback_data=HSPRO_BUY_CB),
+            ]
+        ]
+    )
+
+
+def hspro_payment_method_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [_ikb("🏧 Bankomat orqali", callback_data="hspro:pay:atm")],
+            [_ikb("💳 Humo/Uzcard orqali", callback_data="hspro:pay:humo")],
+            [_ikb("⬅️ Orqaga", callback_data=HSPRO_PRICES_CB)],
+        ]
+    )
+
+
+def hspro_card_keyboard(method: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [_ikb("✅ Bajarildi", callback_data=f"hspro:done:{method}")],
+            [_ikb("⬅️ Orqaga", callback_data=HSPRO_BUY_CB)],
+        ]
+    )
+
+
+def hspro_amount_nav_keyboard() -> InlineKeyboardMarkup:
+    """💰 'Qancha to'lov qildingiz?' so'ralayotganda chiqadigan
+    Orqaga / Bekor qilish tugmalari."""
+    return InlineKeyboardMarkup(
+        [
+            [
+                _ikb("⬅️ Orqaga", callback_data=HSPRO_BUY_CB),
+                _ikb("❌ Bekor qilish", callback_data=HSPRO_CANCEL_CB),
+            ]
+        ]
+    )
+
+
+def admin_hspro_review_keyboard(order_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                _ikb("✅ Qabul qilamiz", callback_data=f"hspro_ok:{order_id}"),
+                _ikb("❌ Yo'q", callback_data=f"hspro_no:{order_id}"),
+            ]
         ]
     )
 
