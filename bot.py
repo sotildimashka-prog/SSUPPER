@@ -158,9 +158,7 @@ from handlers.headshot_pro import (
 from handlers.almaz_ishlash import (
     on_almaz_page1,
     on_almaz_page2,
-    on_almaz_page3,
     on_almaz_dashboard,
-    on_almaz_convert,
     on_almaz_account,
     check_referral_penalties_job,
     on_almaz_withdraw_account,
@@ -1291,9 +1289,7 @@ def build_application() -> Application:
     app.add_handler(CallbackQueryHandler(on_almaz_page1, pattern="^almazish:start$"))
     app.add_handler(CallbackQueryHandler(on_almaz_page1, pattern="^almazish:1$"))
     app.add_handler(CallbackQueryHandler(on_almaz_page2, pattern="^almazish:2$"))
-    app.add_handler(CallbackQueryHandler(on_almaz_page3, pattern="^almazish:3$"))
     app.add_handler(CallbackQueryHandler(on_almaz_dashboard, pattern="^almazish:go$"))
-    app.add_handler(CallbackQueryHandler(on_almaz_convert, pattern="^almazish:convert$"))
     app.add_handler(CallbackQueryHandler(on_almaz_account, pattern="^almazish:account$"))
 
     # ---------- 💎 Almaz yechish (Referal berish bo'limi ichidan) ----------
