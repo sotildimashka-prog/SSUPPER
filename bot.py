@@ -24,6 +24,7 @@ import database as db
 from config import BOT_TOKEN, ADMIN_ID
 from keyboards import (
     main_menu_keyboard,
+    admin_panel_keyboard,
     MENU_VERSION,
     BTN_SETTINGS,
     BTN_NICKS,
@@ -551,6 +552,20 @@ async def on_stray_menu_button(update: Update, context: ContextTypes.DEFAULT_TYP
     return ConversationHandler.END
 
 
+async def admin_panel_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """/admin - faqat ADMIN_ID uchun: eski admin panel tugmalarini
+    (Statistika, Admin buyrug'i, Xabar yuborish, Nastroyka qo'shish,
+    Turnir boshqaruvi va h.k.) pastki menyu sifatida ochadi."""
+    user = update.effective_user
+    if not user or user.id != ADMIN_ID:
+        return
+    await update.message.reply_text(
+        "🛠 <b>Admin paneli</b>\n\nKerakli bo'limni tanlang 👇",
+        parse_mode="HTML",
+        reply_markup=admin_panel_keyboard(),
+    )
+
+
 async def on_back_to_main(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """🔙 Orqaga - istalgan ichki bo'limdan bosh menyuga qaytaradi."""
     user = update.effective_user
@@ -787,6 +802,7 @@ def build_application() -> Application:
 
     # ---------- Buyruqlar ----------
     app.add_handler(CommandHandler("start", start_command))
+    app.add_handler(CommandHandler("admin", admin_panel_command))
     app.add_handler(CommandHandler("haqida", haqida_command))
     app.add_handler(CommandHandler("menu", menu_command))
     app.add_handler(CommandHandler("update", update_command))
