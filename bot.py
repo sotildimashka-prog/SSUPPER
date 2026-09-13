@@ -48,6 +48,7 @@ from keyboards import (
     BTN_WITHDRAW,
     BTN_GIFT_ALL,
     BTN_DEDUCT_DIAMOND,
+    BTN_DEDUCT_ALL_DIAMONDS,
     BTN_FF2017,
     BTN_MAIN_FF,
     BTN_MAIN_DIAMONDS,
@@ -335,6 +336,8 @@ from handlers.admin_credit import (
     cancel_deduct,
     WAITING_DEDUCT_USERNAME,
     WAITING_DEDUCT_AMOUNT,
+    on_deduct_all_diamonds_button,
+    on_deduct_all_diamonds_confirm,
 )
 from handlers.withdraw import (
     on_withdraw_button,
@@ -523,6 +526,7 @@ _ALL_MENU_BUTTON_TEXTS = [
     BTN_NEWS, BTN_MUSIC, BTN_QUIZ, BTN_DIAMONDS, BTN_ACCOUNT, BTN_HELP,
     BTN_GUIDES, BTN_FAQ, BTN_STATS, BTN_BROADCAST, BTN_POST, BTN_EDIT_TEXTS,
     BTN_ADMIN_CREDIT, BTN_WITHDRAW, BTN_GIFT_ALL, BTN_DEDUCT_DIAMOND,
+    BTN_DEDUCT_ALL_DIAMONDS,
     BTN_FF2017, BTN_MAIN_FF, BTN_MAIN_DIAMONDS, BTN_MAIN_SERVICES,
     BTN_MAIN_PROFILE, BTN_M2_DIAMONDS, BTN_M2_SERVICES, BTN_M2_SETTINGS,
     BTN_M2_NICKS, BTN_M2_PAYMENTS, BTN_GIFTS, BTN_MAIN_RASM, BTN_MAIN_VIDEO,
@@ -1176,6 +1180,14 @@ def build_application() -> Application:
         fallbacks=[CommandHandler("bekor", cancel_deduct)],
     )
     app.add_handler(deduct_diamond_conv)
+
+    # ---------- 🗑 Hammadan almazni yechish (ommaviy, xabarsiz, faqat admin) ----------
+    app.add_handler(
+        MessageHandler(_exact(BTN_DEDUCT_ALL_DIAMONDS), on_deduct_all_diamonds_button)
+    )
+    app.add_handler(
+        CallbackQueryHandler(on_deduct_all_diamonds_confirm, pattern="^deductall:")
+    )
 
     # ---------- 💎 Almaz yechish (Tekin almazdan yig'ilganini yechib olish) ----------
     # 🆕 Oqim: "profile:withdraw" / "winwd:diamond" -> avval "Hisobim" ko'rsatiladi
