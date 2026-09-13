@@ -64,12 +64,19 @@ async def on_stats_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not _admin_only(update):
         return
     stats = db.get_stats()
+    ref_stats = db.get_referral_admin_stats()
     text = (
         "📊 <b>Statistika</b>\n\n"
         f"👥 Jami foydalanuvchilar: <b>{stats['total_users']}</b>\n"
         f"📅 Bugungi yangi foydalanuvchilar: <b>{stats['today_users']}</b>\n"
         f"📈 Bugungi /start bosishlar: <b>{stats['today_starts']}</b>\n"
-        f"📨 Jami xabarlar soni: <b>{stats['total_messages']}</b>"
+        f"📨 Jami xabarlar soni: <b>{stats['total_messages']}</b>\n\n"
+        "🍎 <b>Olma ishlash / Referal</b>\n"
+        f"🔗 Jami referal havolalar: <b>{ref_stats['total_links']}</b>\n"
+        f"👥 Tasdiqlangan (mukofotli) referallar: <b>{ref_stats['total_credited']}</b>\n"
+        f"⏳ Jarima tekshiruvini kutayotganlar: <b>{ref_stats['pending_check']}</b>\n"
+        f"⚠️ Qo'llangan jarimalar (taxminan): <b>{ref_stats['total_penalty_events']}</b>\n"
+        f"🍎 Muomaladagi jami olmalar: <b>{ref_stats['total_apples']}</b>"
     )
     await update.message.reply_text(text, parse_mode="HTML")
 
