@@ -157,6 +157,8 @@ from handlers.almaz_ishlash import (
     on_almaz_page3,
     on_almaz_dashboard,
     on_almaz_convert,
+    on_almaz_account,
+    check_referral_penalties_job,
 )
 from handlers.settings import on_brand_selected, on_back_to_brands, on_model_selected
 from handlers.tablet import (
@@ -755,6 +757,22 @@ def build_application() -> Application:
     app = Application.builder().token(BOT_TOKEN).post_init(post_init).build()
     app.add_error_handler(on_error)
 
+    # ---------- ⚠️ Referal jarima tizimi (davriy tekshiruv) ----------
+    # Har 30 daqiqada mukofot berilgan referallarni tekshirib, agar do'st
+    # 1-2 kun ichida majburiy kanallardan chiqib ketgan bo'lsa jarima
+    # qo'llaydi. JobQueue faqat "python-telegram-bot[job-queue]" (APScheduler)
+    # o'rnatilgan bo'lsa ishlaydi - aks holda shu bo'lim jimgina o'tkazib
+    # yuboriladi (botning qolgan qismi ishlashda davom etadi).
+    if app.job_queue is not None:
+        app.job_queue.run_repeating(
+            check_referral_penalties_job, interval=1800, first=60
+        )
+    else:
+        logging.warning(
+            "JobQueue mavjud emas - 'pip install python-telegram-bot[job-queue]' "
+            "o'rnatilmaguncha referal jarima tizimi ishlamaydi."
+        )
+
     # ---------- 🚫 Bloklangan foydalanuvchilar - ENG BIRINCHI tekshiriladi ----------
     # group=-2 -> hatto majburiy obuna tekshiruvidan ham OLDIN ishga tushadi.
     app.add_handler(MessageHandler(filters.ALL, enforce_block_gate), group=-2)
@@ -1212,6 +1230,7 @@ def build_application() -> Application:
     app.add_handler(CallbackQueryHandler(on_almaz_page3, pattern="^almazish:3$"))
     app.add_handler(CallbackQueryHandler(on_almaz_dashboard, pattern="^almazish:go$"))
     app.add_handler(CallbackQueryHandler(on_almaz_convert, pattern="^almazish:convert$"))
+    app.add_handler(CallbackQueryHandler(on_almaz_account, pattern="^almazish:account$"))
 
     hspro_conv = ConversationHandler(
         entry_points=[CallbackQueryHandler(on_hspro_done, pattern="^hspro:done:")],
