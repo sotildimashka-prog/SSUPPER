@@ -186,6 +186,7 @@ BTN_WITHDRAW = "💎 Almaz yechish"
 BTN_ADMIN_CREDIT = "🛠 Admin buyrug'i"
 BTN_GIFT_ALL = "🎁 Hammaga sovg'a"
 BTN_DEDUCT_DIAMOND = "➖ Almazni ayirish"
+BTN_DEDUCT_ALL_DIAMONDS = "🗑 Hammadan almaz yechish"
 BTN_FF_ADMIN_PANEL = "🗂 Turnir/Akkaunt boshqaruvi"
 
 # ---------- 🛒 Free Fire Do'koni / 🎁 Giftlar / 🏆 Yutiqni chiqarish ----------
@@ -257,6 +258,7 @@ def admin_panel_keyboard() -> ReplyKeyboardMarkup:
             [_kb(BTN_BROADCAST), _kb(BTN_GIFT_ALL)],
             [_kb(BTN_POST), _kb(BTN_EDIT_TEXTS)],
             [_kb(BTN_NASTROYKA_ADD), _kb(BTN_FF_ADMIN_PANEL)],
+            [_kb(BTN_DEDUCT_DIAMOND), _kb(BTN_DEDUCT_ALL_DIAMONDS)],
             [_kb(BTN_BACK)],
         ],
         resize_keyboard=True,
@@ -1151,6 +1153,23 @@ def gift_all_confirm_keyboard() -> InlineKeyboardMarkup:
             [
                 _ikb("✅ Ha, yubor", callback_data="giftall_confirm"),
                 _ikb("❌ Bekor qilish", callback_data="giftall_cancel"),
+            ]
+        ]
+    )
+
+
+# ---------- 🗑 Hammadan almazni yechish (ommaviy, xabarsiz) ----------
+
+DEDUCT_ALL_CONFIRM_YES_CB = "deductall:yes"
+DEDUCT_ALL_CONFIRM_NO_CB = "deductall:no"
+
+
+def deduct_all_diamonds_confirm_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                _ikb("✅ Ha, hammadan yechilsin", style="primary", callback_data=DEDUCT_ALL_CONFIRM_YES_CB),
+                _ikb("❌ Bekor qilish", callback_data=DEDUCT_ALL_CONFIRM_NO_CB),
             ]
         ]
     )
