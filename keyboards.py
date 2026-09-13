@@ -309,9 +309,7 @@ HSPRO_INTRO_CB = "hspro:start"
 ALMAZ_ISHLASH_CB = "almazish:start"
 ALMAZ_PAGE1_CB = "almazish:1"
 ALMAZ_PAGE2_CB = "almazish:2"
-ALMAZ_PAGE3_CB = "almazish:3"
 ALMAZ_GO_CB = "almazish:go"
-ALMAZ_CONVERT_CB = "almazish:convert"
 ALMAZ_ACCOUNT_CB = "almazish:account"
 
 
@@ -373,7 +371,7 @@ def start_inline_keyboard() -> InlineKeyboardMarkup:
     )
 
 
-# ---------- 🍎 Almaz ishlash (Olma yig'ish + Referal) ----------
+# ---------- 💎 Almaz ishlash (Referal) ----------
 
 def almaz_page1_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
@@ -389,19 +387,8 @@ def almaz_page1_keyboard() -> InlineKeyboardMarkup:
 def almaz_page2_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
-            [
-                _ikb("🔙 Ortga", callback_data=ALMAZ_PAGE1_CB),
-                _ikb("➡️ Keyingisi", callback_data=ALMAZ_PAGE3_CB),
-            ]
-        ]
-    )
-
-
-def almaz_page3_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        [
-            [_ikb("🔙 Ortga", callback_data=ALMAZ_PAGE2_CB)],
-            [_ikb("🔵 🍎 Olma ishlash", style="primary", callback_data=ALMAZ_GO_CB)],
+            [_ikb("🔙 Ortga", callback_data=ALMAZ_PAGE1_CB)],
+            [_ikb("🔵 💎 Almaz ishlash", style="primary", callback_data=ALMAZ_GO_CB)],
         ]
     )
 
@@ -412,21 +399,17 @@ ALMAZ_WITHDRAW_CANCEL_CB = "almazwd:cancel"
 
 
 def almaz_dashboard_keyboard(share_link: str) -> InlineKeyboardMarkup:
-    """🍎 Olma ishlash paneli tugmalari - ixcham ko'rinishi uchun asosiy
+    """💎 Almaz ishlash paneli tugmalari - ixcham ko'rinishi uchun asosiy
     tugmalar 2 tadan yonma-yon joylashtirilgan."""
     share_url = f"https://t.me/share/url?url={quote(share_link, safe='')}"
     return InlineKeyboardMarkup(
         [
             [
                 _ikb("📤 Referalni ulashish", url=share_url),
-                _ikb("🍎 Olma ishlash", callback_data=ALMAZ_GO_CB),
-            ],
-            [
                 _ikb("👤 Hisobim", callback_data=ALMAZ_ACCOUNT_CB),
-                _ikb("💎 Almazga aylantirish", style="primary", callback_data=ALMAZ_CONVERT_CB),
             ],
             [_ikb("💎 Almaz yechish", style="primary", callback_data=ALMAZ_WITHDRAW_ACCOUNT_CB)],
-            [_ikb("🔙 Ortga", callback_data=ALMAZ_PAGE3_CB)],
+            [_ikb("🔙 Ortga", callback_data=ALMAZ_PAGE2_CB)],
         ]
     )
 
@@ -1190,9 +1173,6 @@ def admin_credit_type_keyboard() -> InlineKeyboardMarkup:
             [
                 _ikb("💎 Almaz berish", callback_data="credittype:diamond"),
                 _ikb("💰 Pul berish", callback_data="credittype:money"),
-            ],
-            [
-                _ikb("🍎 Olma berish", callback_data="credittype:apple"),
             ],
             [
                 _ikb("🚫 Foydalanuvchini bloklash", callback_data="credittype:block"),
