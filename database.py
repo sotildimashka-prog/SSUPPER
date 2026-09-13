@@ -804,52 +804,16 @@ def add_balance(user_id: int, amount: int):
         )
 
 
-# ==================== 🍎 Olma (referal orqali yig'iladigan bonus) ====================
+# ==================== 💎 Referal orqali to'g'ridan-to'g'ri almaz ====================
 
-REFERRAL_APPLE_REWARD = 2
-
-# 🍎 -> 💎 aylantirish kursi: har 10 dona 🍎 = 10 dona 💎.
-APPLE_TO_DIAMOND_RATE = 10  # bitta "guruh" hajmi (necha dona 🍎 kerak)
-APPLE_TO_DIAMOND_YIELD = 10  # bitta guruh evaziga necha dona 💎 beriladi
+# Har bir tasdiqlangan referal uchun ikkala tomonga ham beriladigan almaz.
+REFERRAL_DIAMOND_REWARD = 3
 
 # ⚠️ Jarima: do'st referal orqali qo'shilib, mukofot berilgach, agar
 # quyidagi soat ichida (taxminan 1-2 kun) majburiy kanallardan chiqib
-# ketsa - ikkalasining hisobidan ham shuncha 🍎 ayiriladi.
-REFERRAL_PENALTY_APPLES = 2
+# ketsa - ikkalasining hisobidan ham shuncha 💎 ayiriladi.
+REFERRAL_PENALTY_DIAMONDS = 2
 REFERRAL_PENALTY_CHECK_HOURS = 36
-
-
-def get_apples(user_id: int) -> int:
-    with get_conn() as conn:
-        cur = conn.execute("SELECT apples FROM apples WHERE user_id = ?", (user_id,))
-        row = cur.fetchone()
-        return row["apples"] if row else 0
-
-
-def add_apples(user_id: int, amount: int):
-    with get_conn() as conn:
-        conn.execute(
-            "INSERT INTO apples (user_id, apples) VALUES (?, ?) "
-            "ON CONFLICT(user_id) DO UPDATE SET apples = apples + excluded.apples",
-            (user_id, amount),
-        )
-
-
-def deduct_apples(user_id: int, amount: int) -> int:
-    """Foydalanuvchining 🍎 hisobidan 'amount' dona ayiradi (manfiy bo'lib
-    ketmasligi uchun 0 dan pastga tushmaydi). Haqiqatda necha dona ayirilganini
-    qaytaradi. (Keyinchalik olmani almazga aylantirish uchun ishlatiladi.)"""
-    with get_conn() as conn:
-        cur = conn.execute("SELECT apples FROM apples WHERE user_id = ?", (user_id,))
-        row = cur.fetchone()
-        current = row["apples"] if row else 0
-        actually_deducted = min(current, amount)
-        conn.execute(
-            "INSERT INTO apples (user_id, apples) VALUES (?, ?) "
-            "ON CONFLICT(user_id) DO UPDATE SET apples = excluded.apples",
-            (user_id, current - actually_deducted),
-        )
-        return actually_deducted
 
 
 def register_referral(referred_id: int, referrer_id: int) -> bool:
@@ -875,9 +839,10 @@ def register_referral(referred_id: int, referrer_id: int) -> bool:
 def credit_referral_if_pending(referred_id: int) -> int | None:
     """Foydalanuvchi majburiy obunani bajarganda chaqiriladi: agar u
     kimningdir referal havolasi orqali kirgan va hali mukofot berilmagan
-    bo'lsa - ikkalasiga ham REFERRAL_APPLE_REWARD dona 🍎 beradi (faqat bir
-    marta). Mukofot berilgan bo'lsa taklif qiluvchining user_id sini,
-    aks holda None qaytaradi."""
+    bo'lsa - ikkalasiga ham REFERRAL_DIAMOND_REWARD dona 💎 almaz beradi
+    (faqat bir marta, to'g'ridan-to'g'ri, hech qanday oraliq birliksiz).
+    Mukofot berilgan bo'lsa taklif qiluvchining user_id sini, aks holda
+    None qaytaradi."""
     with get_conn() as conn:
         cur = conn.execute(
             "SELECT referrer_id FROM referrals WHERE referred_id = ? AND credited = 0",
@@ -896,9 +861,9 @@ def credit_referral_if_pending(referred_id: int) -> int | None:
             return None
         for uid in (referrer_id, referred_id):
             conn.execute(
-                "INSERT INTO apples (user_id, apples) VALUES (?, ?) "
-                "ON CONFLICT(user_id) DO UPDATE SET apples = apples + excluded.apples",
-                (uid, REFERRAL_APPLE_REWARD),
+                "INSERT INTO quiz_diamonds (user_id, diamonds) VALUES (?, ?) "
+                "ON CONFLICT(user_id) DO UPDATE SET diamonds = diamonds + excluded.diamonds",
+                (uid, REFERRAL_DIAMOND_REWARD),
             )
         return referrer_id
 
@@ -937,50 +902,15 @@ def get_penalties(user_id: int) -> int:
         return row["penalties"] if row else 0
 
 
-def convert_apples_to_diamonds(
-    user_id: int,
-    group_size: int = APPLE_TO_DIAMOND_RATE,
-    yield_per_group: int = APPLE_TO_DIAMOND_YIELD,
-):
-    """Foydalanuvchining 🍎 balansidagi to'liq guruhlarni (har `group_size`
-    dona 🍎 = `yield_per_group` dona 💎) Almazga aylantiradi. Qolgan
-    (guruhga yetmagan) 🍎lar hisobda saqlanib qoladi. (diamonds_berildi,
-    ishlatilgan_olma) ni qaytaradi - agar yetarli 🍎 bo'lmasa (0, 0)
-    qaytadi."""
-    with get_conn() as conn:
-        cur = conn.execute("SELECT apples FROM apples WHERE user_id = ?", (user_id,))
-        row = cur.fetchone()
-        current = row["apples"] if row else 0
-
-        groups = current // group_size
-        if groups <= 0:
-            return 0, 0
-
-        used = groups * group_size
-        diamonds = groups * yield_per_group
-        remaining = current - used
-
-        conn.execute(
-            "INSERT INTO apples (user_id, apples) VALUES (?, ?) "
-            "ON CONFLICT(user_id) DO UPDATE SET apples = excluded.apples",
-            (user_id, remaining),
-        )
-        conn.execute(
-            "INSERT INTO quiz_diamonds (user_id, diamonds) VALUES (?, ?) "
-            "ON CONFLICT(user_id) DO UPDATE SET diamonds = diamonds + excluded.diamonds",
-            (user_id, diamonds),
-        )
-        return diamonds, used
-
-
 # ==================== ⚠️ Referal jarima tizimi ====================
 
 
 def get_referral_admin_stats():
-    """Admin uchun 🍎 Olma ishlash / Referal tizimi bo'yicha umumiy
+    """Admin uchun 💎 Almaz ishlash / Referal tizimi bo'yicha umumiy
     statistika: jami havola bosishlar, tasdiqlangan (mukofotli)
-    referallar, hali jarima tekshiruvini kutayotganlar, jami muomaladagi
-    🍎 va jami qo'llangan jarima hodisalari (taxminan)."""
+    referallar, hali jarima tekshiruvini kutayotganlar, barcha
+    foydalanuvchilarning joriy jami 💎 almaz hisobi va jami qo'llangan
+    jarima hodisalari (taxminan)."""
     with get_conn() as conn:
         total_links = conn.execute("SELECT COUNT(*) c FROM referrals").fetchone()["c"]
         total_credited = conn.execute(
@@ -989,8 +919,8 @@ def get_referral_admin_stats():
         pending_check = conn.execute(
             "SELECT COUNT(*) c FROM referrals WHERE credited = 1 AND penalty_applied = 0"
         ).fetchone()["c"]
-        total_apples = conn.execute(
-            "SELECT COALESCE(SUM(apples), 0) s FROM apples"
+        total_diamonds = conn.execute(
+            "SELECT COALESCE(SUM(diamonds), 0) s FROM quiz_diamonds"
         ).fetchone()["s"]
         # Har bir jarima hodisasi ikkala tomonga ham +1 penalties qo'shadi,
         # shu sabab yig'indini 2 ga bo'lib taxminiy hodisalar sonini olamiz.
@@ -1001,7 +931,7 @@ def get_referral_admin_stats():
         "total_links": total_links,
         "total_credited": total_credited,
         "pending_check": pending_check,
-        "total_apples": total_apples,
+        "total_diamonds": total_diamonds,
         "total_penalty_events": total_penalty_points // 2,
     }
 
@@ -1033,22 +963,28 @@ def mark_penalty_checked(referred_id: int):
 
 
 def apply_referral_penalty(
-    referred_id: int, referrer_id: int, amount: int = REFERRAL_PENALTY_APPLES
+    referred_id: int, referrer_id: int, amount: int = REFERRAL_PENALTY_DIAMONDS
 ):
     """Do'st majburiy kanaldan chiqib ketgani uchun ikkala tomondan ham
-    `amount` dona 🍎 ayiradi (0 dan pastga tushmaydi) va jarima
+    `amount` dona 💎 almaz ayiradi (0 dan pastga tushmaydi) va jarima
     hisoblagichini oshiradi, so'ng referalni tekshirilgan deb belgilaydi."""
     with get_conn() as conn:
         for uid in (referred_id, referrer_id):
-            cur = conn.execute("SELECT apples FROM apples WHERE user_id = ?", (uid,))
+            cur = conn.execute(
+                "SELECT diamonds FROM quiz_diamonds WHERE user_id = ?", (uid,)
+            )
             row = cur.fetchone()
-            current = row["apples"] if row else 0
-            new_apples = max(0, current - amount)
+            current = row["diamonds"] if row else 0
+            new_diamonds = max(0, current - amount)
             conn.execute(
-                "INSERT INTO apples (user_id, apples, penalties) VALUES (?, ?, 1) "
-                "ON CONFLICT(user_id) DO UPDATE SET "
-                "apples = excluded.apples, penalties = penalties + 1",
-                (uid, new_apples),
+                "INSERT INTO quiz_diamonds (user_id, diamonds) VALUES (?, ?) "
+                "ON CONFLICT(user_id) DO UPDATE SET diamonds = excluded.diamonds",
+                (uid, new_diamonds),
+            )
+            conn.execute(
+                "INSERT INTO apples (user_id, penalties) VALUES (?, 1) "
+                "ON CONFLICT(user_id) DO UPDATE SET penalties = penalties + 1",
+                (uid,),
             )
         conn.execute(
             "UPDATE referrals SET penalty_applied = 1 WHERE referred_id = ?",
