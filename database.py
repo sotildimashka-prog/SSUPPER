@@ -75,6 +75,24 @@ def init_db():
         )
         cur.execute(
             """
+            CREATE TABLE IF NOT EXISTS apples (
+                user_id INTEGER PRIMARY KEY,
+                apples INTEGER DEFAULT 0
+            )
+            """
+        )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS referrals (
+                referred_id INTEGER PRIMARY KEY,
+                referrer_id INTEGER,
+                credited INTEGER DEFAULT 0,
+                created_at TEXT
+            )
+            """
+        )
+        cur.execute(
+            """
             CREATE TABLE IF NOT EXISTS topup_requests (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER,
@@ -742,6 +760,141 @@ def add_balance(user_id: int, amount: int):
             "UPDATE balances SET balance = balance + ? WHERE user_id = ?",
             (amount, user_id),
         )
+
+
+# ==================== 🍎 Olma (referal orqali yig'iladigan bonus) ====================
+
+REFERRAL_APPLE_REWARD = 2
+
+# 🍎 -> 💎 aylantirish kursi: har 10 dona 🍎 = 1 dona 💎.
+# (Spec'da aniq kurs berilmagan - bu standart/default qiymat, kerak bo'lsa
+# shu yerda o'zgartirish mumkin.)
+APPLE_TO_DIAMOND_RATE = 10
+
+
+def get_apples(user_id: int) -> int:
+    with get_conn() as conn:
+        cur = conn.execute("SELECT apples FROM apples WHERE user_id = ?", (user_id,))
+        row = cur.fetchone()
+        return row["apples"] if row else 0
+
+
+def add_apples(user_id: int, amount: int):
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT INTO apples (user_id, apples) VALUES (?, ?) "
+            "ON CONFLICT(user_id) DO UPDATE SET apples = apples + excluded.apples",
+            (user_id, amount),
+        )
+
+
+def deduct_apples(user_id: int, amount: int) -> int:
+    """Foydalanuvchining 🍎 hisobidan 'amount' dona ayiradi (manfiy bo'lib
+    ketmasligi uchun 0 dan pastga tushmaydi). Haqiqatda necha dona ayirilganini
+    qaytaradi. (Keyinchalik olmani almazga aylantirish uchun ishlatiladi.)"""
+    with get_conn() as conn:
+        cur = conn.execute("SELECT apples FROM apples WHERE user_id = ?", (user_id,))
+        row = cur.fetchone()
+        current = row["apples"] if row else 0
+        actually_deducted = min(current, amount)
+        conn.execute(
+            "INSERT INTO apples (user_id, apples) VALUES (?, ?) "
+            "ON CONFLICT(user_id) DO UPDATE SET apples = excluded.apples",
+            (user_id, current - actually_deducted),
+        )
+        return actually_deducted
+
+
+def register_referral(referred_id: int, referrer_id: int) -> bool:
+    """Yangi referal munosabatini ro'yxatga oladi (hali mukofot berilmagan
+    holatda). O'z-o'ziga taklif yoki allaqachon ro'yxatga olingan bo'lsa
+    False qaytaradi."""
+    if referred_id == referrer_id:
+        return False
+    with get_conn() as conn:
+        cur = conn.execute(
+            "SELECT referred_id FROM referrals WHERE referred_id = ?", (referred_id,)
+        )
+        if cur.fetchone():
+            return False
+        conn.execute(
+            "INSERT INTO referrals (referred_id, referrer_id, credited, created_at) "
+            "VALUES (?, ?, 0, ?)",
+            (referred_id, referrer_id, datetime.utcnow().isoformat()),
+        )
+        return True
+
+
+def credit_referral_if_pending(referred_id: int) -> int | None:
+    """Foydalanuvchi majburiy obunani bajarganda chaqiriladi: agar u
+    kimningdir referal havolasi orqali kirgan va hali mukofot berilmagan
+    bo'lsa - ikkalasiga ham REFERRAL_APPLE_REWARD dona 🍎 beradi (faqat bir
+    marta). Mukofot berilgan bo'lsa taklif qiluvchining user_id sini,
+    aks holda None qaytaradi."""
+    with get_conn() as conn:
+        cur = conn.execute(
+            "SELECT referrer_id FROM referrals WHERE referred_id = ? AND credited = 0",
+            (referred_id,),
+        )
+        row = cur.fetchone()
+        if not row:
+            return None
+        referrer_id = row["referrer_id"]
+        updated = conn.execute(
+            "UPDATE referrals SET credited = 1 WHERE referred_id = ? AND credited = 0",
+            (referred_id,),
+        )
+        if updated.rowcount == 0:
+            return None
+        for uid in (referrer_id, referred_id):
+            conn.execute(
+                "INSERT INTO apples (user_id, apples) VALUES (?, ?) "
+                "ON CONFLICT(user_id) DO UPDATE SET apples = apples + excluded.apples",
+                (uid, REFERRAL_APPLE_REWARD),
+            )
+        return referrer_id
+
+
+def count_referrals(user_id: int) -> int:
+    """Shu foydalanuvchi taklif qilgan va mukofot berilgan do'stlar sonini
+    qaytaradi."""
+    with get_conn() as conn:
+        cur = conn.execute(
+            "SELECT COUNT(*) AS c FROM referrals WHERE referrer_id = ? AND credited = 1",
+            (user_id,),
+        )
+        row = cur.fetchone()
+        return row["c"] if row else 0
+
+
+def convert_apples_to_diamonds(user_id: int, rate: int = APPLE_TO_DIAMOND_RATE):
+    """Foydalanuvchining 🍎 balansidagi to'liq guruhlarni (har `rate` dona
+    🍎 = 1 💎) Almazga aylantiradi. Qolgan (guruhga yetmagan) 🍎lar
+    hisobda saqlanib qoladi. (diamonds_berildi, ishlatilgan_olma) ni
+    qaytaradi - agar yetarli 🍎 bo'lmasa (0, 0) qaytadi."""
+    with get_conn() as conn:
+        cur = conn.execute("SELECT apples FROM apples WHERE user_id = ?", (user_id,))
+        row = cur.fetchone()
+        current = row["apples"] if row else 0
+
+        diamonds = current // rate
+        if diamonds <= 0:
+            return 0, 0
+
+        used = diamonds * rate
+        remaining = current - used
+
+        conn.execute(
+            "INSERT INTO apples (user_id, apples) VALUES (?, ?) "
+            "ON CONFLICT(user_id) DO UPDATE SET apples = excluded.apples",
+            (user_id, remaining),
+        )
+        conn.execute(
+            "INSERT INTO quiz_diamonds (user_id, diamonds) VALUES (?, ?) "
+            "ON CONFLICT(user_id) DO UPDATE SET diamonds = diamonds + excluded.diamonds",
+            (user_id, diamonds),
+        )
+        return diamonds, used
 
 
 def deduct_balance(user_id: int, amount: int) -> bool:
