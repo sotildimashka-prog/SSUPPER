@@ -5,6 +5,7 @@ Asosiy ishga tushirish fayli.
 """
 
 import logging
+import random
 import re
 
 from telegram import Update, MenuButtonDefault, ReactionTypeEmoji, ReplyKeyboardRemove
@@ -117,6 +118,7 @@ from handlers.gifts import (
     on_gift_money_bonus,
     on_gift_diamond_bonus,
 )
+from handlers.top_users import on_top_users_button, on_top_users_tab
 from handlers.menu import (
     haqida_command,
     menu_command,
@@ -590,7 +592,9 @@ async def on_orders_channel_button(update: Update, context: ContextTypes.DEFAULT
     )
 
 
-AUTO_REACTION_EMOJI = "🔥"
+# Botga yozilgan har bir xabarga shu emojilardan biri TASODIFIY tanlanib
+# reaksiya sifatida qo'yiladi (🔥 olovcha, 🐬 delfin yoki ❤️ yurakcha).
+AUTO_REACTION_EMOJIS = ("🔥", "🐬", "❤️")
 
 
 async def _auto_refresh_menu_if_needed(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -740,7 +744,7 @@ async def log_all_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await context.bot.set_message_reaction(
                 chat_id=update.effective_chat.id,
                 message_id=update.effective_message.message_id,
-                reaction=[ReactionTypeEmoji(emoji=AUTO_REACTION_EMOJI)],
+                reaction=[ReactionTypeEmoji(emoji=random.choice(AUTO_REACTION_EMOJIS))],
             )
         except TelegramError:
             pass
@@ -761,6 +765,12 @@ async def on_error(update, context: ContextTypes.DEFAULT_TYPE):
     shunday qilib kelajakda biror joy jim qulab tushsa, sabab darhol
     ko'rinadi (konsol/loglarda)."""
     logger.exception("Ushlanmagan xatolik yuz berdi:", exc_info=context.error)
+
+
+async def refresh_leaderboard_job(context: ContextTypes.DEFAULT_TYPE):
+    """Har kuni (JobQueue orqali) 🏆 Top foydalanuvchilar reytingini
+    (referallar va almazlar bo'yicha) qayta hisoblab, keshni yangilaydi."""
+    db.refresh_leaderboard_cache()
 
 
 async def post_init(application: Application):
@@ -790,6 +800,15 @@ def build_application() -> Application:
         logging.warning(
             "JobQueue mavjud emas - 'pip install python-telegram-bot[job-queue]' "
             "o'rnatilmaguncha referal jarima tizimi ishlamaydi."
+        )
+
+    # ---------- 🏆 Top foydalanuvchilar reytingi (kunlik avtomatik yangilanish) ----------
+    # Bot ishga tushganda darhol bir marta hisoblanadi (kesh bo'sh
+    # qolmasligi uchun), so'ng har 24 soatda qayta hisoblanadi.
+    db.refresh_leaderboard_cache()
+    if app.job_queue is not None:
+        app.job_queue.run_repeating(
+            refresh_leaderboard_job, interval=86400, first=86400
         )
 
     # ---------- 🚫 Bloklangan foydalanuvchilar - ENG BIRINCHI tekshiriladi ----------
@@ -872,6 +891,15 @@ def build_application() -> Application:
     # "🎮 Free Fire menyu" tugmasi shu yerda ushlanadi (istalgan bo'limdan
     # bosh menyuga qaytarish uchun).
     app.add_handler(CallbackQueryHandler(on_gotomainmenu_callback, pattern="^gotomainmenu$"))
+
+    # ---------- 🏆 Top foydalanuvchilar ----------
+    # keyboards.py dagi har bir inline klaviaturaga "Yordam" tugmasi
+    # tagida avtomatik qo'shiladigan ko'k "🏆 Top foydalanuvchilar"
+    # tugmasi shu yerda ushlanadi.
+    app.add_handler(CallbackQueryHandler(on_top_users_button, pattern="^topusers:show$"))
+    app.add_handler(
+        CallbackQueryHandler(on_top_users_tab, pattern="^topusers:(ref|dia)$")
+    )
 
     # ---------- 🌐 Til tanlash ----------
     app.add_handler(CallbackQueryHandler(on_language_selected, pattern="^lang:"))
