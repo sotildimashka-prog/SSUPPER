@@ -397,11 +397,14 @@ from handlers.music_gen import (
     WAITING_MUSIC_ADMIN_REPLY,
 )
 from handlers.games import (
-    on_games_button,
-    on_games_root_callback,
     receive_number_guess,
     on_my_account_button,
     on_myacc_pay_button,
+)
+# 🎮 Mini O'yinlar - qiyin darajadagi 10 ta Free Fire o'yini (yangi oqim)
+from handlers.hard_games import (
+    on_games_button,
+    on_games_root_callback as on_hard_games_root_callback,
 )
 
 # ---------- Yangi bosh menyu bo'limlari (🎮 Free Fire / 💎 Almaz olish / 🛠️ Xizmatlar / 👤 Profil) ----------
@@ -1781,13 +1784,8 @@ def build_application() -> Application:
     # pattern'idan) KEYIN qo'shilishi SHART - aks holda video uchun maxsus
     # ConversationHandler entry_point'i ishlamay qolib, holat saqlanmaydi.
     app.add_handler(CallbackQueryHandler(on_all_services_item, pattern="^svcall:"))
-    app.add_handler(CallbackQueryHandler(on_games_root_callback, pattern="^games:"))
-    app.add_handler(
-        CallbackQueryHandler(
-            on_games_root_callback,
-            pattern="^(mine|target|dice|coin|coin2|card|slot|chicken|chicken2|quiz|reflex|number|safe|color):",
-        )
-    )
+    # 🎮 Mini O'yinlar (qiyin darajadagi 10 ta Free Fire o'yini)
+    app.add_handler(CallbackQueryHandler(on_hard_games_root_callback, pattern="^hg:"))
     # "Sonni top" o'yinida faqat raqamli xabarlar shu yerda ushlanadi; boshqa
     # conversationlar (masalan to'lov, FF ID) o'z holatida ustuvor bo'lib
     # qoladi, chunki bu handler ular ro'yxatdan o'tgandan KEYIN qo'shilgan.
