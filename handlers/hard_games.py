@@ -5,11 +5,14 @@ Oqim:
   1. "🎮 Mini O'yinlar" tugmasi bosiladi -> qoida matni + "🚀 BOSHLASH" tugmasi.
   2. "BOSHLASH" bosilganda 10 ta qiyin o'yin ro'yxati + "📊 Bugungi ishlagan
      almazim" tugmasi chiqadi.
-  3. O'yinlardan biri tanlansa - 25 soniya ichida javob berish kerak bo'lgan
-     qiyin Free Fire savoli chiqadi.
-       - To'g'ri va vaqtida javob berilsa -> +3 💎, 25 soatlik umumiy kutish.
+  3. O'yinlardan biri tanlansa - 30 soniya ichida javob berish kerak bo'lgan
+     qiyin Free Fire savoli chiqadi (tugashiga 5 soniya qolganda avtomatik
+     "Vaqtingiz tugayapti, shoshiling!" ogohlantirishi chiqadi).
+       - To'g'ri va vaqtida javob berilsa -> +3 💎, FAQAT O'SHA o'yin uchun
+         25 soatlik kutish (qolgan 9 ta o'yinga tegmaydi).
        - Noto'g'ri javob yoki vaqt tugasa -> -3 💎 (bor bo'lsa).
-       - Vaqt tugagan holatda alohida xabar va 24 soatlik kutish ko'rsatiladi.
+       - Vaqt tugagan holatda alohida xabar va FAQAT O'SHA o'yin uchun
+         24 soatlik kutish ko'rsatiladi.
   4. "📊 Bugungi ishlagan almazim" - foydalanuvchining bugungi haqiqiy
      statistikasini ko'rsatadi (ishlagan / minus bo'lgan / natija).
 """
@@ -28,9 +31,10 @@ from data.hard_questions_data import HARD_QUESTIONS
 REWARD_AMOUNT = 3
 PENALTY_AMOUNT = 3
 
-GAME_TIME_LIMIT = 25          # Har bir savolga javob berish uchun vaqt (soniya)
-PLAY_COOLDOWN_HOURS = 25      # O'yin muvaffaqiyatli tugagach keyingisi uchun kutish
-TIMEOUT_COOLDOWN_HOURS = 24   # Vaqt tugab ketganda keyingisi uchun kutish
+GAME_TIME_LIMIT = 30          # Har bir savolga javob berish uchun vaqt (soniya)
+WARNING_LEAD_SECONDS = 5      # Vaqt tugashiga shuncha soniya qolganda ogohlantirish yuboriladi
+PLAY_COOLDOWN_HOURS = 25      # O'yin muvaffaqiyatli tugagach FAQAT O'SHA o'yin uchun kutish
+TIMEOUT_COOLDOWN_HOURS = 24   # Vaqt tugab ketganda FAQAT O'SHA o'yin uchun kutish
 
 HARD_GAMES = [
     ("puzzle", "🧩 Mantiqiy jumboq"),
@@ -47,14 +51,19 @@ HARD_GAMES = [
 HARD_GAME_TITLES = dict(HARD_GAMES)
 
 INTRO_TEXT = (
-    "🎮 <b>MINI O'YINLAR</b>\n\n"
-    "Mini o'yinlar orqali 💎 almaz ishlab olishingiz mumkin.\n"
-    f"⚠️ Yutsangiz +{REWARD_AMOUNT} 💎, topa olmasangiz −{PENALTY_AMOUNT} 💎.\n\n"
-    "Agar rozi bo'lsangiz, BOSHLASH tugmasini bosing."
+    "👋 <b>Assalomu alaykum!</b>\n\n"
+    "🎮 <b>MINI O'YINLAR</b> bo'limiga xush kelibsiz!\n\n"
+    "Bu yerda qiziqarli va qiyin savollarga javob berib, 💎 almaz ishlab "
+    "olishingiz mumkin.\n\n"
+    f"⚠️ To'g'ri javob bersangiz +{REWARD_AMOUNT} 💎, noto'g'ri javob "
+    f"bersangiz yoki vaqtida ulgurmasangiz −{PENALTY_AMOUNT} 💎 yechiladi.\n"
+    f"⏱ Har bir savolga {GAME_TIME_LIMIT} soniya vaqt beriladi.\n\n"
+    "Tayyor bo'lsangiz, pastdagi 🚀 BOSHLASH tugmasini bosing."
 )
 
-TIMEOUT_TEXT = "⏰ Vaqt tugadi! Endi yana 24 soat kutasiz."
-PLAYED_TEXT = "🎮 Siz o'yinni o'ynadingiz!\n⏳ Keyingi o'yinni o'ynash uchun 25 soat kuting."
+TIMEOUT_TEXT = f"⏰ Vaqt tugadi! Endi yana {TIMEOUT_COOLDOWN_HOURS} soat kutasiz."
+WARNING_TEXT = "⏰ <b>Vaqtingiz tugayapti, shoshiling!</b>"
+PLAYED_TEXT = f"🎮 Siz o'yinni o'ynadingiz!\n⏳ Keyingi o'yinni o'ynash uchun {PLAY_COOLDOWN_HOURS} soat kuting."
 
 
 def _fmt_time(seconds: int) -> str:
@@ -182,19 +191,54 @@ async def _show_stats(query):
     await safe_edit_message(query, text, reply_markup=kb, parse_mode="HTML")
 
 
+def _warn_job_name(user_id: int, ts: str) -> str:
+    return f"hg_warn:{user_id}:{ts}"
+
+
+def _cancel_warning_job(context, user_id: int, ts: str):
+    """Foydalanuvchi javob berganda (yoki vaqt allaqachon tugab, timeout
+    ishlanganda) rejalashtirilgan "shoshiling" ogohlantirishini bekor
+    qiladi - shu bilan javob berilgan xabarni ortiqcha tahrirlamaydi."""
+    job_queue = getattr(context, "job_queue", None)
+    if job_queue is None:
+        return
+    for job in job_queue.get_jobs_by_name(_warn_job_name(user_id, ts)):
+        job.schedule_removal()
+
+
+async def _send_time_warning(context: ContextTypes.DEFAULT_TYPE):
+    """Vaqt tugashiga WARNING_LEAD_SECONDS soniya qolganda avtomatik
+    ishga tushadi va savol xabariga "Vaqtingiz tugayapti, shoshiling!"
+    ogohlantirishini qo'shib qo'yadi (tugmalar o'zgarmaydi)."""
+    job = context.job
+    data = job.data
+    try:
+        await context.bot.edit_message_text(
+            chat_id=data["chat_id"],
+            message_id=data["message_id"],
+            text=f"{WARNING_TEXT}\n\n{data['body']}",
+            reply_markup=data["reply_markup"],
+            parse_mode="HTML",
+        )
+    except Exception:
+        # Xabar allaqachon o'zgargan/o'chirilgan bo'lishi mumkin - jim o'tkaziladi.
+        pass
+
+
 async def _open_game(query, context, key: str):
-    allowed, remaining = db.check_hard_game_cooldown(_user_id(query))
+    user_id = _user_id(query)
+    allowed, remaining = db.check_hard_game_cooldown(user_id, key)
     if not allowed:
         await query.answer(
-            f"⏳ Keyingi o'yinni {_fmt_time(remaining)}dan keyin o'ynashingiz mumkin.",
+            f"⏳ Bu o'yinni {_fmt_time(remaining)}dan keyin qayta o'ynashingiz mumkin.",
             show_alert=True,
         )
         return
 
-    db.set_hard_game_cooldown(_user_id(query), PLAY_COOLDOWN_HOURS)
+    db.set_hard_game_cooldown(user_id, key, PLAY_COOLDOWN_HOURS)
     await query.answer()
 
-    q = _next_question(context, _user_id(query), key)
+    q = _next_question(context, user_id, key)
     correct = q["correct"]
     options = q["options"]
     ts = _new_ts()
@@ -204,14 +248,27 @@ async def _open_game(query, context, key: str):
         for i, opt in enumerate(options)
     ]
     rows.append([InlineKeyboardButton("⬅️ O'yinlar ro'yxati", callback_data="hg:list")])
+    markup = InlineKeyboardMarkup(rows)
 
     title = HARD_GAME_TITLES.get(key, "🎮 O'yin")
-    await safe_edit_message(
-        query,
-        f"{title}\n⏱ Vaqt: {GAME_TIME_LIMIT} soniya\n\n{q['question']}",
-        reply_markup=InlineKeyboardMarkup(rows),
-        parse_mode="HTML",
-    )
+    body = f"{title}\n⏱ Vaqt: {GAME_TIME_LIMIT} soniya\n\n{q['question']}"
+    await safe_edit_message(query, body, reply_markup=markup, parse_mode="HTML")
+
+    # ⏰ Vaqt tugashiga WARNING_LEAD_SECONDS soniya qolganda avtomatik
+    # "shoshiling" ogohlantirishini yuborish uchun job rejalashtiriladi.
+    job_queue = getattr(context, "job_queue", None)
+    if job_queue is not None and GAME_TIME_LIMIT > WARNING_LEAD_SECONDS:
+        job_queue.run_once(
+            _send_time_warning,
+            when=GAME_TIME_LIMIT - WARNING_LEAD_SECONDS,
+            data={
+                "chat_id": query.message.chat_id,
+                "message_id": query.message.message_id,
+                "body": body,
+                "reply_markup": markup,
+            },
+            name=_warn_job_name(user_id, ts),
+        )
 
 
 def _finish_keyboard() -> InlineKeyboardMarkup:
@@ -220,11 +277,12 @@ def _finish_keyboard() -> InlineKeyboardMarkup:
     )
 
 
-async def _handle_timeout(query):
-    """25 soniyadan kech javob berilganda - jarima qo'llanadi va o'ziga xos
-    24 soatlik kutish xabari ko'rsatiladi."""
+async def _handle_timeout(query, context, key: str):
+    """GAME_TIME_LIMIT soniyadan kech javob berilganda - jarima qo'llanadi
+    va FAQAT shu o'yin (key) uchun TIMEOUT_COOLDOWN_HOURS soatlik kutish
+    o'rnatiladi (qolgan o'yinlarga tegmaydi)."""
     deducted = db.apply_hard_game_penalty(_user_id(query), PENALTY_AMOUNT)
-    db.set_hard_game_cooldown(_user_id(query), TIMEOUT_COOLDOWN_HOURS)
+    db.set_hard_game_cooldown(_user_id(query), key, TIMEOUT_COOLDOWN_HOURS)
     await safe_edit_message(
         query,
         TIMEOUT_TEXT + _penalty_suffix(deducted),
@@ -235,9 +293,10 @@ async def _handle_timeout(query):
 
 async def _handle_answer(query, context, key: str, correct: int, chosen: int, ts: str):
     await query.answer()
+    _cancel_warning_job(context, _user_id(query), ts)
 
     if _is_expired(ts):
-        await _handle_timeout(query)
+        await _handle_timeout(query, context, key)
         return
 
     if chosen == correct:
