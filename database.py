@@ -225,6 +225,25 @@ def init_db():
             )
             """
         )
+        # ---------- 🔥 Qiyin O'yinlar (Free Fire mavzusidagi 10 ta o'yin) ----------
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS diamonds_lost_daily (
+                user_id INTEGER,
+                day TEXT,
+                lost INTEGER DEFAULT 0,
+                PRIMARY KEY (user_id, day)
+            )
+            """
+        )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS hard_games_cooldown (
+                user_id INTEGER PRIMARY KEY,
+                next_allowed_at TEXT
+            )
+            """
+        )
         # ---------- 🔄 Avtomatik menyu yangilanishi ----------
         cur.execute(
             """
@@ -1270,6 +1289,75 @@ def give_game_reward(user_id: int, amount: int = 10):
     """Mukofotli o'yinda g'alaba qozonilganda Almaz balansiga qo'shadi
     (Tekin almaz bilan bir xil hisobdan foydalaniladi)."""
     add_quiz_diamonds(user_id, amount)
+
+
+# ==================== 🔥 Qiyin O'yinlar (10 ta FF mavzusidagi o'yin) ====================
+
+def _record_diamonds_lost(conn, user_id: int, amount: int):
+    """Foydalanuvchi o'yinda yutqazganda (jarima) \"Bugun minus bo'lgan\"
+    statistikasi uchun kunlik yig'indiga qo'shadi."""
+    if amount <= 0:
+        return
+    today = date.today().isoformat()
+    conn.execute(
+        "INSERT INTO diamonds_lost_daily (user_id, day, lost) VALUES (?, ?, ?) "
+        "ON CONFLICT(user_id, day) DO UPDATE SET lost = lost + excluded.lost",
+        (user_id, today, amount),
+    )
+
+
+def get_diamonds_lost_today(user_id: int) -> int:
+    """Foydalanuvchi bugun jami necha dona 💎 almazni o'yinlarda yutqazganini
+    qaytaradi."""
+    today = date.today().isoformat()
+    with get_conn() as conn:
+        cur = conn.execute(
+            "SELECT lost FROM diamonds_lost_daily WHERE user_id = ? AND day = ?",
+            (user_id, today),
+        )
+        row = cur.fetchone()
+        return row["lost"] if row else 0
+
+
+def apply_hard_game_penalty(user_id: int, amount: int) -> int:
+    """Qiyin o'yinda yutqazganda hisobdan `amount` dona Almaz yechadi va buni
+    kunlik \"minus\" statistikasiga yozadi. Haqiqatda necha dona yechilganini
+    qaytaradi (balans yetarli bo'lmasa, borini yechadi)."""
+    deducted = deduct_quiz_diamonds(user_id, amount)
+    if deducted > 0:
+        with get_conn() as conn:
+            _record_diamonds_lost(conn, user_id, deducted)
+    return deducted
+
+
+def check_hard_game_cooldown(user_id: int):
+    """Qiyin o'yinlar bo'limi uchun yagona (barcha 10 ta o'yinga umumiy)
+    kutish vaqtini tekshiradi. Qaytaradi: (ruxsat_bormi: bool, qolgan_soniya: int)."""
+    now = datetime.utcnow()
+    with get_conn() as conn:
+        cur = conn.execute(
+            "SELECT next_allowed_at FROM hard_games_cooldown WHERE user_id = ?",
+            (user_id,),
+        )
+        row = cur.fetchone()
+        if row and row["next_allowed_at"]:
+            next_allowed = datetime.fromisoformat(row["next_allowed_at"])
+            remaining = (next_allowed - now).total_seconds()
+            if remaining > 0:
+                return False, int(remaining)
+        return True, 0
+
+
+def set_hard_game_cooldown(user_id: int, hours: float):
+    """Qiyin o'yinlar uchun keyingi o'ynash vaqtini `hours` soatdan keyinga
+    o'rnatadi (o'yin ochilgan payt darhol chaqiriladi)."""
+    next_allowed_at = (datetime.utcnow() + timedelta(hours=hours)).isoformat()
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT INTO hard_games_cooldown (user_id, next_allowed_at) VALUES (?, ?) "
+            "ON CONFLICT(user_id) DO UPDATE SET next_allowed_at = excluded.next_allowed_at",
+            (user_id, next_allowed_at),
+        )
 
 
 # ---- Raqamni top o'yini uchun holat ----
