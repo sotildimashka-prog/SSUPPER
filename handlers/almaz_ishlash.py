@@ -206,39 +206,50 @@ async def on_almaz_account(update, context: ContextTypes.DEFAULT_TYPE):
 WAITING_ALMAZWD_FF_ID = 210
 WAITING_ALMAZWD_AMOUNT = 211
 
-MIN_ALMAZ_WITHDRAW = 200
-
-NOT_ENOUGH_ALMAZWD_TEXT = (
-    "💎 Hisobingizda almaz yetarli emas. Minimum 200 almaz yig'ing."
-)
+MIN_ALMAZ_WITHDRAW = 190
 
 
-def _almazwd_account_text(diamonds: int) -> str:
+def _not_enough_almazwd_text(diamonds: int) -> str:
+    needed = max(0, MIN_ALMAZ_WITHDRAW - diamonds)
+    return (
+        "💎 <b>Almaz yetarli emas</b>\n\n"
+        f"Hisobingizda hozircha: <b>{diamonds}</b> 💎\n"
+        f"Yechish uchun yana <b>{needed}</b> 💎 kerak.\n\n"
+        f"(Minimal yechish: {MIN_ALMAZ_WITHDRAW} 💎)"
+    )
+
+
+def _almazwd_account_text(diamonds: int, earned_today: int) -> str:
     return (
         "💎 <b>Almaz yechish</b>\n\n"
-        f"Jami almazlaringiz: <b>{diamonds}</b> 💎\n\n"
+        f"Jami almazlaringiz: <b>{diamonds}</b> 💎\n"
+        f"📈 Bugun ishlagan almazim: <b>{earned_today}</b> 💎\n\n"
+        f"Minimal yechish: <b>{MIN_ALMAZ_WITHDRAW}</b> 💎\n\n"
         "Yechib olish uchun pastdagi tugmani bosing 👇"
     )
 
 
 async def on_almaz_withdraw_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """💎 Almaz yechish tugmasi (referal berish bo'limida) bosilganda -
-    foydalanuvchining jami almazi va "Almazimni yechish" tugmasi chiqadi."""
+    foydalanuvchining jami almazi, bugun ishlagan almazi va "Almazimni
+    yechish" tugmasi chiqadi."""
     query = update.callback_query
     await query.answer()
 
-    diamonds = db.get_quiz_diamonds(query.from_user.id)
+    user_id = query.from_user.id
+    diamonds = db.get_quiz_diamonds(user_id)
+    earned_today = db.get_diamonds_earned_today(user_id)
     await safe_edit_message(
         query,
-        _almazwd_account_text(diamonds),
+        _almazwd_account_text(diamonds, earned_today),
         parse_mode="HTML",
         reply_markup=almaz_withdraw_account_keyboard(),
     )
 
 
 async def on_almaz_withdraw_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """💎 Almazimni yechish tugmasi - 200+ bo'lsa ID so'raladi, aks holda
-    "almaz yetarli emas" xabari chiqadi."""
+    """💎 Almazimni yechish tugmasi - 190+ bo'lsa ID so'raladi, aks holda
+    real balans va yana nechta 💎 kerakligi ko'rsatiladi."""
     query = update.callback_query
     await query.answer()
 
@@ -248,7 +259,8 @@ async def on_almaz_withdraw_start(update: Update, context: ContextTypes.DEFAULT_
     if diamonds < MIN_ALMAZ_WITHDRAW:
         await safe_edit_message(
             query,
-            NOT_ENOUGH_ALMAZWD_TEXT,
+            _not_enough_almazwd_text(diamonds),
+            parse_mode="HTML",
             reply_markup=almaz_withdraw_not_enough_keyboard(),
         )
         return ConversationHandler.END
@@ -347,14 +359,29 @@ async def on_almaz_withdraw_cancel_callback(update: Update, context: ContextType
     query = update.callback_query
     await query.answer()
     context.user_data.pop("almazwd_ff_id", None)
-    diamonds = db.get_quiz_diamonds(query.from_user.id)
+    user_id = query.from_user.id
+    diamonds = db.get_quiz_diamonds(user_id)
+    earned_today = db.get_diamonds_earned_today(user_id)
     await safe_edit_message(
         query,
-        _almazwd_account_text(diamonds),
+        _almazwd_account_text(diamonds, earned_today),
         parse_mode="HTML",
         reply_markup=almaz_withdraw_account_keyboard(),
     )
     return ConversationHandler.END
+
+
+async def on_almaz_withdraw_reply_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """💎 Almaz yechish (pastki reply tugma yoki eski kirish nuqtalari) -
+    endi to'g'ridan-to'g'ri yangilangan Almaz yechish oynasini ochadi."""
+    user_id = update.effective_user.id
+    diamonds = db.get_quiz_diamonds(user_id)
+    earned_today = db.get_diamonds_earned_today(user_id)
+    await update.message.reply_text(
+        _almazwd_account_text(diamonds, earned_today),
+        parse_mode="HTML",
+        reply_markup=almaz_withdraw_account_keyboard(),
+    )
 
 
 async def cancel_almazwd(update: Update, context: ContextTypes.DEFAULT_TYPE):
