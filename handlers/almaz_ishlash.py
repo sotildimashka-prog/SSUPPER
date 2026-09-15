@@ -27,6 +27,8 @@ from handlers.subscription import get_unsubscribed_channels
 import database as db
 from config import ADMIN_ID
 from keyboards import (
+    almaz_menu_keyboard,
+    almaz_games_keyboard,
     almaz_page1_keyboard,
     almaz_page2_keyboard,
     almaz_dashboard_keyboard,
@@ -67,6 +69,53 @@ def _page2_text() -> str:
     )
 
 
+# ==================== 💎 ALMAZ ISHLASH - asosiy menyu ====================
+# "💎 Almaz ishlash" tugmasi bosilganda birinchi bo'lib SHU ekran chiqadi:
+# kreativ salomlashuv + 4 ta tugma (referal / o'yinlar / almaz
+# yechish / to'lovlar kanali).
+
+ALMAZ_MENU_TEXT = (
+    "💎✨ <b>ALMAZ ISHLASH</b> ✨💎\n\n"
+    "Assalomu alaykum, <b>jasur jangchi!</b> 🎮🔥\n\n"
+    "Bu yerda 💎 <b>ALMAZ</b>ni bir tiyin sarflamasdan qo'lga kiritasiz.\n"
+    "Do'st taklif qiling, o'yinlarda g'olib bo'ling — "
+    "almazlaringiz o'sib boraveradi! 🚀\n\n"
+    "Quyidagilardan birini tanlang 👇"
+)
+
+
+async def on_almaz_menu(update, context: ContextTypes.DEFAULT_TYPE):
+    """💎 Almaz ishlash bo'limining asosiy menyusi."""
+    query = update.callback_query
+    await query.answer()
+    await safe_edit_message(
+        query,
+        ALMAZ_MENU_TEXT,
+        parse_mode="HTML",
+        reply_markup=almaz_menu_keyboard(),
+    )
+
+
+ALMAZ_GAMES_TEXT = (
+    "🎮 <b>O'yinlar</b>\n\n"
+    "Tez orada shu yerda 💎 ALMAZ ishlab beradigan o'yinlar paydo bo'ladi!\n"
+    "Iltimos, kuzatib boring 🚀"
+)
+
+
+async def on_almaz_games(update, context: ContextTypes.DEFAULT_TYPE):
+    """🎮 O'yinlar tugmasi (Almaz ishlash ichida) - hozircha bo'sh
+    platsholder ekran, eski Mini O'yinlar tizimiga ulanmaydi."""
+    query = update.callback_query
+    await query.answer()
+    await safe_edit_message(
+        query,
+        ALMAZ_GAMES_TEXT,
+        parse_mode="HTML",
+        reply_markup=almaz_games_keyboard(),
+    )
+
+
 async def on_almaz_page1(update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -89,13 +138,24 @@ async def _get_referral_link(context: ContextTypes.DEFAULT_TYPE, user_id: int) -
 
 
 def _dashboard_text(link: str, diamonds: int, invited: int) -> str:
+    """👥 "Referal orqali" bosilganda chiqadigan matn. Eski referal tizimi
+    o'zgarmagan (havola, hisob, jarima - hammasi avvalgidek), faqat
+    yuqorisiga yangi kreativ salomlashuv qo'shilgan."""
+    reward = db.REFERRAL_DIAMOND_REWARD
     return (
-        "🔗 <b>REFERAL HAVOLASI</b>\n\n"
-        "Sizning referal havolangiz:\n"
+        "✨ <b>Xush kelibsiz!</b>\n\n"
+        "Do'stlaringizni taklif qilib, yanada ko'proq 💎 <b>ALMAZ</b> "
+        "ishlashingiz mumkin!\n\n"
+        "🔗 <b>Sizning shaxsiy referal havolangiz:</b>\n"
         f"<code>{link}</code>\n\n"
+        f"🎁 Har bir taklif qilgan do'stingiz uchun <b>{reward} 💎 ALMAZ</b> "
+        "ishlaysiz!\n\n"
         f"💎 Joriy almazlaringiz: <b>{diamonds}</b>\n"
         f"👥 Taklif qilingan do'stlar: <b>{invited}</b>\n\n"
-        "Havolani do'stlaringizga ulashing va 💎 yig'ishda davom eting! 🚀"
+        "━━━━━━━━━━━━━━━\n"
+        "🎮 O'yinlar orqali ham 💎 <b>ALMAZ</b> ishlang!\n"
+        "👥 Referal orqali ham 💎 <b>ALMAZ</b> ishlang!\n\n"
+        "Pastdagi tugmalardan foydalaning 👇"
     )
 
 
