@@ -22,6 +22,33 @@ WAITING_GIFT_AMOUNT = 33
 WAITING_DEDUCT_USERNAME, WAITING_DEDUCT_AMOUNT = range(34, 36)
 WAITING_BLOCK_USER_ID = 36
 
+# Admin foydalanuvchini ko'rsatishi uchun yagona so'rov matni
+ASK_USER_TEXT = (
+    "👤 Foydalanuvchi USER yoki ID sini kiriting:\n\n"
+    "Masalan: <code>@ali_ff</code> yoki <code>123456789</code>\n\n"
+    "Bekor qilish uchun /bekor."
+)
+
+
+def _resolve_target(raw: str):
+    """Admin kiritgan matndan (username yoki ID) foydalanuvchini aniqlaydi.
+
+    Qaytaradi: (user_id, first_name, username) yoki (None, None, None).
+    Agar faqat raqam kiritilgan bo'lsa va bunday foydalanuvchi bazada
+    bo'lmasa ham, shu ID bilan ishlashga ruxsat beriladi (botga hali
+    yozmagan odamga ham almaz/pul berish mumkin bo'lsin)."""
+    row = db.resolve_user(raw)
+    if row:
+        return row["user_id"], row["first_name"], row["username"]
+    uid = db.parse_user_id(raw)
+    if uid:
+        return uid, None, None
+    return None, None, None
+
+
+def _who(first_name, username) -> str:
+    return f"{first_name or '-'} (@{username or '—'})"
+
 
 async def on_admin_credit_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
@@ -45,9 +72,7 @@ async def on_credit_type_selected(update: Update, context: ContextTypes.DEFAULT_
 
     if credit_type == "block":
         await query.message.reply_text(
-            "🚫 <b>Foydalanuvchini bloklash</b>\n\n"
-            "Bloklamoqchi bo'lgan foydalanuvchining Telegram ID'sini yozing:\n\n"
-            "Bekor qilish uchun /bekor.",
+            f"🚫 <b>Foydalanuvchini bloklash</b>\n\n{ASK_USER_TEXT}",
             parse_mode="HTML",
         )
         return WAITING_BLOCK_USER_ID
@@ -64,19 +89,18 @@ async def on_credit_type_selected(update: Update, context: ContextTypes.DEFAULT_
 
 async def receive_block_user_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
     raw = (update.message.text or "").strip()
-    if not raw.isdigit():
+    target_user_id, first_name, username = _resolve_target(raw)
+    if not target_user_id:
         await update.message.reply_text(
-            "⚠️ Noto'g'ri format. Faqat raqamlardan iborat Telegram ID yuboring."
+            "⚠️ Bunday foydalanuvchi topilmadi. Username (masalan "
+            "<code>@ali_ff</code>) yoki Telegram ID (masalan "
+            "<code>123456789</code>) yuboring.",
+            parse_mode="HTML",
         )
         return WAITING_BLOCK_USER_ID
 
-    target_user_id = int(raw)
     db.block_user(target_user_id)
-
-    target = db.get_user(target_user_id)
-    who = ""
-    if target:
-        who = f" ({target['first_name'] or '-'} / @{target['username'] or '—'})"
+    who = f" ({_who(first_name, username)})" if (first_name or username) else ""
 
     await update.message.reply_text(
         f"🚫 Foydalanuvchi <code>{target_user_id}</code>{who} botdan bloklandi.\n\n"
@@ -96,21 +120,22 @@ async def receive_credit_amount(update: Update, context: ContextTypes.DEFAULT_TY
         return WAITING_CREDIT_AMOUNT
 
     context.user_data["credit_amount"] = int(raw)
-    await update.message.reply_text(
-        "🆔 Endi foydalanuvchining Telegram ID'sini yozing:\n\nBekor qilish uchun /bekor."
-    )
+    await update.message.reply_text(ASK_USER_TEXT, parse_mode="HTML")
     return WAITING_CREDIT_USER_ID
 
 
 async def receive_credit_user_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
     raw = (update.message.text or "").strip()
-    if not raw.isdigit():
+    target_user_id, target_first_name, target_username = _resolve_target(raw)
+    if not target_user_id:
         await update.message.reply_text(
-            "⚠️ Noto'g'ri format. Faqat raqamlardan iborat Telegram ID yuboring."
+            "⚠️ Bunday foydalanuvchi topilmadi. Username (masalan "
+            "<code>@ali_ff</code>) yoki Telegram ID (masalan "
+            "<code>123456789</code>) yuboring.",
+            parse_mode="HTML",
         )
         return WAITING_CREDIT_USER_ID
 
-    target_user_id = int(raw)
     credit_type = context.user_data.get("credit_type")
     amount = context.user_data.get("credit_amount")
 
@@ -142,8 +167,10 @@ async def receive_credit_user_id(update: Update, context: ContextTypes.DEFAULT_T
         else "⚠️ Foydalanuvchiga xabar yuborilmadi (botni bloklagan bo'lishi mumkin), "
         "lekin hisobiga muvaffaqiyatli qo'shildi."
     )
+    who = _who(target_first_name, target_username) if (target_first_name or target_username) else "—"
     await update.message.reply_text(
-        f"✅ <b>{unit_text}</b> foydalanuvchi (<code>{target_user_id}</code>) hisobiga qo'shildi.\n\n{status}",
+        f"✅ <b>{unit_text}</b> foydalanuvchi {who} "
+        f"(<code>{target_user_id}</code>) hisobiga qo'shildi.\n\n{status}",
         parse_mode="HTML",
         reply_markup=main_menu_keyboard(True),
     )
@@ -269,47 +296,18 @@ async def on_gift_all_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 
 # ==================== ➖ Almazni ayirish (bitta a'zoning hisobidan) ====================
+# Yangi tartib (admin so'rovi bo'yicha):
+#   1) tugma bosiladi -> "Nechta almaz ayirasiz?"
+#   2) admin miqdorni yozadi -> "Foydalanuvchi USER yoki ID sini kiriting"
+#   3) ko'rsatilgan foydalanuvchidan almaz ayiriladi.
 
 async def on_deduct_diamond_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         return ConversationHandler.END
     await update.message.reply_text(
         "➖ <b>Almazni ayirish</b>\n\n"
-        "Qaysi a'zoning hisobidan almaz ayirmoqchisiz? Uning Telegram "
-        "username'ini yuboring (masalan: <code>@ali_ff</code> yoki <code>ali_ff</code>).\n\n"
+        "💎 Nechta almaz ayirasiz? (faqat raqam)\n\n"
         "Bekor qilish uchun /bekor.",
-        parse_mode="HTML",
-    )
-    return WAITING_DEDUCT_USERNAME
-
-
-async def receive_deduct_username(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    raw = (update.message.text or "").strip()
-    if not raw:
-        await update.message.reply_text(
-            "⚠️ Iltimos, foydalanuvchining Telegram username'ini yuboring."
-        )
-        return WAITING_DEDUCT_USERNAME
-
-    target = db.get_user_by_username(raw)
-    if not target:
-        await update.message.reply_text(
-            f"⚠️ <b>@{raw.lstrip('@')}</b> username'li a'zo topilmadi. "
-            "U bilan botdan foydalangan bo'lishi kerak.\n\n"
-            "Qaytadan username yuboring yoki /bekor deb yozing.",
-            parse_mode="HTML",
-        )
-        return WAITING_DEDUCT_USERNAME
-
-    context.user_data["deduct_target_uid"] = target["user_id"]
-    context.user_data["deduct_target_username"] = target["username"]
-    context.user_data["deduct_target_first_name"] = target["first_name"]
-
-    current_balance = db.get_quiz_diamonds(target["user_id"])
-    await update.message.reply_text(
-        f"👤 Topildi: {target['first_name'] or '-'} (@{target['username'] or '—'})\n"
-        f"💎 Joriy almaz hisobi: <b>{current_balance}</b>\n\n"
-        f"Hisobidan nechta almaz ayirmoqchisiz? (faqat raqam)\n\nBekor qilish uchun /bekor.",
         parse_mode="HTML",
     )
     return WAITING_DEDUCT_AMOUNT
@@ -321,17 +319,35 @@ async def receive_deduct_amount(update: Update, context: ContextTypes.DEFAULT_TY
         await update.message.reply_text("⚠️ Noto'g'ri format. Faqat musbat raqam kiriting.")
         return WAITING_DEDUCT_AMOUNT
 
-    amount = int(raw)
-    target_user_id = context.user_data.get("deduct_target_uid")
-    target_username = context.user_data.get("deduct_target_username")
-    target_first_name = context.user_data.get("deduct_target_first_name")
+    context.user_data["deduct_amount"] = int(raw)
+    await update.message.reply_text(
+        f"💎 Ayiriladigan miqdor: <b>{int(raw)}</b>\n\n{ASK_USER_TEXT}",
+        parse_mode="HTML",
+    )
+    return WAITING_DEDUCT_USERNAME
 
-    if not target_user_id:
+
+async def receive_deduct_username(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    raw = (update.message.text or "").strip()
+    amount = context.user_data.get("deduct_amount")
+
+    if not amount:
         await update.message.reply_text(
             "⚠️ Xatolik yuz berdi. Qaytadan boshlang.",
             reply_markup=main_menu_keyboard(True),
         )
         return ConversationHandler.END
+
+    target_user_id, target_first_name, target_username = _resolve_target(raw)
+    if not target_user_id:
+        await update.message.reply_text(
+            "⚠️ Bunday foydalanuvchi topilmadi. Username (masalan "
+            "<code>@ali_ff</code>) yoki Telegram ID (masalan "
+            "<code>123456789</code>) yuboring.\n\n"
+            "Bekor qilish uchun /bekor.",
+            parse_mode="HTML",
+        )
+        return WAITING_DEDUCT_USERNAME
 
     deducted = db.deduct_quiz_diamonds(target_user_id, amount)
     remaining = db.get_quiz_diamonds(target_user_id)
@@ -349,17 +365,24 @@ async def receive_deduct_amount(update: Update, context: ContextTypes.DEFAULT_TY
         else "⚠️ Foydalanuvchiga xabar yuborilmadi (botni bloklagan bo'lishi mumkin), "
         "lekin hisobidan baribir ayirildi."
     )
+
+    note = ""
+    if deducted < amount:
+        note = (
+            f"\nℹ️ So'ralgan {amount} ta emas, {deducted} ta ayirildi — "
+            "hisobida shuncha almaz bor edi.\n"
+        )
+
     await update.message.reply_text(
-        f"✅ {target_first_name or '-'} (@{target_username or '—'}) hisobidan "
+        f"✅ {_who(target_first_name, target_username)} "
+        f"(<code>{target_user_id}</code>) hisobidan "
         f"<b>{deducted}</b> dona almaz ayirildi.\n"
-        f"💎 Qolgan almaz: <b>{remaining}</b>\n\n{status}",
+        f"💎 Qolgan almaz: <b>{remaining}</b>\n{note}\n{status}",
         parse_mode="HTML",
         reply_markup=main_menu_keyboard(True),
     )
 
-    context.user_data.pop("deduct_target_uid", None)
-    context.user_data.pop("deduct_target_username", None)
-    context.user_data.pop("deduct_target_first_name", None)
+    context.user_data.pop("deduct_amount", None)
     return ConversationHandler.END
 
 
@@ -406,8 +429,6 @@ async def on_deduct_all_diamonds_confirm(update: Update, context: ContextTypes.D
 
 
 async def cancel_deduct(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data.pop("deduct_target_uid", None)
-    context.user_data.pop("deduct_target_username", None)
-    context.user_data.pop("deduct_target_first_name", None)
+    context.user_data.pop("deduct_amount", None)
     await update.message.reply_text("❌ Bekor qilindi.", reply_markup=main_menu_keyboard(True))
     return ConversationHandler.END
