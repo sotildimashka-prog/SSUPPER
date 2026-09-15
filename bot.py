@@ -50,6 +50,7 @@ from keyboards import (
     BTN_GIFT_ALL,
     BTN_DEDUCT_DIAMOND,
     BTN_DEDUCT_ALL_DIAMONDS,
+    BTN_TOP_REFRESH,
     BTN_FF2017,
     BTN_MAIN_FF,
     BTN_MAIN_DIAMONDS,
@@ -118,7 +119,11 @@ from handlers.gifts import (
     on_gift_money_bonus,
     on_gift_diamond_bonus,
 )
-from handlers.top_users import on_top_users_button, on_top_users_tab
+from handlers.top_users import (
+    on_top_users_button,
+    on_top_users_tab,
+    on_top_refresh_button,
+)
 from handlers.menu import (
     haqida_command,
     menu_command,
@@ -156,6 +161,8 @@ from handlers.headshot_pro import (
     WAITING_HSPRO_RECEIPT,
 )
 from handlers.almaz_ishlash import (
+    on_almaz_menu,
+    on_almaz_games,
     on_almaz_page1,
     on_almaz_page2,
     on_almaz_dashboard,
@@ -534,7 +541,7 @@ _ALL_MENU_BUTTON_TEXTS = [
     BTN_NEWS, BTN_MUSIC, BTN_QUIZ, BTN_DIAMONDS, BTN_ACCOUNT, BTN_HELP,
     BTN_GUIDES, BTN_FAQ, BTN_STATS, BTN_BROADCAST, BTN_POST, BTN_EDIT_TEXTS,
     BTN_ADMIN_CREDIT, BTN_WITHDRAW, BTN_GIFT_ALL, BTN_DEDUCT_DIAMOND,
-    BTN_DEDUCT_ALL_DIAMONDS,
+    BTN_DEDUCT_ALL_DIAMONDS, BTN_TOP_REFRESH,
     BTN_FF2017, BTN_MAIN_FF, BTN_MAIN_DIAMONDS, BTN_MAIN_SERVICES,
     BTN_MAIN_PROFILE, BTN_M2_DIAMONDS, BTN_M2_SERVICES, BTN_M2_SETTINGS,
     BTN_M2_NICKS, BTN_M2_PAYMENTS, BTN_GIFTS, BTN_MAIN_RASM, BTN_MAIN_VIDEO,
@@ -903,8 +910,10 @@ def build_application() -> Application:
     # tagida avtomatik qo'shiladigan ko'k "🏆 Top foydalanuvchilar"
     # tugmasi shu yerda ushlanadi.
     app.add_handler(CallbackQueryHandler(on_top_users_button, pattern="^topusers:show$"))
+    # 🔄 Top yangilash (admin paneli tugmasi)
+    app.add_handler(MessageHandler(_exact(BTN_TOP_REFRESH), on_top_refresh_button))
     app.add_handler(
-        CallbackQueryHandler(on_top_users_tab, pattern="^topusers:(ref|dia)$")
+        CallbackQueryHandler(on_top_users_tab, pattern="^topusers:(ref|dia|money)$")
     )
 
     # ---------- 🌐 Til tanlash ----------
@@ -1286,7 +1295,13 @@ def build_application() -> Application:
     app.add_handler(CallbackQueryHandler(on_hspro_pay_method, pattern="^hspro:pay:"))
     app.add_handler(CallbackQueryHandler(hspro_approved, pattern="^hspro_ok:"))
     app.add_handler(CallbackQueryHandler(hspro_rejected, pattern="^hspro_no:"))
-    app.add_handler(CallbackQueryHandler(on_almaz_page1, pattern="^almazish:start$"))
+    # "💎 Almaz ishlash" -> avval 4 tugmali asosiy menyu chiqadi
+    app.add_handler(CallbackQueryHandler(on_almaz_menu, pattern="^almazish:start$"))
+    # "👥 1. Referal orqali" -> eski referal paneli (yangi kreativ matn bilan)
+    app.add_handler(CallbackQueryHandler(on_almaz_dashboard, pattern="^almazish:ref$"))
+    # "🎮 2. O'yinlar" -> hozircha bo'sh platsholder (eski Mini O'yinlar
+    # tizimiga ulanmaydi)
+    app.add_handler(CallbackQueryHandler(on_almaz_games, pattern="^almazish:games$"))
     app.add_handler(CallbackQueryHandler(on_almaz_page1, pattern="^almazish:1$"))
     app.add_handler(CallbackQueryHandler(on_almaz_page2, pattern="^almazish:2$"))
     app.add_handler(CallbackQueryHandler(on_almaz_dashboard, pattern="^almazish:go$"))
