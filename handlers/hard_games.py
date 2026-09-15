@@ -138,19 +138,27 @@ def _games_list_text() -> str:
 # Kirish nuqtalari
 # ---------------------------------------------------------------------------
 
+def _intro_keyboard() -> InlineKeyboardMarkup:
+    """🚀 BOSHLASH + 💎 Almaz ishlash menyusiga qaytish tugmasi.
+    Bu bo'lim endi faqat 💎 Almaz ishlash -> 🎮 O'yinlar tugmasi orqali
+    ochiladi, shu sabab "Ortga" doim o'sha menyuga qaytaradi."""
+    from keyboards import ALMAZ_ISHLASH_CB
+
+    return InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton("🚀 BOSHLASH", callback_data="hg:list")],
+            [InlineKeyboardButton("🔙 Ortga", callback_data=ALMAZ_ISHLASH_CB)],
+        ]
+    )
+
+
 async def on_games_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """🎮 Mini O'yinlar (Reply tugma bosilganda)."""
-    keyboard = InlineKeyboardMarkup(
-        [[InlineKeyboardButton("🚀 BOSHLASH", callback_data="hg:list")]]
-    )
-    await update.message.reply_text(INTRO_TEXT, reply_markup=keyboard, parse_mode="HTML")
+    await update.message.reply_text(INTRO_TEXT, reply_markup=_intro_keyboard(), parse_mode="HTML")
 
 
 async def _show_intro(query):
-    keyboard = InlineKeyboardMarkup(
-        [[InlineKeyboardButton("🚀 BOSHLASH", callback_data="hg:list")]]
-    )
-    await safe_edit_message(query, INTRO_TEXT, reply_markup=keyboard, parse_mode="HTML")
+    await safe_edit_message(query, INTRO_TEXT, reply_markup=_intro_keyboard(), parse_mode="HTML")
 
 
 async def _show_games_list(query):
