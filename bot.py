@@ -170,6 +170,7 @@ from handlers.almaz_ishlash import (
     check_referral_penalties_job,
     on_almaz_withdraw_account,
     on_almaz_withdraw_start,
+    on_almaz_withdraw_reply_button,
     receive_almazwd_ff_id,
     receive_almazwd_amount,
     on_almaz_withdraw_cancel_callback,
@@ -355,17 +356,7 @@ from handlers.admin_credit import (
     on_deduct_all_diamonds_confirm,
 )
 from handlers.withdraw import (
-    on_withdraw_button,
-    on_withdraw_button_callback,
-    on_withdraw_back_callback,
-    on_withdraw_start_callback,
     on_withdraw_sent_by_admin,
-    on_withdraw_cancel_callback,
-    receive_withdraw_ff_id,
-    receive_withdraw_amount,
-    cancel_withdraw,
-    WAITING_WITHDRAW_FF_ID,
-    WAITING_WITHDRAW_AMOUNT,
 )
 from handlers.image_gen import (
     on_rasm_button,
@@ -1232,31 +1223,13 @@ def build_application() -> Application:
         CallbackQueryHandler(on_deduct_all_diamonds_confirm, pattern="^deductall:")
     )
 
-    # ---------- 💎 Almaz yechish (Tekin almazdan yig'ilganini yechib olish) ----------
-    # 🆕 Oqim: "profile:withdraw" / "winwd:diamond" -> avval "Hisobim" ko'rsatiladi
-    # (on_withdraw_button_callback, pastda ro'yxatga olingan) -> "💎 Yechish"
-    # tugmasi (withdraw:start) bosilsa balans tekshiriladi -> ID -> Miqdor ->
-    # adminga "✅ Yubordim" tugmali xabar.
-    app.add_handler(MessageHandler(_exact(BTN_WITHDRAW), on_withdraw_button))
-    app.add_handler(CallbackQueryHandler(on_withdraw_back_callback, pattern="^withdraw:back$"))
+    # ---------- 💎 Almaz yechish ----------
+    # 🆕 Eski (350 minimal) Almaz yechish tizimi olib tashlandi. Endi barcha
+    # kirish nuqtalari (pastki tugma, "profile:withdraw", "winwd:diamond")
+    # yagona, yangilangan "💎 Almaz ishlash" bo'limidagi Almaz yechish
+    # oqimiga (handlers/almaz_ishlash.py, minimal 190 💎) yo'naltiriladi.
+    app.add_handler(MessageHandler(_exact(BTN_WITHDRAW), on_almaz_withdraw_reply_button))
     app.add_handler(CallbackQueryHandler(on_withdraw_sent_by_admin, pattern="^withdrawsent:"))
-    withdraw_conv = ConversationHandler(
-        entry_points=[CallbackQueryHandler(on_withdraw_start_callback, pattern="^withdraw:start$")],
-        states={
-            WAITING_WITHDRAW_FF_ID: [
-                CommandHandler("bekor", cancel_withdraw),
-                CallbackQueryHandler(on_withdraw_cancel_callback, pattern="^withdraw:cancel$"),
-                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_withdraw_ff_id),
-            ],
-            WAITING_WITHDRAW_AMOUNT: [
-                CommandHandler("bekor", cancel_withdraw),
-                CallbackQueryHandler(on_withdraw_cancel_callback, pattern="^withdraw:cancel$"),
-                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_withdraw_amount),
-            ],
-        },
-        fallbacks=[CommandHandler("bekor", cancel_withdraw)],
-    )
-    app.add_handler(withdraw_conv)
 
     # ---------- Almaz sotib olish (xarid) conversation ----------
     buy_conv = ConversationHandler(
@@ -1593,7 +1566,7 @@ def build_application() -> Application:
     # ---------- 👤 Profil (reply tugma + inline: Hisobim / Almaz yechish) ----------
     app.add_handler(MessageHandler(_exact(BTN_MAIN_PROFILE), on_profile_button))
     app.add_handler(CallbackQueryHandler(on_profile_account, pattern="^profile:account$"))
-    app.add_handler(CallbackQueryHandler(on_withdraw_button_callback, pattern="^profile:withdraw$"))
+    app.add_handler(CallbackQueryHandler(on_almaz_withdraw_account, pattern="^profile:withdraw$"))
 
     # ============================================================================
     # 🆕 Yangi asosiy menyu (6 tugma, 2 ustunda):
@@ -1719,8 +1692,8 @@ def build_application() -> Application:
     app.add_handler(MessageHandler(_exact(BTN_WITHDRAW_WIN), on_withdraw_win_button))
     app.add_handler(CallbackQueryHandler(on_withdraw_win_back, pattern="^winwd:back$"))
     app.add_handler(CallbackQueryHandler(on_withdraw_win_cash_noop, pattern="^winwd:noop$"))
-    # 💎 Almaz tanlansa, mavjud "💎 Almaz yechish" oqimi qayta ishlatiladi
-    app.add_handler(CallbackQueryHandler(on_withdraw_button_callback, pattern="^winwd:diamond$"))
+    # 💎 Almaz tanlansa, yangilangan "💎 Almaz yechish" oqimi ishlatiladi
+    app.add_handler(CallbackQueryHandler(on_almaz_withdraw_account, pattern="^winwd:diamond$"))
 
     withdraw_win_cash_conv = ConversationHandler(
         entry_points=[CallbackQueryHandler(on_withdraw_win_cash, pattern="^winwd:cash$")],
