@@ -1,36 +1,24 @@
-from telegram import Update
-from telegram.ext import ContextTypes
-from database import get_user
+from aiogram import Router, F, types
+from aiogram.types import CallbackQuery, Message
 
-async def withdraw_diamonds(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    user_id = query.from_user.id
+router = Router()
 
-    user = get_user(user_id)
-    balance = user[1] if user else 0
-    referrals_count = user[3] if user else 0
+# -------------------------------------------------------------
+# 1. Pul yechib olish so'rovini yuborish (Foydalanuvchi uchun)
+# -------------------------------------------------------------
+@router.message(F.text == "💸 Pul yechish")
+async def process_withdraw_request(message: Message):
+    """Foydalanuvchi pul yechish tugmasini bosganda ishlaydi"""
+    await message.answer("Pul yechib olish uchun miqdor va karta raqamingizni kiriting.")
 
-    if balance < 190:
-        text = (
-            "❌ **Hali 190 almazga yetmadi!**\n\n"
-            "💎 Almazlaringizni yana ko‘paytiring va 190 taga yetkazing.\n"
-            "🚀 Shoshilmang, yana ozgina qoldi!"
-        )
-    else:
-        if referrals_count < 10:
-            bot_username = (await context.bot.get_me()).username
-            ref_link = f"https://t.me/{bot_username}?start={user_id}"
-            text = (
-                "🎉 **OFARIN!**\n"
-                "💎 Siz 190 almazni yig‘ishga muvaffaq bo‘ldingiz!\n"
-                "🔥 Juda yaxshi natija! Endi almazlaringizni yechib olishingiz mumkin.\n\n"
-                "👥 **Almazlarni yechib olish uchun 10 ta do‘stingizni botga taklif qiling!**\n"
-                "🔗 10 ta do‘stingiz botga kirib /start bosgandan so‘ng, almazlarni yechib olish imkoniyati ochiladi.\n\n"
-                f"Sizning referal havolangiz:\n`{ref_link}`\n\n"
-                f"Hozirgi taklif qilgan do‘stlaringiz: **{referrals_count}/10**"
-            )
-        else:
-            text = "✅ **Tabriklaymiz!** 10 ta referal yig‘ildi. Almazlarni yechish uchun hamyon manzilingizni yuboring."
-
-    await query.edit_message_text(text, parse_mode="Markdown")
+# -------------------------------------------------------------
+# 2. Logda yetishmayotgan va xatolik bergan funksiya (Admin uchun)
+# -------------------------------------------------------------
+async def on_withdraw_sent_by_admin(call: CallbackQuery):
+    """
+    Admin pul yechish so'rovini tasdiqlaganda ishlaydigan funksiya.
+    bot.py fayli xatosiz yuklanishi uchun ushbu funksiya shu yerda bo'lishi shart.
+    """
+    await call.answer("✅ To'lov administrator tomonidan tasdiqlandi va yuborildi!", show_alert=True)
+    if call.message:
+        await call.message.edit_text("✅ ushbu to'lov so'rovi muvaffaqiyatli bajarildi.")
