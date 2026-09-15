@@ -2,21 +2,28 @@
 """🏆 Top foydalanuvchilar - "Yordam" tugmasi tagida (bot ichidagi BARCHA
 inline menyularda) chiqadigan ko'k tugma orqali ochiladi.
 
-Ikkita reyting ko'rsatiladi:
-  - 👥 eng ko'p referal (do'st) olib kelganlar TOP 10;
-  - 💎 eng ko'p almaz yig'ganlar TOP 10.
+Uchta reyting ko'rsatiladi:
+  - 💎 eng ko'p almaz yig'ganlar TOP 10;
+  - 💰 eng ko'p pul yig'ganlar TOP 10;
+  - 👥 eng ko'p referal (do'st) olib kelganlar TOP 10.
 
 Reyting har safar qaytadan hisoblanmaydi - database.py dagi
-`leaderboard_cache` jadvalidan o'qiladi. Kesh bot ishga tushganda va
-har kuni (bot.py dagi JobQueue vazifasi orqali) avtomatik yangilanadi.
+`leaderboard_cache` jadvalidan o'qiladi. Kesh bot ishga tushganda,
+har kuni (bot.py dagi JobQueue vazifasi orqali) va admin panelidagi
+"🔄 Top yangilash" tugmasi bosilganda avtomatik yangilanadi.
 """
 
 from telegram import Update
 from telegram.ext import ContextTypes
 
 import database as db
+from config import ADMIN_ID
 from handlers.message_utils import safe_edit_message
-from keyboards import top_users_keyboard, TOP_USERS_DIAMOND_CB
+from keyboards import (
+    top_users_keyboard,
+    TOP_USERS_DIAMOND_CB,
+    TOP_USERS_MONEY_CB,
+)
 
 _MEDALS = ("🥇", "🥈", "🥉")
 
@@ -43,6 +50,10 @@ def _build_text(active: str) -> str:
         entries, updated_at = db.get_cached_leaderboard("top_diamonds")
         body = _format_list(entries, "almaz", "💎")
         title = "💎 <b>Eng ko'p almaz yig'ganlar</b>"
+    elif active == "money":
+        entries, updated_at = db.get_cached_leaderboard("top_money")
+        body = _format_list(entries, "so'm", "💰")
+        title = "💰 <b>Eng ko'p pul yig'ganlar</b>"
     else:
         entries, updated_at = db.get_cached_leaderboard("top_referrers")
         body = _format_list(entries, "referal", "👥")
@@ -59,25 +70,59 @@ def _build_text(active: str) -> str:
 
 async def on_top_users_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """"🏆 Top foydalanuvchilar" tugmasi bosilganda - default holatda
-    referallar reytingi ko'rsatiladi."""
+    almazlar reytingi ko'rsatiladi."""
     query = update.callback_query
     await query.answer()
     await safe_edit_message(
         query,
-        _build_text("ref"),
+        _build_text("dia"),
         parse_mode="HTML",
-        reply_markup=top_users_keyboard("ref"),
+        reply_markup=top_users_keyboard("dia"),
     )
 
 
 async def on_top_users_tab(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """👥 Referallar / 💎 Almazlar tab tugmalari."""
+    """💎 Almazlar / 💰 Pul / 👥 Referallar tab tugmalari."""
     query = update.callback_query
     await query.answer()
-    active = "dia" if query.data == TOP_USERS_DIAMOND_CB else "ref"
+    if query.data == TOP_USERS_DIAMOND_CB:
+        active = "dia"
+    elif query.data == TOP_USERS_MONEY_CB:
+        active = "money"
+    else:
+        active = "ref"
     await safe_edit_message(
         query,
         _build_text(active),
         parse_mode="HTML",
         reply_markup=top_users_keyboard(active),
     )
+
+
+# ==================== 🔄 Top yangilash (faqat admin) ====================
+
+async def on_top_refresh_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin panelidagi "🔄 Top yangilash" tugmasi. Bosilganda uchala
+    reyting (💎 almaz, 💰 pul, 👥 referal) bazadan qaytadan hisoblanib,
+    keshga yoziladi va natija darhol adminga ko'rsatiladi."""
+    if not update.effective_user or update.effective_user.id != ADMIN_ID:
+        return
+
+    status = await update.message.reply_text("⏳ Top ro'yxatlar yangilanmoqda...")
+
+    top_referrers, top_diamonds, top_money = db.refresh_leaderboard_cache()
+
+    text = (
+        "✅ <b>Top foydalanuvchilar yangilandi!</b>\n\n"
+        "💎 <b>Eng ko'p almaz yig'ganlar</b>\n"
+        f"{_format_list(top_diamonds, 'almaz', '💎')}\n\n"
+        "💰 <b>Eng ko'p pul yig'ganlar</b>\n"
+        f"{_format_list(top_money, 'som', '💰')}\n\n"
+        "👥 <b>Eng ko'p referral olib kelganlar</b>\n"
+        f"{_format_list(top_referrers, 'referal', '👥')}"
+    )
+
+    try:
+        await status.edit_text(text, parse_mode="HTML")
+    except Exception:
+        await update.message.reply_text(text, parse_mode="HTML")
