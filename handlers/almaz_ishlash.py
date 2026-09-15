@@ -28,7 +28,6 @@ import database as db
 from config import ADMIN_ID
 from keyboards import (
     almaz_menu_keyboard,
-    almaz_games_keyboard,
     almaz_page1_keyboard,
     almaz_page2_keyboard,
     almaz_dashboard_keyboard,
@@ -96,24 +95,16 @@ async def on_almaz_menu(update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
-ALMAZ_GAMES_TEXT = (
-    "🎮 <b>O'yinlar</b>\n\n"
-    "Tez orada shu yerda 💎 ALMAZ ishlab beradigan o'yinlar paydo bo'ladi!\n"
-    "Iltimos, kuzatib boring 🚀"
-)
-
-
 async def on_almaz_games(update, context: ContextTypes.DEFAULT_TYPE):
-    """🎮 O'yinlar tugmasi (Almaz ishlash ichida) - hozircha bo'sh
-    platsholder ekran, eski Mini O'yinlar tizimiga ulanmaydi."""
+    """🎮 O'yinlar tugmasi (Almaz ishlash ichida) - Mini O'yinlar
+    (handlers/hard_games.py, 10 ta qiyin Free Fire o'yini) shu yerga
+    ulangan. Keyingi barcha navigatsiya ("hg:...") allaqachon bot.py da
+    ro'yxatdan o'tgan on_hard_games_root_callback orqali boshqariladi."""
+    from handlers.hard_games import _show_intro as _show_games_intro
+
     query = update.callback_query
     await query.answer()
-    await safe_edit_message(
-        query,
-        ALMAZ_GAMES_TEXT,
-        parse_mode="HTML",
-        reply_markup=almaz_games_keyboard(),
-    )
+    await _show_games_intro(query)
 
 
 async def on_almaz_page1(update, context: ContextTypes.DEFAULT_TYPE):
