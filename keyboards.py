@@ -187,6 +187,7 @@ BTN_ADMIN_CREDIT = "🛠 Admin buyrug'i"
 BTN_GIFT_ALL = "🎁 Hammaga sovg'a"
 BTN_DEDUCT_DIAMOND = "➖ Almazni ayirish"
 BTN_DEDUCT_ALL_DIAMONDS = "🗑 Hammadan almaz yechish"
+BTN_TOP_REFRESH = "🔄 Top yangilash"
 BTN_FF_ADMIN_PANEL = "🗂 Turnir/Akkaunt boshqaruvi"
 
 # ---------- 🛒 Free Fire Do'koni / 🎁 Giftlar / 🏆 Yutiqni chiqarish ----------
@@ -259,6 +260,7 @@ def admin_panel_keyboard() -> ReplyKeyboardMarkup:
             [_kb(BTN_POST), _kb(BTN_EDIT_TEXTS)],
             [_kb(BTN_NASTROYKA_ADD), _kb(BTN_FF_ADMIN_PANEL)],
             [_kb(BTN_DEDUCT_DIAMOND), _kb(BTN_DEDUCT_ALL_DIAMONDS)],
+            [_kb(BTN_TOP_REFRESH)],
             [_kb(BTN_BACK)],
         ],
         resize_keyboard=True,
@@ -275,7 +277,7 @@ ORDERS_CHANNEL_USERNAME = ORDERS_CHANNEL_ID.lstrip("@")
 # tugmalar oynasi ular botga keyingi safar yozganda YOKI istalgan tugmani
 # (reply yoki inline) bosganda AVTOMATIK yangilanadi — broadcast yuborish
 # shart emas.
-MENU_VERSION = 10
+MENU_VERSION = 11
 
 
 def full_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
@@ -311,6 +313,14 @@ ALMAZ_PAGE1_CB = "almazish:1"
 ALMAZ_PAGE2_CB = "almazish:2"
 ALMAZ_GO_CB = "almazish:go"
 ALMAZ_ACCOUNT_CB = "almazish:account"
+ALMAZ_REF_CB = "almazish:ref"
+# 🎮 O'yinlar - "Almaz ishlash" ichidagi ALOHIDA bo'lim (hozircha bo'sh
+# platsholder, eski Mini O'yinlar tizimiga (games:*) ULANMAYDI).
+ALMAZ_GAMES_CB = "almazish:games"
+
+# 📢 To'lovlar kanali - "💎 Almaz ishlash" menyusidagi 4-tugma
+TOLOVLAR_CHANNEL_USERNAME = "FF_TOLOVLAR"
+TOLOVLAR_CHANNEL_URL = f"https://t.me/{TOLOVLAR_CHANNEL_USERNAME}"
 
 
 # ---------- 🏆 Top foydalanuvchilar reytingi ----------
@@ -318,6 +328,7 @@ ALMAZ_ACCOUNT_CB = "almazish:account"
 TOP_USERS_CB = "topusers:show"
 TOP_USERS_REF_CB = "topusers:ref"
 TOP_USERS_DIAMOND_CB = "topusers:dia"
+TOP_USERS_MONEY_CB = "topusers:money"
 
 
 def top_users_keyboard(active: str = "ref") -> InlineKeyboardMarkup:
@@ -331,14 +342,16 @@ def top_users_keyboard(active: str = "ref") -> InlineKeyboardMarkup:
     qaytadi. Bundan tashqari, shu matn ("orqaga") tufayli
     _with_ff_menu_and_help() bu yerga "🎮 Free Fire menyu" tugmasini
     endi QO'SHMAYDI (chunki nav tugmasi allaqachon mavjud deb topadi)."""
-    ref_label = "✅ 👥 Referallar" if active == "ref" else "👥 Referallar"
     dia_label = "✅ 💎 Almazlar" if active == "dia" else "💎 Almazlar"
+    money_label = "✅ 💰 Pul" if active == "money" else "💰 Pul"
+    ref_label = "✅ 👥 Referallar" if active == "ref" else "👥 Referallar"
     return InlineKeyboardMarkup(
         [
             [
-                _ikb(ref_label, callback_data=TOP_USERS_REF_CB),
                 _ikb(dia_label, callback_data=TOP_USERS_DIAMOND_CB),
+                _ikb(money_label, callback_data=TOP_USERS_MONEY_CB),
             ],
+            [_ikb(ref_label, callback_data=TOP_USERS_REF_CB)],
             [_ikb("🔙 Orqaga", callback_data="start:back")],
         ]
     )
@@ -373,6 +386,22 @@ def start_inline_keyboard() -> InlineKeyboardMarkup:
 
 # ---------- 💎 Almaz ishlash (Referal) ----------
 
+def almaz_menu_keyboard() -> InlineKeyboardMarkup:
+    """💎 Almaz ishlash bo'limining asosiy menyusi (4 ta tugma).
+
+    "📢 To'lovlar kanali" tugmasi to'g'ridan-to'g'ri @FF_TOLOVLAR
+    kanaliga olib boradi (url tugma, bot ichida hech narsa ochilmaydi)."""
+    return InlineKeyboardMarkup(
+        [
+            [_ikb("👥 1. Referal orqali", callback_data=ALMAZ_REF_CB)],
+            [_ikb("🎮 2. O'yinlar", callback_data=ALMAZ_GAMES_CB)],
+            [_ikb("💎 3. Almaz yechish", style="primary", callback_data=ALMAZ_WITHDRAW_ACCOUNT_CB)],
+            [_ikb("📢 4. To'lovlar kanali", url=TOLOVLAR_CHANNEL_URL)],
+            [_ikb("🔙 Ortga", callback_data="start:back")],
+        ]
+    )
+
+
 def almaz_page1_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
@@ -404,12 +433,13 @@ def almaz_dashboard_keyboard(share_link: str) -> InlineKeyboardMarkup:
     share_url = f"https://t.me/share/url?url={quote(share_link, safe='')}"
     return InlineKeyboardMarkup(
         [
+            [_ikb("📤 Do'stlarga ulashish", style="primary", url=share_url)],
             [
-                _ikb("📤 Referalni ulashish", url=share_url),
+                _ikb("🎮 O'yinlar", callback_data=ALMAZ_GAMES_CB),
                 _ikb("👤 Hisobim", callback_data=ALMAZ_ACCOUNT_CB),
             ],
-            [_ikb("💎 Almaz yechish", style="primary", callback_data=ALMAZ_WITHDRAW_ACCOUNT_CB)],
-            [_ikb("🔙 Ortga", callback_data=ALMAZ_PAGE2_CB)],
+            [_ikb("💎 Almaz yechish", callback_data=ALMAZ_WITHDRAW_ACCOUNT_CB)],
+            [_ikb("🔙 Ortga", callback_data=ALMAZ_ISHLASH_CB)],
         ]
     )
 
@@ -420,6 +450,13 @@ def almaz_account_keyboard() -> InlineKeyboardMarkup:
     )
 
 
+def almaz_games_keyboard() -> InlineKeyboardMarkup:
+    """🎮 O'yinlar (Almaz ishlash ichida) - hozircha bo'sh platsholder."""
+    return InlineKeyboardMarkup(
+        [[_ikb("🔙 Ortga", callback_data=ALMAZ_ISHLASH_CB)]]
+    )
+
+
 # ---------- 💎 Almaz yechish (Referal berish bo'limi ichidan) ----------
 
 def almaz_withdraw_account_keyboard() -> InlineKeyboardMarkup:
@@ -427,7 +464,7 @@ def almaz_withdraw_account_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
             [_ikb("💎 Almazimni yechish", style="primary", callback_data=ALMAZ_WITHDRAW_START_CB)],
-            [_ikb("🔙 Ortga", callback_data=ALMAZ_GO_CB)],
+            [_ikb("🔙 Ortga", callback_data=ALMAZ_ISHLASH_CB)],
         ]
     )
 
