@@ -1,33 +1,26 @@
-import asyncio
 import logging
-import sys
-from aiogram import Bot, Dispatcher, F
-from aiogram.enums import ParseMode
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler
 
-# Handlerlarni import qilish
-from handlers import withdraw
-# Logdagi xatolik yo'qolishi uchun shu funksiya import qilinadi:
-from handlers.withdraw import on_withdraw_sent_by_admin
+# Handler va zarur funksiyani import qilish
+from handlers.withdraw import process_withdraw_request, on_withdraw_sent_by_admin
 
-# Bot tokeningiz (Railway yoki .env fayldan olinadi)
+# Bot tokeningiz
 BOT_TOKEN = "YOUR_BOT_TOKEN"
 
-async def main():
-    # Loglarni sozlash
-    logging.basicConfig(level=logging.INFO, stream=sys.stdout)
-    
-    bot = Bot(token=BOT_TOKEN)
-    dp = Dispatcher()
+def main():
+    logging.basicConfig(
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        level=logging.INFO
+    )
 
-    # Routerlarni ulash
-    dp.include_router(withdraw.router)
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-    # Admin to'lovni tasdiqlaganda ishlaydigan callback-handlerni ro'yxatdan o'tkazish
-    dp.callback_query.register(on_withdraw_sent_by_admin, F.data.startswith("withdraw_approve"))
+    # Buyruqlar va callback handlerlarni ulash
+    app.add_handler(CommandHandler("withdraw", process_withdraw_request))
+    app.add_handler(CallbackQueryHandler(on_withdraw_sent_by_admin, pattern="^withdraw_approve"))
 
-    # Eskirgan xabarlarni o'tkazib yuborish va botni ishga tushirish
-    await bot.delete_webhook(drop_pending_updates=True)
-    await dp.start_polling(bot)
+    # Botni ishga tushirish
+    app.run_polling()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
