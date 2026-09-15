@@ -394,8 +394,10 @@ def almaz_menu_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
             [_ikb("👥 1. Referal orqali", callback_data=ALMAZ_REF_CB)],
-            [_ikb("🎮 2. O'yinlar", callback_data=ALMAZ_GAMES_CB)],
-            [_ikb("💎 3. Almaz yechish", style="primary", callback_data=ALMAZ_WITHDRAW_ACCOUNT_CB)],
+            [
+                _ikb("🎮 2. O'yinlar", callback_data=ALMAZ_GAMES_CB),
+                _ikb("💎 3. Almaz yechish", callback_data=ALMAZ_WITHDRAW_ACCOUNT_CB),
+            ],
             [_ikb("📢 4. To'lovlar kanali", url=TOLOVLAR_CHANNEL_URL)],
             [_ikb("🔙 Ortga", callback_data="start:back")],
         ]
@@ -460,11 +462,14 @@ def almaz_games_keyboard() -> InlineKeyboardMarkup:
 # ---------- 💎 Almaz yechish (Referal berish bo'limi ichidan) ----------
 
 def almaz_withdraw_account_keyboard() -> InlineKeyboardMarkup:
-    """💎 jami almaz + "Almazimni yechish" tugmasi ko'rsatiladigan ekran."""
+    """💎 jami almaz + "Almazimni yechish" tugmasi ko'rsatiladigan ekran.
+    Tugmalar rangsiz va yonma-yon, chiroyli joylashtirilgan."""
     return InlineKeyboardMarkup(
         [
-            [_ikb("💎 Almazimni yechish", style="primary", callback_data=ALMAZ_WITHDRAW_START_CB)],
-            [_ikb("🔙 Ortga", callback_data=ALMAZ_ISHLASH_CB)],
+            [
+                _ikb("💎 Almazimni yechish", callback_data=ALMAZ_WITHDRAW_START_CB),
+                _ikb("🔙 Ortga", callback_data=ALMAZ_ISHLASH_CB),
+            ],
         ]
     )
 
