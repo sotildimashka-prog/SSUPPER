@@ -167,6 +167,16 @@ def init_db():
             )
             """
         )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS diamonds_earned_daily (
+                user_id INTEGER,
+                day TEXT,
+                earned INTEGER DEFAULT 0,
+                PRIMARY KEY (user_id, day)
+            )
+            """
+        )
         # ---------- 💰 To'lov usullari: yangi bonus jadvallari ----------
         cur.execute(
             """
@@ -655,6 +665,33 @@ def increment_quiz_answered(user_id: int):
             )
 
 
+def _record_diamonds_earned(conn, user_id: int, amount: int):
+    """Foydalanuvchi 💎 almaz ishlab olganda (yutuq, mukofot, bonus va h.k.)
+    "Bugun ishlagan almazim" statistikasi uchun kunlik yig'indiga qo'shadi.
+    Faqat musbat miqdorlar hisoblanadi (ayirishlar bu yerga kirmaydi)."""
+    if amount <= 0:
+        return
+    today = date.today().isoformat()
+    conn.execute(
+        "INSERT INTO diamonds_earned_daily (user_id, day, earned) VALUES (?, ?, ?) "
+        "ON CONFLICT(user_id, day) DO UPDATE SET earned = earned + excluded.earned",
+        (user_id, today, amount),
+    )
+
+
+def get_diamonds_earned_today(user_id: int) -> int:
+    """Foydalanuvchi bugun jami necha dona 💎 almaz ishlaganini qaytaradi
+    (referal, o'yinlar, viktorina, bonuslar - barchasi hisobga olinadi)."""
+    today = date.today().isoformat()
+    with get_conn() as conn:
+        cur = conn.execute(
+            "SELECT earned FROM diamonds_earned_daily WHERE user_id = ? AND day = ?",
+            (user_id, today),
+        )
+        row = cur.fetchone()
+        return row["earned"] if row else 0
+
+
 def add_quiz_diamonds(user_id: int, amount: int):
     with get_conn() as conn:
         conn.execute(
@@ -662,6 +699,7 @@ def add_quiz_diamonds(user_id: int, amount: int):
             "ON CONFLICT(user_id) DO UPDATE SET diamonds = diamonds + excluded.diamonds",
             (user_id, amount),
         )
+        _record_diamonds_earned(conn, user_id, amount)
 
 
 def get_quiz_diamonds(user_id: int) -> int:
@@ -865,6 +903,7 @@ def credit_referral_if_pending(referred_id: int) -> int | None:
                 "ON CONFLICT(user_id) DO UPDATE SET diamonds = diamonds + excluded.diamonds",
                 (uid, REFERRAL_DIAMOND_REWARD),
             )
+            _record_diamonds_earned(conn, uid, REFERRAL_DIAMOND_REWARD)
         return referrer_id
 
 
@@ -1155,6 +1194,7 @@ def claim_diamond_bonus(user_id: int, amount: int = DIAMOND_BONUS_AMOUNT) -> boo
             "ON CONFLICT(user_id) DO UPDATE SET diamonds = diamonds + excluded.diamonds",
             (user_id, amount),
         )
+        _record_diamonds_earned(conn, user_id, amount)
         return True
 
 
