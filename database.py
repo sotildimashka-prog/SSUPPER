@@ -239,11 +239,34 @@ def init_db():
         cur.execute(
             """
             CREATE TABLE IF NOT EXISTS hard_games_cooldown (
-                user_id INTEGER PRIMARY KEY,
-                next_allowed_at TEXT
+                user_id INTEGER,
+                game_key TEXT,
+                next_allowed_at TEXT,
+                PRIMARY KEY (user_id, game_key)
             )
             """
         )
+        # Migratsiya: eski versiyada bu jadval faqat user_id bo'yicha edi
+        # (barcha 10 ta o'yinga UMUMIY kutish vaqti). Endi har bir o'yin
+        # (game_key) uchun ALOHIDA kutish vaqti saqlanadi - bitta o'yinni
+        # o'ynash faqat o'sha o'yinni bloklaydi, qolganlari band bo'lib
+        # qolmaydi. Eski formatdagi jadval topilsa, yangi formatga
+        # o'tkaziladi (eski umumiy kutish vaqti shu jarayonda tozalanadi -
+        # bu vaqtinchalik holat, foydalanuvchiga zarar keltirmaydi).
+        cur.execute("PRAGMA table_info(hard_games_cooldown)")
+        _hgc_cols = {row[1] for row in cur.fetchall()}
+        if "game_key" not in _hgc_cols:
+            cur.execute("DROP TABLE hard_games_cooldown")
+            cur.execute(
+                """
+                CREATE TABLE hard_games_cooldown (
+                    user_id INTEGER,
+                    game_key TEXT,
+                    next_allowed_at TEXT,
+                    PRIMARY KEY (user_id, game_key)
+                )
+                """
+            )
         # ---------- 🔄 Avtomatik menyu yangilanishi ----------
         cur.execute(
             """
@@ -1330,14 +1353,15 @@ def apply_hard_game_penalty(user_id: int, amount: int) -> int:
     return deducted
 
 
-def check_hard_game_cooldown(user_id: int):
-    """Qiyin o'yinlar bo'limi uchun yagona (barcha 10 ta o'yinga umumiy)
-    kutish vaqtini tekshiradi. Qaytaradi: (ruxsat_bormi: bool, qolgan_soniya: int)."""
+def check_hard_game_cooldown(user_id: int, game_key: str):
+    """Har bir o'yin (game_key) uchun ALOHIDA kutish vaqtini tekshiradi -
+    bitta o'yinni o'ynash faqat o'sha o'yinni bloklaydi, qolgan 9 ta o'yin
+    band bo'lib qolmaydi. Qaytaradi: (ruxsat_bormi: bool, qolgan_soniya: int)."""
     now = datetime.utcnow()
     with get_conn() as conn:
         cur = conn.execute(
-            "SELECT next_allowed_at FROM hard_games_cooldown WHERE user_id = ?",
-            (user_id,),
+            "SELECT next_allowed_at FROM hard_games_cooldown WHERE user_id = ? AND game_key = ?",
+            (user_id, game_key),
         )
         row = cur.fetchone()
         if row and row["next_allowed_at"]:
@@ -1348,15 +1372,16 @@ def check_hard_game_cooldown(user_id: int):
         return True, 0
 
 
-def set_hard_game_cooldown(user_id: int, hours: float):
-    """Qiyin o'yinlar uchun keyingi o'ynash vaqtini `hours` soatdan keyinga
-    o'rnatadi (o'yin ochilgan payt darhol chaqiriladi)."""
+def set_hard_game_cooldown(user_id: int, game_key: str, hours: float):
+    """Berilgan o'yin (game_key) uchun keyingi o'ynash vaqtini `hours`
+    soatdan keyinga o'rnatadi - faqat shu o'yinga tegishli, qolgan
+    o'yinlarga ta'sir qilmaydi (o'yin ochilgan payt darhol chaqiriladi)."""
     next_allowed_at = (datetime.utcnow() + timedelta(hours=hours)).isoformat()
     with get_conn() as conn:
         conn.execute(
-            "INSERT INTO hard_games_cooldown (user_id, next_allowed_at) VALUES (?, ?) "
-            "ON CONFLICT(user_id) DO UPDATE SET next_allowed_at = excluded.next_allowed_at",
-            (user_id, next_allowed_at),
+            "INSERT INTO hard_games_cooldown (user_id, game_key, next_allowed_at) VALUES (?, ?, ?) "
+            "ON CONFLICT(user_id, game_key) DO UPDATE SET next_allowed_at = excluded.next_allowed_at",
+            (user_id, game_key, next_allowed_at),
         )
 
 
