@@ -135,22 +135,19 @@ def _has_nav_button(rows) -> bool:
 
 def _with_ff_menu_and_help(markup, skip_nav: bool = False):
     """Har qanday InlineKeyboardMarkup obyektini qabul qilib, tagiga
-    kerak bo'lsa "🎮 Free Fire menyu" va har doim qizil "🎧 Yordam"
-    tugmalarini qo'shib qaytaradi. Boshqa turdagi qiymatlar (masalan
-    ReplyKeyboardMarkup yoki None) o'zgarishsiz qaytariladi.
+    har doim qizil "🎧 Yordam" tugmasini qo'shib qaytaradi. Boshqa
+    turdagi qiymatlar (masalan ReplyKeyboardMarkup yoki None)
+    o'zgarishsiz qaytariladi.
 
-    skip_nav=True bo'lsa, "🎮 Free Fire menyu" tugmasi HECH QACHON
-    qo'shilmaydi (masalan, bu klaviaturaning o'zi allaqachon bosh
-    menyu bo'lsa - start_inline_keyboard())."""
+    ESLATMA: "🎮 Free Fire menyu" tugmasi ataylab olib tashlangan - bu
+    tugma botning hech bir joyida ko'rinmasligi kerak. `skip_nav`
+    parametri va GOTOMAINMENU_CB o'zgarmasdan qoldirilgan (boshqa
+    joylarda ishlatilishi mumkin), lekin bu yerda endi hech qanday
+    tugma qo'shishga sabab bo'lmaydi."""
     if not isinstance(markup, InlineKeyboardMarkup):
         return markup
 
     rows = [list(row) for row in markup.inline_keyboard]
-
-    if not skip_nav and not _has_nav_button(rows):
-        rows.append(
-            [_ikb("🎮 Free Fire menyu", style="success", callback_data=GOTOMAINMENU_CB)]
-        )
 
     rows.append(
         [_ikb("🔐 Yordam", style="danger", url=HELP_ADMIN_URL)]
