@@ -807,7 +807,7 @@ def add_balance(user_id: int, amount: int):
 # ==================== 💎 Referal orqali to'g'ridan-to'g'ri almaz ====================
 
 # Har bir tasdiqlangan referal uchun ikkala tomonga ham beriladigan almaz.
-REFERRAL_DIAMOND_REWARD = 3
+REFERRAL_DIAMOND_REWARD = 5
 
 # ⚠️ Jarima: do'st referal orqali qo'shilib, mukofot berilgach, agar
 # quyidagi soat ichida (taxminan 1-2 kun) majburiy kanallardan chiqib
@@ -1463,13 +1463,50 @@ def get_top_diamond_holders(limit: int = LEADERBOARD_TOP_LIMIT) -> list[dict]:
         ]
 
 
+def get_top_money_holders(limit: int = LEADERBOARD_TOP_LIMIT) -> list[dict]:
+    """Hisobida eng ko'p 💰 puli (so'm) bor foydalanuvchilarni qaytaradi."""
+    with get_conn() as conn:
+        cur = conn.execute(
+            """
+            SELECT b.user_id AS user_id,
+                   b.balance AS balance,
+                   u.first_name AS first_name,
+                   u.username AS username
+            FROM balances b
+            LEFT JOIN users u ON u.user_id = b.user_id
+            WHERE b.balance > 0
+            ORDER BY b.balance DESC
+            LIMIT ?
+            """,
+            (limit,),
+        )
+        rows = cur.fetchall()
+        return [
+            {
+                "user_id": row["user_id"],
+                "name": _display_name(row["first_name"], row["username"]),
+                "value": row["balance"],
+            }
+            for row in rows
+        ]
+
+
 def refresh_leaderboard_cache():
-    """Ikkala reytingni (referal va almaz) qayta hisoblab, keshga yozadi.
-    Bot ishga tushganda va har kuni (JobQueue orqali, bot.py) chaqiriladi."""
+    """Uchala reytingni (referal, almaz va pul) qayta hisoblab, keshga
+    yozadi. Bot ishga tushganda, har kuni (JobQueue orqali, bot.py) va
+    admin "🔄 Top yangilash" tugmasini bosganda chaqiriladi."""
     now = datetime.utcnow().isoformat()
     top_referrers = get_top_referrers()
     top_diamonds = get_top_diamond_holders()
+    top_money = get_top_money_holders()
     with get_conn() as conn:
+        conn.execute(
+            "INSERT INTO leaderboard_cache (cache_key, data, updated_at) "
+            "VALUES ('top_money', ?, ?) "
+            "ON CONFLICT(cache_key) DO UPDATE SET data = excluded.data, "
+            "updated_at = excluded.updated_at",
+            (json.dumps(top_money), now),
+        )
         conn.execute(
             "INSERT INTO leaderboard_cache (cache_key, data, updated_at) "
             "VALUES ('top_referrers', ?, ?) "
@@ -1484,11 +1521,45 @@ def refresh_leaderboard_cache():
             "updated_at = excluded.updated_at",
             (json.dumps(top_diamonds), now),
         )
-    return top_referrers, top_diamonds
+    return top_referrers, top_diamonds, top_money
+
+
+def resolve_user(raw: str):
+    """Admin kiritgan matn bo'yicha foydalanuvchini topadi.
+
+    Qabul qilinadi:
+      - Telegram ID (faqat raqam):  123456789
+      - username:                   @ali_ff  yoki  ali_ff
+      - havola:                     https://t.me/ali_ff  yoki  t.me/ali_ff
+
+    Topilsa users jadvalidagi qator (row), topilmasa None qaytaradi.
+    ID bo'yicha qidirilganda foydalanuvchi bazada bo'lmasa ham ishlash
+    imkoni bo'lishi uchun chaqiruvchi tomonda alohida tekshiriladi."""
+    clean = (raw or "").strip()
+    if not clean:
+        return None
+    for prefix in ("https://t.me/", "http://t.me/", "t.me/"):
+        if clean.lower().startswith(prefix):
+            clean = clean[len(prefix):]
+            break
+    clean = clean.lstrip("@").strip()
+    if not clean:
+        return None
+    if clean.isdigit():
+        return get_user(int(clean))
+    return get_user_by_username(clean)
+
+
+def parse_user_id(raw: str) -> int | None:
+    """Matn faqat raqamlardan iborat bo'lsa, uni Telegram ID sifatida
+    qaytaradi. Aks holda None. (Bazada hali yo'q foydalanuvchiga ham
+    almaz/pul berish yoki bloklash uchun kerak.)"""
+    clean = (raw or "").strip().replace(" ", "")
+    return int(clean) if clean.isdigit() else None
 
 
 def get_cached_leaderboard(cache_key: str) -> tuple[list, str | None]:
-    """cache_key: 'top_referrers' yoki 'top_diamonds'. Keshda mavjud bo'lsa
+    """cache_key: 'top_referrers', 'top_diamonds' yoki 'top_money'. Keshda mavjud bo'lsa
     (ro'yxat, oxirgi_yangilanish_vaqti) qaytaradi, aks holda ([], None)."""
     with get_conn() as conn:
         cur = conn.execute(
