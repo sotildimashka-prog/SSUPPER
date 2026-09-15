@@ -739,3 +739,161 @@ QUESTIONS = [
         "correct": 0,
     },
 ]
+
+# ---------------------------------------------------------------------------
+# 🎮 Mini o'yinlar (Free Fire Viktorina) uchun FAQAT QIYIN savollar.
+# Xarakter qobiliyatlari, qurol toifalari va texnik atamalarga oid,
+# chuqurroq bilim talab qiladigan savollar shu yerga yig'ilgan.
+# ---------------------------------------------------------------------------
+HARD_QUESTIONS = [
+    {
+        "question": "Free Fire'da 'Chrono' xarakteri qanday qobiliyatga ega?",
+        "options": ["Vaqtinchalik himoya to'sig'i yaratadi", "Ko'rinmas bo'ladi", "Sog'liqni tiklaydi", 'Tezlikni oshiradi'],
+        "correct": 0,
+    },
+    {
+        "question": "Free Fire'da 'Moco' xarakterining qobiliyati nima deb ataladi?",
+        "options": ["Hacker's Eye", "Sniper's Focus", 'Healing Touch', 'Fast Reload'],
+        "correct": 0,
+    },
+    {
+        "question": "Free Fire'da 'K' (Captain Booyah) xarakterining ikkita rejimi qanday nomlanadi?",
+        "options": ['Psychology va Jiu-Jitsu', 'Attack va Defense', 'Day va Night', 'Fire va Ice'],
+        "correct": 0,
+    },
+    {
+        "question": "Free Fire'da 'Hayato' xarakteri qaysi qurolga bog'liq maxsus qobiliyatga ega?",
+        "options": ['Katana (pichoq)', "Snayper miltig'i", 'Pistol', 'Granata'],
+        "correct": 0,
+    },
+    {
+        "question": "Free Fire'da 'Wukong' xarakteri qaysi qobiliyatga ega?",
+        "options": ['Bambukka aylanib, kamuflyaj qiladi', "Dushmanlarni ko'radi", 'Uchib yura oladi', "Vaqtni to'xtatadi"],
+        "correct": 0,
+    },
+    {
+        "question": "Free Fire'da 'Jota' xarakteri qaysi qurol bilan bog'liq maxsus qobiliyatga ega?",
+        "options": ["Shotgun (o'ldirishda HP tiklanadi)", 'Sniper', 'Pistol', 'Granata'],
+        "correct": 0,
+    },
+    {
+        "question": "Free Fire'da 'Luqueta' xarakteri nima uchun kuchli hisoblanadi?",
+        "options": ["Har bir o'ldirish uchun maksimal HP oshadi", 'Tezlik cheksiz oshadi', "Ko'rinmas bo'ladi", 'Qurolsiz kuchli zarar beradi'],
+        "correct": 0,
+    },
+    {
+        "question": "Free Fire'da 'Maxim' xarakterining qobiliyati nimaga tegishli?",
+        "options": ["O'q-dori (ammo) sig'imi oshishiga", 'Yugurish tezligiga', "Ko'rish radiusiga", "Sog'liq tiklashga"],
+        "correct": 0,
+    },
+    {
+        "question": "Free Fire'da 'Ford' xarakterining afzalligi qachon ishga tushadi?",
+        "options": ['HP kam qolganda zarar kamayadi', "HP to'liq bo'lganda", 'Faqat suvda', 'Faqat tunda'],
+        "correct": 0,
+    },
+    {
+        "question": "Free Fire'da 'Dimitri' xarakterining qobiliyati nimaga bog'liq?",
+        "options": ['EP (energiya) tiklanishiga', 'Yugurish tezligiga', "Ko'rish maydoniga", 'Qurol zarariga'],
+        "correct": 0,
+    },
+    {
+        "question": "Free Fire'da 'Notora' xarakterining foydasi nimada?",
+        "options": ["Yiqilgan dushmanlardan qurol tezroq yig'iladi", "Ko'rinmas bo'ladi", 'Uchib yuradi', 'Suvda tez suzadi'],
+        "correct": 0,
+    },
+    {
+        "question": "Free Fire'da 'Shirou' xarakterining qobiliyati nimaga qaratilgan?",
+        "options": ["O'ziga qaratilgan zararni ko'rsatish/aniqlashga", "Sog'liq tiklashga", 'Tezlik oshirishga', 'Qurol yashirishga'],
+        "correct": 0,
+    },
+    {
+        "question": "Free Fire'da 'SVD' qurolining toifasi qaysi?",
+        "options": ['Sniper Rifle', 'Assault Rifle', 'SMG', 'LMG'],
+        "correct": 0,
+    },
+    {
+        "question": "Free Fire'da 'M82B' qurolining xususiyati nima?",
+        "options": ["Kuchli, lekin sekin qayta to'ladigan snayper", 'Tez otadigan pistol', 'Yengil SMG', 'Kichik shotgun'],
+        "correct": 0,
+    },
+    {
+        "question": "Free Fire'da 'SPAS12' qurolining o'ziga xosligi nima?",
+        "options": ['Yaqin masofada kuchli shotgun', 'Uzoq masofa snayperi', 'Tez otar pistol', 'Sekin ammo tiklovchi LMG'],
+        "correct": 0,
+    },
+    {
+        "question": "Free Fire'da 'M60' qurolining toifasi qaysi?",
+        "options": ['LMG (Light Machine Gun)', 'Sniper', 'Pistol', 'SMG'],
+        "correct": 0,
+    },
+    {
+        "question": "Free Fire'da 'Drag headshot' texnikasi nimaga asoslangan?",
+        "options": ['Nishonni yuqoriga tortib bosh qismga urish', 'Faqat pastga qarab otish', 'Faqat oyoqqa otish', 'Faqat yon tomonga otish'],
+        "correct": 0,
+    },
+    {
+        "question": "Free Fire'da 'Peek and fire' texnikasi nima?",
+        "options": ["To'siq ortidan chiqib tez otish va yashirinish", 'Uzoq vaqt bir joyda turish', "Faqat yugurib o'tish", 'Faqat granata otish'],
+        "correct": 0,
+    },
+    {
+        "question": "Free Fire'da 'DPI' nima uchun muhim (ayniqsa telefon sozlamalarida)?",
+        "options": ["Ekran sezgirligiga bog'liq", "Internet tezligiga bog'liq", "Batareya sarfiga bog'liq", "Ovoz sifatiga bog'liq"],
+        "correct": 0,
+    },
+    {
+        "question": "Free Fire'da 'EP' (Energy Point) nima uchun ishlatiladi?",
+        "options": ["Ko'p xarakter qobiliyatlarida quvvat sifatida", "Sog'liqni to'liq tiklash uchun", 'Qurol sotib olish uchun', 'Tezlikni cheklash uchun'],
+        "correct": 0,
+    },
+    {
+        "question": "Free Fire'da 'First Aid Kit' bilan 'Med Kit' o'rtasidagi farq nima?",
+        "options": ['First Aid Kit tezroq, lekin kamroq HP tiklaydi', 'Ular bir xil narsa', 'Med Kit faqat jamoaga ishlaydi', 'First Aid Kit faqat suvda ishlaydi'],
+        "correct": 0,
+    },
+    {
+        "question": "Free Fire'da 'Purgatory' xaritasining o'ziga xos xususiyati nima?",
+        "options": ["O'rta asr uslubidagi qal'alar", "Cho'l relyefi", "Qorli tog'lar", 'Suv osti shaharchasi'],
+        "correct": 0,
+    },
+    {
+        "question": "Free Fire'da 'NEXTERRA' xaritasi qanday xususiyatga ega?",
+        "options": ['Kelajak/texnologik uslubdagi muhit', "Faqat cho'l relyefi", 'Faqat suv osti dunyosi', "Faqat qor bosgan tog'lar"],
+        "correct": 0,
+    },
+    {
+        "question": "Free Fire'da 'Guild Level' nimaga bog'liq holda oshadi?",
+        "options": ["A'zolarning faolligi va hissasiga", "Faqat vaqt o'tishiga", 'Faqat pul sarflashga', "Hech nimaga bog'liq emas"],
+        "correct": 0,
+    },
+    {
+        "question": "Free Fire'da 'Auto headshot' funksiyasi odatda qayerda mavjud emas?",
+        "options": ["Rasmiy o'yin sozlamalarida (bu firibgarlik hisoblanadi)", 'Hech qayerda cheklanmagan', 'Faqat Ranked rejimda taqiqlangan', 'Faqat mobil versiyada bor'],
+        "correct": 0,
+    },
+    {
+        "question": "Free Fire'da 'Andrew' xarakteri nimasi bilan ajralib turadi?",
+        "options": ["Qalqon zarari kamayishi yo'q (mustahkam himoya)", 'Eng tez yuguradi', 'Suv ostida nafas oladi', "Ko'rinmas bo'ladi"],
+        "correct": 0,
+    },
+    {
+        "question": "Free Fire'da 'Laura' xarakteri qaysi qurolda kuchli?",
+        "options": ["Snayper miltig'ida (aniqlik oshadi)", 'Shotgunda', 'Pichoqda', 'Granatada'],
+        "correct": 0,
+    },
+    {
+        "question": "Free Fire'da 'Xayne' xarakteri qaysi muhitga moslashgan?",
+        "options": ["Qorong'i/kechqurun sharoitga", 'Faqat suv ostiga', "Faqat cho'lga", 'Faqat qorli hududga'],
+        "correct": 0,
+    },
+    {
+        "question": "Free Fire'da 'Paloma' xarakterining foydasi nimada?",
+        "options": ["Davolanish jarayoni to'xtatilmaydi", 'Tezlik cheksiz oshadi', "Ko'rinmas bo'ladi", 'Zarar ikki barobar oshadi'],
+        "correct": 0,
+    },
+    {
+        "question": "Free Fire'da 'Steffie' xarakteri qanday qobiliyatga ega?",
+        "options": ['Portlash zararini kamaytiradi', 'Yugurish tezligini oshiradi', "Ko'rinmas bo'ladi", "Qurolni tezroq to'ldiradi"],
+        "correct": 0,
+    },
+]
