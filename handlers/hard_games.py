@@ -58,7 +58,9 @@ INTRO_TEXT = (
     f"⚠️ To'g'ri javob bersangiz +{REWARD_AMOUNT} 💎, noto'g'ri javob "
     f"bersangiz yoki vaqtida ulgurmasangiz −{PENALTY_AMOUNT} 💎 yechiladi.\n"
     f"⏱ Har bir savolga {GAME_TIME_LIMIT} soniya vaqt beriladi.\n\n"
-    "Tayyor bo'lsangiz, pastdagi 🚀 BOSHLASH tugmasini bosing."
+    "🟢 <b>Oson o'yinlar</b> — 20 ta: tosh-qaychi-qog'oz, tanga, zar 🎲, darts 🎯, futbol ⚽ va savollar\n"
+    "🔥 <b>Qiyin o'yinlar</b> — 10 ta murakkab Free Fire o'yini\n\n"
+    "Darajani tanlang 👇"
 )
 
 TIMEOUT_TEXT = f"⏰ Vaqt tugadi! Endi yana {TIMEOUT_COOLDOWN_HOURS} soat kutasiz."
@@ -155,7 +157,10 @@ def _intro_keyboard() -> InlineKeyboardMarkup:
 
     return InlineKeyboardMarkup(
         [
-            [InlineKeyboardButton("🚀 BOSHLASH", callback_data="hg:list")],
+            [
+                InlineKeyboardButton("🟢 Oson o'yinlar", callback_data="eg:list"),
+                InlineKeyboardButton("🔥 Qiyin o'yinlar", callback_data="hg:list"),
+            ],
             [InlineKeyboardButton("🔙 Ortga", callback_data=ALMAZ_ISHLASH_CB)],
         ]
     )
