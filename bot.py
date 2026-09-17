@@ -170,6 +170,7 @@ from handlers.almaz_ishlash import (
     check_referral_penalties_job,
     on_almaz_withdraw_account,
     on_almaz_withdraw_start,
+    on_almaz_withdraw_refcheck,
     on_almaz_withdraw_reply_button,
     receive_almazwd_ff_id,
     receive_almazwd_amount,
@@ -1289,7 +1290,8 @@ def build_application() -> Application:
     )
     almazwd_conv = ConversationHandler(
         entry_points=[
-            CallbackQueryHandler(on_almaz_withdraw_start, pattern="^almazwd:start$")
+            CallbackQueryHandler(on_almaz_withdraw_start, pattern="^almazwd:start$"),
+            CallbackQueryHandler(on_almaz_withdraw_refcheck, pattern="^almazwd:refcheck$"),
         ],
         states={
             WAITING_ALMAZWD_FF_ID: [
