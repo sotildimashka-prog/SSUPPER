@@ -424,6 +424,7 @@ def almaz_page2_keyboard() -> InlineKeyboardMarkup:
 ALMAZ_WITHDRAW_ACCOUNT_CB = "almazwd:account"
 ALMAZ_WITHDRAW_START_CB = "almazwd:start"
 ALMAZ_WITHDRAW_CANCEL_CB = "almazwd:cancel"
+ALMAZ_WITHDRAW_REFCHECK_CB = "almazwd:refcheck"
 
 
 def almaz_dashboard_keyboard(share_link: str) -> InlineKeyboardMarkup:
@@ -474,6 +475,19 @@ def almaz_withdraw_account_keyboard() -> InlineKeyboardMarkup:
 def almaz_withdraw_not_enough_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [[_ikb("⬅️ Orqaga", callback_data=ALMAZ_WITHDRAW_ACCOUNT_CB)]]
+    )
+
+
+def almaz_withdraw_referral_keyboard(share_link: str) -> InlineKeyboardMarkup:
+    """Balans yetarli bo'lgach chiqadigan "7 ta do'st taklif qiling" ekrani
+    tugmalari - ulashish, "Almaz yechib olish" va orqaga."""
+    share_url = f"https://t.me/share/url?url={quote(share_link, safe='')}"
+    return InlineKeyboardMarkup(
+        [
+            [_ikb("📤 Do'stlarga ulashish", style="primary", url=share_url)],
+            [_ikb("💎 Almaz yechib olish", callback_data=ALMAZ_WITHDRAW_REFCHECK_CB)],
+            [_ikb("⬅️ Orqaga", callback_data=ALMAZ_WITHDRAW_ACCOUNT_CB)],
+        ]
     )
 
 
