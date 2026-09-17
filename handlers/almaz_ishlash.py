@@ -35,6 +35,7 @@ from keyboards import (
     almaz_withdraw_account_keyboard,
     almaz_withdraw_not_enough_keyboard,
     almaz_withdraw_cancel_keyboard,
+    almaz_withdraw_referral_keyboard,
     withdraw_admin_review_keyboard,
 )
 
@@ -198,6 +199,7 @@ WAITING_ALMAZWD_FF_ID = 210
 WAITING_ALMAZWD_AMOUNT = 211
 
 MIN_ALMAZ_WITHDRAW = 190
+REQUIRED_ALMAZWD_REFERRALS = 7
 
 
 def _not_enough_almazwd_text(diamonds: int) -> str:
@@ -206,7 +208,8 @@ def _not_enough_almazwd_text(diamonds: int) -> str:
         "💎 <b>Almaz yetarli emas</b>\n\n"
         f"Hisobingizda hozircha: <b>{diamonds}</b> 💎\n"
         f"Yechish uchun yana <b>{needed}</b> 💎 kerak.\n\n"
-        f"(Minimal yechish: {MIN_ALMAZ_WITHDRAW} 💎)"
+        f"(Minimal yechish: {MIN_ALMAZ_WITHDRAW} 💎)\n\n"
+        "🎯 Almaz to'plang va qaytadan urinib ko'ring!"
     )
 
 
@@ -217,6 +220,28 @@ def _almazwd_account_text(diamonds: int, earned_today: int) -> str:
         f"📈 Bugun ishlagan almazim: <b>{earned_today}</b> 💎\n\n"
         f"Minimal yechish: <b>{MIN_ALMAZ_WITHDRAW}</b> 💎\n\n"
         "Yechib olish uchun pastdagi tugmani bosing 👇"
+    )
+
+
+def _almazwd_referral_gate_text(link: str, diamonds: int, invited: int) -> str:
+    """Balans yetarli bo'lgach chiqadigan "tabriklaymiz" ekrani -
+    yechish uchun REQUIRED_ALMAZWD_REFERRALS ta do'st taklif qilish
+    talab qilinadi, har bir foydalanuvchiga shaxsiy (alohida) havola."""
+    remaining = max(0, REQUIRED_ALMAZWD_REFERRALS - invited)
+    return (
+        "🎉 <b>Tabriklaymiz! Almaz yechishingiz mumkin!</b>\n\n"
+        f"💎 Hisobingizda: <b>{diamonds}</b> almaz bor.\n\n"
+        "Yechib olish uchun quyidagi shaxsiy referal havolangizni "
+        f"<b>{REQUIRED_ALMAZWD_REFERRALS} ta</b> do'stingizga yuboring:\n\n"
+        f"<code>{link}</code>\n\n"
+        f"👥 Taklif qilingan do'stlar: <b>{invited}/{REQUIRED_ALMAZWD_REFERRALS}</b>\n"
+        + (
+            f"🔻 Yana <b>{remaining}</b> ta do'st taklif qiling.\n\n"
+            if remaining > 0
+            else "✅ Talab bajarildi!\n\n"
+        )
+        + "Barchasini bajargach, pastdagi \"💎 Almaz yechib olish\" "
+        "tugmasini bosing 👇"
     )
 
 
@@ -239,8 +264,10 @@ async def on_almaz_withdraw_account(update: Update, context: ContextTypes.DEFAUL
 
 
 async def on_almaz_withdraw_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """💎 Almazimni yechish tugmasi - 190+ bo'lsa ID so'raladi, aks holda
-    real balans va yana nechta 💎 kerakligi ko'rsatiladi."""
+    """💎 Almazimni yechish tugmasi - 190+ bo'lsa avval REQUIRED_ALMAZWD_REFERRALS
+    ta do'st taklif qilish talab qilinadigan ekran chiqadi (shaxsiy referal
+    havola bilan), aks holda real balans va yana nechta 💎 kerakligi
+    ko'rsatiladi."""
     query = update.callback_query
     await query.answer()
 
@@ -256,6 +283,56 @@ async def on_almaz_withdraw_start(update: Update, context: ContextTypes.DEFAULT_
         )
         return ConversationHandler.END
 
+    link = await _get_referral_link(context, user_id)
+    invited = db.count_referrals(user_id)
+    await safe_edit_message(
+        query,
+        _almazwd_referral_gate_text(link, diamonds, invited),
+        parse_mode="HTML",
+        reply_markup=almaz_withdraw_referral_keyboard(link),
+    )
+    return ConversationHandler.END
+
+
+async def on_almaz_withdraw_refcheck(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """"💎 Almaz yechib olish" tugmasi (referal shartidan keyin) - agar
+    foydalanuvchi kamida REQUIRED_ALMAZWD_REFERRALS ta do'st taklif qilgan
+    bo'lsa Free Fire ID so'raladi, aks holda ogohlantirish chiqadi va
+    referal ekranida qoladi."""
+    query = update.callback_query
+
+    user_id = query.from_user.id
+    diamonds = db.get_quiz_diamonds(user_id)
+
+    if diamonds < MIN_ALMAZ_WITHDRAW:
+        await query.answer()
+        await safe_edit_message(
+            query,
+            _not_enough_almazwd_text(diamonds),
+            parse_mode="HTML",
+            reply_markup=almaz_withdraw_not_enough_keyboard(),
+        )
+        return ConversationHandler.END
+
+    invited = db.count_referrals(user_id)
+
+    if invited < REQUIRED_ALMAZWD_REFERRALS:
+        remaining = REQUIRED_ALMAZWD_REFERRALS - invited
+        await query.answer(
+            f"⚠️ Sizda hozircha {invited}/{REQUIRED_ALMAZWD_REFERRALS} do'st bor. "
+            f"Yana {remaining} ta do'st taklif qiling!",
+            show_alert=True,
+        )
+        link = await _get_referral_link(context, user_id)
+        await safe_edit_message(
+            query,
+            _almazwd_referral_gate_text(link, diamonds, invited),
+            parse_mode="HTML",
+            reply_markup=almaz_withdraw_referral_keyboard(link),
+        )
+        return ConversationHandler.END
+
+    await query.answer()
     await safe_edit_message(
         query,
         "🆔 Free Fire UID (ID) raqamingizni yuboring:\n\n"
@@ -319,7 +396,7 @@ async def receive_almazwd_amount(update: Update, context: ContextTypes.DEFAULT_T
     db.deduct_quiz_diamonds(user.id, amount)
 
     await update.message.reply_text(
-        "✅ <b>So'rovingiz qabul qilindi!</b>\n\n"
+        "✅ <b>So'rovingiz adminga yuborildi!</b>\n\n"
         f"💎 <b>{amount}</b> dona almaz tez orada Free Fire hisobingizga o'tkaziladi.",
         parse_mode="HTML",
     )
