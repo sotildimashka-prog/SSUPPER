@@ -390,12 +390,14 @@ def almaz_menu_keyboard() -> InlineKeyboardMarkup:
     kanaliga olib boradi (url tugma, bot ichida hech narsa ochilmaydi)."""
     return InlineKeyboardMarkup(
         [
-            [_ikb("👥 1. Referal orqali", callback_data=ALMAZ_REF_CB)],
             [
-                _ikb("🎮 2. O'yinlar", callback_data=ALMAZ_GAMES_CB),
-                _ikb("💎 3. Almaz yechish", callback_data=ALMAZ_WITHDRAW_ACCOUNT_CB),
+                _ikb("🤝 Referal orqali", callback_data=ALMAZ_REF_CB),
+                _ikb("🕹 O'yinlar", callback_data=ALMAZ_GAMES_CB),
             ],
-            [_ikb("📢 4. To'lovlar kanali", url=TOLOVLAR_CHANNEL_URL)],
+            [
+                _ikb("💠 Almaz yechish", callback_data=ALMAZ_WITHDRAW_ACCOUNT_CB),
+                _ikb("🏦 To'lovlar kanali", url=TOLOVLAR_CHANNEL_URL),
+            ],
             [_ikb("🔙 Ortga", callback_data="start:back")],
         ]
     )
