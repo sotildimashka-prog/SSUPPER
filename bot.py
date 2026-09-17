@@ -407,6 +407,8 @@ from handlers.hard_games import (
     on_games_button,
     on_games_root_callback as on_hard_games_root_callback,
 )
+# 🟢 Oson O'yinlar - 20 ta yengil daraja o'yini (+3 💎 / −3 💎)
+from handlers.easy_games import on_easy_games_callback
 
 # ---------- Yangi bosh menyu bo'limlari (🎮 Free Fire / 💎 Almaz olish / 🛠️ Xizmatlar / 👤 Profil) ----------
 from handlers.ffmenu import (
@@ -1788,6 +1790,8 @@ def build_application() -> Application:
     app.add_handler(CallbackQueryHandler(on_all_services_item, pattern="^svcall:"))
     # 🎮 Mini O'yinlar (qiyin darajadagi 10 ta Free Fire o'yini)
     app.add_handler(CallbackQueryHandler(on_hard_games_root_callback, pattern="^hg:"))
+    # 🟢 Oson O'yinlar (20 ta yengil o'yin)
+    app.add_handler(CallbackQueryHandler(on_easy_games_callback, pattern="^eg:"))
     # "Sonni top" o'yinida faqat raqamli xabarlar shu yerda ushlanadi; boshqa
     # conversationlar (masalan to'lov, FF ID) o'z holatida ustuvor bo'lib
     # qoladi, chunki bu handler ular ro'yxatdan o'tgandan KEYIN qo'shilgan.
