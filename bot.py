@@ -43,8 +43,9 @@ from keyboards import (
     BTN_FAQ,
     BTN_STATS,
     BTN_BROADCAST,
-    BTN_POST,
     BTN_EDIT_TEXTS,
+    BTN_FORCE_SUB,
+    BTN_MIN_WITHDRAW,
     BTN_ADMIN_CREDIT,
     BTN_WITHDRAW,
     BTN_GIFT_ALL,
@@ -261,13 +262,6 @@ from handlers.admin import (
     send_broadcast,
     cancel_broadcast,
     WAITING_BROADCAST,
-    start_post,
-    receive_post_text,
-    receive_post_button,
-    skip_post_button,
-    cancel_post,
-    WAITING_POST_TEXT,
-    WAITING_POST_BUTTON,
     start_edit_texts,
     choose_text_to_edit,
     receive_new_text,
@@ -318,6 +312,17 @@ from handlers.admin import (
     WAITING_TURNIR_FORMAT,
     WAITING_TURNIR_TIME,
     WAITING_TURNIR_NOTE,
+    start_force_sub,
+    on_force_sub_remove,
+    start_force_sub_add,
+    receive_force_sub_channel,
+    cancel_force_sub_add,
+    on_force_sub_close,
+    WAITING_FORCE_SUB_CHANNEL,
+    start_min_withdraw,
+    receive_min_withdraw_value,
+    cancel_min_withdraw,
+    WAITING_MIN_WITHDRAW,
 )
 from handlers.turnirlar import (
     on_turnirlar_button,
@@ -536,7 +541,8 @@ def _exact(text: str):
 _ALL_MENU_BUTTON_TEXTS = [
     BTN_SETTINGS, BTN_TABLET, BTN_NICKS, BTN_HACK, BTN_CUSTOM, BTN_WEBSITE,
     BTN_NEWS, BTN_MUSIC, BTN_QUIZ, BTN_DIAMONDS, BTN_ACCOUNT, BTN_HELP,
-    BTN_GUIDES, BTN_FAQ, BTN_STATS, BTN_BROADCAST, BTN_POST, BTN_EDIT_TEXTS,
+    BTN_GUIDES, BTN_FAQ, BTN_STATS, BTN_BROADCAST, BTN_EDIT_TEXTS,
+    BTN_FORCE_SUB, BTN_MIN_WITHDRAW,
     BTN_ADMIN_CREDIT, BTN_WITHDRAW, BTN_GIFT_ALL, BTN_DEDUCT_DIAMOND,
     BTN_DEDUCT_ALL_DIAMONDS, BTN_TOP_REFRESH,
     BTN_FF2017, BTN_MAIN_FF, BTN_MAIN_DIAMONDS, BTN_MAIN_SERVICES,
@@ -1060,25 +1066,37 @@ def build_application() -> Application:
     )
     app.add_handler(broadcast_conv)
 
-    # ---------- Post conversation (faqat admin) ----------
-    post_conv = ConversationHandler(
-        entry_points=[MessageHandler(_exact(BTN_POST), start_post)],
+    # ---------- 📢 Majburiy obuna boshqaruvi (faqat admin) ----------
+    app.add_handler(MessageHandler(_exact(BTN_FORCE_SUB), start_force_sub))
+    app.add_handler(CallbackQueryHandler(on_force_sub_remove, pattern="^forcesub:remove:"))
+    app.add_handler(CallbackQueryHandler(on_force_sub_close, pattern="^forcesub:close$"))
+
+    force_sub_add_conv = ConversationHandler(
+        entry_points=[
+            CallbackQueryHandler(start_force_sub_add, pattern="^forcesub:add$")
+        ],
         states={
-            WAITING_POST_TEXT: [
-                CommandHandler("bekor", cancel_post),
-                MessageHandler(
-                    (filters.TEXT | filters.PHOTO) & ~filters.COMMAND, receive_post_text
-                ),
-            ],
-            WAITING_POST_BUTTON: [
-                CommandHandler("bekor", cancel_post),
-                CommandHandler("otkazib_yuborish", skip_post_button),
-                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_post_button),
+            WAITING_FORCE_SUB_CHANNEL: [
+                CommandHandler("bekor", cancel_force_sub_add),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_force_sub_channel),
             ],
         },
-        fallbacks=[CommandHandler("bekor", cancel_post)],
+        fallbacks=[CommandHandler("bekor", cancel_force_sub_add)],
     )
-    app.add_handler(post_conv)
+    app.add_handler(force_sub_add_conv)
+
+    # ---------- 💎 Almaz yechish minimumi (faqat admin) ----------
+    min_withdraw_conv = ConversationHandler(
+        entry_points=[MessageHandler(_exact(BTN_MIN_WITHDRAW), start_min_withdraw)],
+        states={
+            WAITING_MIN_WITHDRAW: [
+                CommandHandler("bekor", cancel_min_withdraw),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_min_withdraw_value),
+            ],
+        },
+        fallbacks=[CommandHandler("bekor", cancel_min_withdraw)],
+    )
+    app.add_handler(min_withdraw_conv)
 
     # ---------- Matnlarni tahrirlash conversation (faqat admin) ----------
     edit_texts_conv = ConversationHandler(
