@@ -4,8 +4,9 @@
 Joylashuvi:  💎 Almaz ishlash -> 🎮 O'yinlar -> (🟢 Oson | 🔥 Qiyin) tagida
              "💣 Portlovchi almaz" tugmasi.
 
-Har bir o'yinda RG_CELLS (70) ta yopiq katak bor. FAQAT BITTASI g'olib katak,
-qolgan 69 tasi "portlaydi". Yutish ehtimoli = 1 / RG_CELLS (~1.4%).
+Har bir o'yinda RG_CELLS (70) ta yopiq katak bor. Ulardan FAQAT RG_WINNERS (5) tasi
+g'olib katak, qolgan 65 tasi "portlaydi". Yutish ehtimoli = RG_WINNERS / RG_CELLS
+(5/70 = ~7.1%). To'g'ri (g'olib) kataklar foydalanuvchiga HECH QACHON ko'rsatilmaydi.
 
 Oqim:
   1. 💣 Portlovchi almaz  -> JIDDIY OGOHLANTIRISH + shartlar (ehtimol ham shu yerda).
@@ -17,8 +18,10 @@ Oqim:
 Halollik qoidalari (muhim):
   • Ogohlantirishdagi ehtimol RG_CELLS dan hisoblanadi - matn bilan haqiqiy
     ehtimol hech qachon farq qilmaydi.
-  • G'olib katak serverda, kriptografik tasodifiylik (secrets) bilan, katak
-    bosilgan paytda aniqlanadi. Tugma ma'lumotida (callback_data) natija YO'Q.
+  • G'olib kataklar serverda, kriptografik tasodifiylik (secrets) bilan, katak
+    bosilgan paytda HAR SAFAR yangidan aniqlanadi. Tugma ma'lumotida (callback_data)
+    natija YO'Q va yutqazgandan keyin ham to'g'ri kataklar ko'rsatilmaydi.
+  • O'yinlar ro'yxati tartibi har safar aralashtiriladi.
   • Har bir raund bir marta hal bo'ladi (qayta bosish almazga ta'sir qilmaydi).
   • Balans stavkadan kam bo'lsa, o'yin boshlanmaydi va balans manfiy bo'lmaydi.
 
@@ -39,12 +42,15 @@ import database as db
 # Sozlamalar
 # ---------------------------------------------------------------------------
 
-RG_CELLS = 70             # Har bir o'yindagi kataklar soni (FAQAT bittasi yutadi)
+RG_CELLS = 70             # Har bir o'yindagi kataklar soni
+RG_WINNERS = 5            # Shulardan nechtasi g'olib (qolganlari portlaydi)
 RG_COLUMNS = 7            # Katakchalar bir qatorda nechta (70 = 7 x 10)
 RG_STAKE = 180            # Yutqazsa −180 💎
 RG_PRIZE = 180            # Yutsa +180 💎  (istasangiz shu yerdan oshiring)
 RG_COOLDOWN_HOURS = 24    # Har bir o'yin uchun ALOHIDA kutish (soat)
 RG_REVEAL_DELAY = 1.2     # Natija oldidan qisqa "hayajon" pauzasi (soniya)
+
+assert 0 < RG_WINNERS < RG_CELLS
 
 _rng = secrets.SystemRandom()
 
@@ -54,29 +60,29 @@ RISK_GAMES = [
         "bomb",
         "💎 Portlovchi almaz",
         "💎",
-        f"{RG_CELLS} ta almaz turibdi. Ulardan FAQAT BITTASI butun — "
-        f"qolgan {RG_CELLS - 1} tasi portlaydi!\nO'z almazingizni tanlang:",
+        f"{RG_CELLS} ta almaz turibdi. Ulardan FAQAT {RG_WINNERS} tasi butun — "
+        f"qolgan {RG_CELLS - RG_WINNERS} tasi portlaydi!\nO'z almazingizni tanlang:",
     ),
     (
         "door",
         "🚪 Sirli eshiklar",
         "🚪",
-        f"{RG_CELLS} ta eshik. Faqat bittasining ortida sovrin bor, "
-        f"qolgan {RG_CELLS - 1} tasi tuzoq!\nQaysi eshikni ochasiz?",
+        f"{RG_CELLS} ta eshik. Faqat {RG_WINNERS} tasining ortida sovrin bor, "
+        f"qolgan {RG_CELLS - RG_WINNERS} tasi tuzoq!\nQaysi eshikni ochasiz?",
     ),
     (
         "card",
         "🃏 Omadli karta",
         "🃏",
-        f"{RG_CELLS} ta yopiq karta. Faqat bittasi omadli karta, "
-        f"qolgan {RG_CELLS - 1} tasi bo'sh!\nBirini tanlang:",
+        f"{RG_CELLS} ta yopiq karta. Faqat {RG_WINNERS} tasi omadli karta, "
+        f"qolgan {RG_CELLS - RG_WINNERS} tasi bo'sh!\nBirini tanlang:",
     ),
     (
         "chest",
         "📦 Sirli sandiqlar",
         "📦",
-        f"{RG_CELLS} ta sandiq. Faqat bittasining ichida xazina bor, "
-        f"qolgan {RG_CELLS - 1} tasi portlaydi!\nQaysi sandiqni ochasiz?",
+        f"{RG_CELLS} ta sandiq. Faqat {RG_WINNERS} tasining ichida xazina bor, "
+        f"qolgan {RG_CELLS - RG_WINNERS} tasi portlaydi!\nQaysi sandiqni ochasiz?",
     ),
 ]
 RISK_TITLES = {k: t for k, t, _, _ in RISK_GAMES}
@@ -100,16 +106,17 @@ def _fmt_time(seconds: int) -> str:
 
 def _win_percent_text() -> str:
     """Yutish ehtimoli matni (RG_CELLS dan hisoblanadi)."""
-    return f"{100 / RG_CELLS:.1f}%".replace(".", ",")
+    return f"{100 * RG_WINNERS / RG_CELLS:.1f}%".replace(".", ",")
 
 
 def _lose_percent_text() -> str:
-    return f"{100 - 100 / RG_CELLS:.1f}%".replace(".", ",")
+    return f"{100 - 100 * RG_WINNERS / RG_CELLS:.1f}%".replace(".", ",")
 
 
-def _draw_winning_cell() -> int:
-    """G'olib katak (0..RG_CELLS-1) - kriptografik tasodifiylik."""
-    return _rng.randrange(RG_CELLS)
+def _draw_winning_cells() -> set:
+    """G'olib kataklar to'plami (RG_WINNERS ta, 0..RG_CELLS-1) - har safar
+    yangidan, kriptografik tasodifiylik bilan. Foydalanuvchiga ko'rsatilmaydi."""
+    return set(_rng.sample(range(RG_CELLS), RG_WINNERS))
 
 
 # ---------------------------------------------------------------------------
@@ -122,11 +129,12 @@ def _warning_text() -> str:
         "💣 <b>PORTLOVCHI ALMAZ</b> — bu <b>TAVAKKAL (omad) o'yini</b> va "
         "<b>juda qiyin</b>. Natija 100% tasodifga bog'liq: bilim ham, tajriba "
         "ham, hiyla ham yordam bermaydi.\n\n"
-        f"🎯 <b>YUTISH EHTIMOLI: {RG_CELLS} tadan 1 ta ({_win_percent_text()})</b>\n"
+        f"🎯 <b>YUTISH EHTIMOLI: {RG_CELLS} tadan {RG_WINNERS} ta ({_win_percent_text()})</b>\n"
         f"💥 Yutqazish ehtimoli: {_lose_percent_text()}\n"
-        f"Ya'ni har {RG_CELLS} urinishdan o'rtacha faqat 1 tasida yutasiz.\n\n"
+        f"Ya'ni har {RG_CELLS} urinishdan o'rtacha faqat {RG_WINNERS} tasida yutasiz.\n\n"
         "📜 <b>SHARTLAR:</b>\n"
-        f"1️⃣ Har bir o'yinda {RG_CELLS} ta katak bor, FAQAT bittasi yutuq.\n"
+        f"1️⃣ Har bir o'yinda {RG_CELLS} ta katak bor, FAQAT {RG_WINNERS} tasi yutuq.\n"
+        "🔒 To'g'ri kataklar hech qachon ko'rsatilmaydi va har safar yangidan aralashadi.\n"
         f"2️⃣ Yutsangiz <b>+{RG_PRIZE} 💎</b>, yutqazsangiz <b>−{RG_STAKE} 💎</b>.\n"
         f"3️⃣ Yutqazgan {RG_STAKE} 💎 <b>QAYTARILMAYDI</b> — na bot, na admin "
         "qaytarib bera olmaydi.\n"
@@ -145,7 +153,7 @@ def _list_text(balance: int) -> str:
     return (
         "💣 <b>PORTLOVCHI ALMAZ</b>\n\n"
         f"💎 Hisobingiz: <b>{balance}</b>\n"
-        f"🎯 Yutish: <b>{RG_CELLS} tadan 1</b> ({_win_percent_text()}) → <b>+{RG_PRIZE} 💎</b>\n"
+        f"🎯 Yutish: <b>{RG_CELLS} tadan {RG_WINNERS}</b> ({_win_percent_text()}) → <b>+{RG_PRIZE} 💎</b>\n"
         f"💥 Yutqazish: <b>−{RG_STAKE} 💎</b>\n"
         f"⏳ Har bir o'yin {RG_COOLDOWN_HOURS} soatda 1 marta.\n\n"
         "O'yinni tanlang 👇"
@@ -156,25 +164,21 @@ def _game_text(game_key: str) -> str:
     return (
         f"<b>{RISK_TITLES[game_key]}</b>\n\n"
         f"{RISK_PROMPTS[game_key]}\n\n"
-        f"🎯 Yutish: {RG_CELLS} tadan 1 ({_win_percent_text()})  →  <b>+{RG_PRIZE} 💎</b>\n"
+        f"🎯 Yutish: {RG_CELLS} tadan {RG_WINNERS} ({_win_percent_text()})  →  <b>+{RG_PRIZE} 💎</b>\n"
         f"💥 Yutqazish: <b>−{RG_STAKE} 💎</b>\n"
         "⚠️ Katakni bosgan zahoti natija hal bo'ladi!"
     )
 
 
-def _board_text(game_key: str, chosen: int, winner: int) -> str:
-    """Natijadan keyingi maydon: 🏆 - g'olib katak, 💥 - siz tanlagan (xato)
-    katak, ▫️ - qolganlari. Kataklar tugmalardagi joylashuv bilan bir xil."""
+def _board_text(chosen: int, won: bool) -> str:
+    """Natijadan keyingi maydon: FAQAT foydalanuvchi tanlagan katak belgilanadi
+    (🏆 yutdi / 💥 portladi). To'g'ri kataklar HECH QACHON ko'rsatilmaydi."""
+    mark = "🏆" if won else "💥"
     lines = []
     for r in range(0, RG_CELLS, RG_COLUMNS):
         row = []
         for idx in range(r, min(r + RG_COLUMNS, RG_CELLS)):
-            if idx == winner:
-                row.append("🏆")
-            elif idx == chosen:
-                row.append("💥")
-            else:
-                row.append("▫️")
+            row.append(mark if idx == chosen else "▫️")
         lines.append("".join(row))
     return "\n".join(lines)
 
@@ -193,9 +197,12 @@ def _warning_keyboard() -> InlineKeyboardMarkup:
 
 
 def _list_keyboard() -> InlineKeyboardMarkup:
+    # O'yinlar tartibi HAR SAFAR aralashtiriladi.
+    games = list(RISK_GAMES)
+    _rng.shuffle(games)
     rows = [
         [InlineKeyboardButton(title, callback_data=f"rg:play:{key}")]
-        for key, title, _, _ in RISK_GAMES
+        for key, title, _, _ in games
     ]
     rows.append([InlineKeyboardButton("⬅️ Orqaga", callback_data="hg:intro")])
     return InlineKeyboardMarkup(rows)
@@ -292,9 +299,9 @@ async def _pick(query, round_id: int, choice: int):
         await query.answer()
         return
 
-    # G'olib katak shu yerda, serverda aniqlanadi va raund ATOMAR yopiladi.
-    winner = _draw_winning_cell()
-    won = choice == winner
+    # G'olib kataklar shu yerda, serverda aniqlanadi va raund ATOMAR yopiladi.
+    winners = _draw_winning_cells()
+    won = choice in winners
     res = db.risk_settle_round(round_id, user_id, choice, won, prize=RG_PRIZE)
     status = res["status"]
 
@@ -337,12 +344,12 @@ async def _pick(query, round_id: int, choice: int):
     )
     await asyncio.sleep(RG_REVEAL_DELAY)
 
-    board = _board_text(game_key, choice, winner)
+    board = _board_text(choice, won)
     balance = res["balance"]
     if won:
         text = (
             f"<b>{RISK_TITLES[game_key]}</b>\n\n{board}\n\n"
-            f"🏆 <b>YUTDINGIZ!</b> Siz {RG_CELLS} tadan 1 ta g'olib katakni topdingiz!\n"
+            f"🏆 <b>YUTDINGIZ!</b> Siz g'olib katakni topdingiz!\n"
             f"💎 <b>+{res['prize']}</b> almaz qo'shildi.\n"
             f"💎 Hisobingiz: <b>{balance}</b>"
         )
@@ -350,7 +357,6 @@ async def _pick(query, round_id: int, choice: int):
         text = (
             f"<b>{RISK_TITLES[game_key]}</b>\n\n{board}\n\n"
             "💥 <b>YUTQAZDINGIZ.</b> Siz tanlagan katak portladi.\n"
-            f"🏆 — g'olib katak, 💥 — sizning tanlovingiz.\n"
             f"💎 <b>−{res['stake']}</b> almaz yechildi.\n"
             f"💎 Hisobingiz: <b>{balance}</b>"
         )
