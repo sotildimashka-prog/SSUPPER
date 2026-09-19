@@ -10,7 +10,7 @@ import json
 from datetime import date, datetime, timedelta
 from contextlib import contextmanager
 
-from config import DB_PATH
+from config import DB_PATH, REQUIRED_CHANNELS as _DEFAULT_REQUIRED_CHANNELS
 
 
 @contextmanager
@@ -473,6 +473,66 @@ def set_setting(key: str, value: str):
             "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
             (key, value),
         )
+
+
+# ---------------- 📢 Majburiy obuna kanallari (admin panel orqali boshqariladi) ----------------
+
+_REQUIRED_CHANNELS_KEY = "required_channels"
+
+
+def get_required_channels() -> list:
+    """Majburiy obuna kanallari ro'yxatini qaytaradi. Birinchi chaqiruvda
+    (hali app_settings'da saqlanmagan bo'lsa) config.py dagi standart
+    ro'yxat bilan boshlang'ich holatga keltiriladi (seed), shundan keyin
+    hammasi bazadan (admin panel orqali) boshqariladi."""
+    raw = get_setting(_REQUIRED_CHANNELS_KEY, "")
+    if not raw:
+        set_setting(_REQUIRED_CHANNELS_KEY, json.dumps(_DEFAULT_REQUIRED_CHANNELS))
+        return [dict(ch) for ch in _DEFAULT_REQUIRED_CHANNELS]
+    try:
+        data = json.loads(raw)
+        if isinstance(data, list):
+            return data
+    except (ValueError, TypeError):
+        pass
+    return [dict(ch) for ch in _DEFAULT_REQUIRED_CHANNELS]
+
+
+def add_required_channel(name: str, username: str, emoji: str = "📡") -> None:
+    username = (username or "").strip().lstrip("@")
+    channels = get_required_channels()
+    for ch in channels:
+        if ch.get("username", "").lower() == username.lower():
+            ch["name"] = name
+            ch["emoji"] = emoji
+            set_setting(_REQUIRED_CHANNELS_KEY, json.dumps(channels))
+            return
+    channels.append({"name": name, "username": username, "emoji": emoji})
+    set_setting(_REQUIRED_CHANNELS_KEY, json.dumps(channels))
+
+
+def remove_required_channel(username: str) -> None:
+    username = (username or "").strip().lstrip("@")
+    channels = get_required_channels()
+    channels = [ch for ch in channels if ch.get("username", "").lower() != username.lower()]
+    set_setting(_REQUIRED_CHANNELS_KEY, json.dumps(channels))
+
+
+# ---------------- 💎 Almaz yechish so'rovi uchun minimal miqdor ----------------
+
+_MIN_WITHDRAW_KEY = "min_withdraw"
+_DEFAULT_MIN_WITHDRAW = 350
+
+
+def get_min_withdraw() -> int:
+    raw = get_setting(_MIN_WITHDRAW_KEY, "")
+    if raw and raw.isdigit():
+        return int(raw)
+    return _DEFAULT_MIN_WITHDRAW
+
+
+def set_min_withdraw(value: int) -> None:
+    set_setting(_MIN_WITHDRAW_KEY, str(int(value)))
 
 
 def get_content(key: str, default_text: str) -> dict:
