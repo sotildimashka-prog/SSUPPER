@@ -267,6 +267,23 @@ def init_db():
                 )
                 """
             )
+        # ---------- 💣 Portlovchi almaz (tavakkal o'yinlari) ----------
+        # Har bir raund alohida yoziladi: bir marta bosilgan tugma ikkinchi
+        # marta hisobga ta'sir qila olmaydi (state: open -> won/lost/...).
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS risk_rounds (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                game_key TEXT NOT NULL,
+                stake INTEGER NOT NULL,
+                state TEXT NOT NULL DEFAULT 'open',
+                choice INTEGER,
+                created_at TEXT,
+                settled_at TEXT
+            )
+            """
+        )
         # ---------- 🔄 Avtomatik menyu yangilanishi ----------
         cur.execute(
             """
@@ -1443,6 +1460,111 @@ def set_hard_game_cooldown(user_id: int, game_key: str, hours: float):
             "ON CONFLICT(user_id, game_key) DO UPDATE SET next_allowed_at = excluded.next_allowed_at",
             (user_id, game_key, next_allowed_at),
         )
+
+
+# ==================== 💣 Portlovchi almaz (tavakkal o'yinlari) ====================
+
+RISK_ROUND_TTL_SECONDS = 120  # Raund ochilgach tanlov qilish uchun berilgan vaqt
+
+
+def risk_create_round(user_id: int, game_key: str, stake: int) -> int:
+    """Yangi raund ochadi (almaz HALI yechilmaydi). Foydalanuvchining eski
+    ochiq raundlari bekor qilinadi - bir vaqtda faqat bitta faol raund."""
+    now = datetime.utcnow().isoformat()
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE risk_rounds SET state = 'expired', settled_at = ? "
+            "WHERE user_id = ? AND state = 'open'",
+            (now, user_id),
+        )
+        cur = conn.execute(
+            "INSERT INTO risk_rounds (user_id, game_key, stake, state, created_at) "
+            "VALUES (?, ?, ?, 'open', ?)",
+            (user_id, game_key, stake, now),
+        )
+        return cur.lastrowid
+
+
+def risk_get_round(round_id: int, user_id: int):
+    with get_conn() as conn:
+        cur = conn.execute(
+            "SELECT * FROM risk_rounds WHERE id = ? AND user_id = ?", (round_id, user_id)
+        )
+        row = cur.fetchone()
+        return dict(row) if row else None
+
+
+def risk_cancel_round(round_id: int, user_id: int) -> bool:
+    now = datetime.utcnow().isoformat()
+    with get_conn() as conn:
+        cur = conn.execute(
+            "UPDATE risk_rounds SET state = 'cancelled', settled_at = ? "
+            "WHERE id = ? AND user_id = ? AND state = 'open'",
+            (now, round_id, user_id),
+        )
+        return cur.rowcount == 1
+
+
+def risk_settle_round(round_id: int, user_id: int, choice: int, won: bool) -> dict:
+    """Raundni ATOMAR tarzda yakunlaydi: raund faqat bir marta 'open' holatdan
+    chiqadi, shu tranzaksiya ichida almaz qo'shiladi yoki ayriladi.
+
+    Qaytaradi: {"status": ..., ...}
+      status = "won" | "lost"  -> {"stake", "balance"}
+      status = "closed"        -> raund allaqachon yakunlangan (qayta bosish)
+      status = "expired"       -> tanlov vaqti o'tib ketgan (almaz o'zgarmadi)
+      status = "insufficient"  -> balans yetarli emas (almaz o'zgarmadi)
+      status = "missing"       -> raund topilmadi
+    """
+    now_dt = datetime.utcnow()
+    now = now_dt.isoformat()
+    with get_conn() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        row = conn.execute(
+            "SELECT * FROM risk_rounds WHERE id = ? AND user_id = ?", (round_id, user_id)
+        ).fetchone()
+        if not row:
+            return {"status": "missing"}
+        if row["state"] != "open":
+            return {"status": "closed"}
+
+        created = datetime.fromisoformat(row["created_at"])
+        if (now_dt - created).total_seconds() > RISK_ROUND_TTL_SECONDS:
+            conn.execute(
+                "UPDATE risk_rounds SET state = 'expired', settled_at = ? WHERE id = ?",
+                (now, round_id),
+            )
+            return {"status": "expired"}
+
+        stake = int(row["stake"])
+        bal_row = conn.execute(
+            "SELECT diamonds FROM quiz_diamonds WHERE user_id = ?", (user_id,)
+        ).fetchone()
+        balance = bal_row["diamonds"] if bal_row else 0
+        if balance < stake:
+            conn.execute(
+                "UPDATE risk_rounds SET state = 'void', settled_at = ? WHERE id = ?",
+                (now, round_id),
+            )
+            return {"status": "insufficient", "balance": balance, "stake": stake}
+
+        if won:
+            new_balance = balance + stake
+            _record_diamonds_earned(conn, user_id, stake)
+        else:
+            new_balance = balance - stake
+            _record_diamonds_lost(conn, user_id, stake)
+
+        conn.execute(
+            "INSERT INTO quiz_diamonds (user_id, diamonds) VALUES (?, ?) "
+            "ON CONFLICT(user_id) DO UPDATE SET diamonds = excluded.diamonds",
+            (user_id, new_balance),
+        )
+        conn.execute(
+            "UPDATE risk_rounds SET state = ?, choice = ?, settled_at = ? WHERE id = ?",
+            ("won" if won else "lost", choice, now, round_id),
+        )
+        return {"status": "won" if won else "lost", "stake": stake, "balance": new_balance}
 
 
 # ---- Raqamni top o'yini uchun holat ----
