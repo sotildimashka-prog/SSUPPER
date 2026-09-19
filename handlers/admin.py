@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""📊 Statistika, 📣 Xabar yuborish, 🖋️ Post va ✏️ Tugmalarni tahrirlash - faqat admin uchun."""
+"""📊 Statistika, 📣 Xabar yuborish, 📢 Majburiy obuna, 💎 Almaz yechish minimumi va ✏️ Tugmalarni tahrirlash - faqat admin uchun."""
 
 import asyncio
 
@@ -27,12 +27,11 @@ from keyboards import (
     NASTROYKA_CONTENT_TYPES,
     turnirlar_list_keyboard,
     turnirlar_detail_keyboard,
+    force_sub_admin_keyboard,
 )
 from data.settings_data import PHONES
 
 WAITING_BROADCAST = 2
-WAITING_POST_TEXT = 3
-WAITING_POST_BUTTON = 4
 WAITING_EDIT_TEXT = 5
 
 WAITING_FFTOUR_CONTENT = 100
@@ -47,6 +46,9 @@ WAITING_TURNIR_TITLE = 106
 WAITING_TURNIR_FORMAT = 107
 WAITING_TURNIR_TIME = 108
 WAITING_TURNIR_NOTE = 109
+
+WAITING_FORCE_SUB_CHANNEL = 110
+WAITING_MIN_WITHDRAW = 111
 
 TEXT_LABELS = {
     "help_text": "🎧 Yordam matni",
@@ -132,113 +134,171 @@ async def send_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 
-# ---------- 🖋️ Post (tugmali xabar) ----------
+# ---------- 📢 Majburiy obuna - admin boshqaruvi ----------
 
-async def start_post(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def _force_sub_text() -> str:
+    return (
+        "📢 <b>Majburiy obuna kanallari</b>\n\n"
+        "Foydalanuvchilar botdan foydalanishdan oldin quyidagi kanallarga "
+        "obuna bo'lishi shart. Kanalni o'chirish uchun uning yonidagi "
+        "🗑 tugmasini bosing, yangi kanal qo'shish uchun pastdagi "
+        "\"➕ Kanal qo'shish\" tugmasini bosing."
+    )
+
+
+async def start_force_sub(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not _admin_only(update):
+        return
+    channels = db.get_required_channels()
+    await update.message.reply_text(
+        _force_sub_text(),
+        parse_mode="HTML",
+        reply_markup=force_sub_admin_keyboard(channels),
+    )
+
+
+async def on_force_sub_remove(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    if not _admin_only(update):
+        await query.answer("Bu funksiya faqat admin uchun.", show_alert=True)
+        return
+    username = query.data.split(":", 2)[2]
+    db.remove_required_channel(username)
+    await query.answer("🗑 Kanal o'chirildi.")
+    channels = db.get_required_channels()
+    try:
+        await query.edit_message_text(
+            _force_sub_text(),
+            parse_mode="HTML",
+            reply_markup=force_sub_admin_keyboard(channels),
+        )
+    except TelegramError:
+        pass
+
+
+async def on_force_sub_close(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    try:
+        await query.message.delete()
+    except TelegramError:
+        pass
+
+
+async def start_force_sub_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    if not _admin_only(update):
+        await query.answer("Bu funksiya faqat admin uchun.", show_alert=True)
         return ConversationHandler.END
-    await update.message.reply_text(
-        "🖋️ <b>Yangi post yaratish</b>\n\n"
-        "Post matnini yuboring (rasm bilan ham bo'lishi mumkin, rasmga izoh "
-        "sifatida matn yozing).\n\n"
-        "Bekor qilish uchun /bekor.",
-        parse_mode="HTML",
-        reply_markup=ReplyKeyboardRemove(),
-    )
-    return WAITING_POST_TEXT
-
-
-async def receive_post_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["post_message"] = update.message
-
-    await update.message.reply_text(
-        "🔘 <b>Tugma qo'shasizmi?</b>\n\n"
-        "Agar post ostiga bosiladigan tugma qo'shmoqchi bo'lsangiz, quyidagi "
-        "formatda yuboring:\n\n"
-        "<code>Tugma matni | https://havola.com</code>\n\n"
-        "Masalan:\n<code>Kanalga o'tish | https://t.me/kanal_nomi</code>\n\n"
-        "Agar tugma kerak bo'lmasa, /otkazib_yuborish deb yozing.\n"
-        "Bekor qilish uchun /bekor.",
-        parse_mode="HTML",
-    )
-    return WAITING_POST_BUTTON
-
-
-async def skip_post_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    return await _broadcast_post(update, context, button=None)
-
-
-async def receive_post_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    raw = (update.message.text or "").strip()
-    if "|" not in raw:
-        await update.message.reply_text(
-            "⚠️ Format noto'g'ri. Quyidagicha yuboring:\n\n"
-            "<code>Tugma matni | https://havola.com</code>\n\n"
-            "Yoki tugmasiz davom etish uchun /otkazib_yuborish yozing.",
+    await query.answer()
+    try:
+        await query.message.edit_text(
+            "➕ <b>Yangi majburiy obuna kanali qo'shish</b>\n\n"
+            "Kanal ma'lumotlarini quyidagi formatda yuboring:\n\n"
+            "<code>Kanal nomi | username | emoji</code>\n\n"
+            "Masalan:\n<code>Free Fire Yangiliklar | freefireyangiliklar | 🔥</code>\n\n"
+            "Eslatma: bot shu kanalda ADMIN bo'lishi shart, aks holda obuna "
+            "tekshiruvi ishlamaydi. Emoji ixtiyoriy - yozmasangiz ham bo'ladi:\n"
+            "<code>Kanal nomi | username</code>\n\n"
+            "Bekor qilish uchun /bekor.",
             parse_mode="HTML",
         )
-        return WAITING_POST_BUTTON
+    except TelegramError:
+        pass
+    return WAITING_FORCE_SUB_CHANNEL
 
-    label, url = [p.strip() for p in raw.split("|", 1)]
-    if not url.startswith("http"):
+
+async def receive_force_sub_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not _admin_only(update):
+        return ConversationHandler.END
+
+    raw = (update.message.text or "").strip()
+    parts = [p.strip() for p in raw.split("|")]
+
+    if len(parts) < 2 or not parts[0] or not parts[1]:
         await update.message.reply_text(
-            "⚠️ Havola http:// yoki https:// bilan boshlanishi kerak. Qaytadan "
-            "urinib ko'ring yoki /otkazib_yuborish yozing."
+            "⚠️ Format noto'g'ri. Quyidagicha yuboring:\n\n"
+            "<code>Kanal nomi | username | emoji</code>\n\n"
+            "Yoki /bekor yozing.",
+            parse_mode="HTML",
         )
-        return WAITING_POST_BUTTON
+        return WAITING_FORCE_SUB_CHANNEL
 
-    button = InlineKeyboardMarkup([[InlineKeyboardButton(label, url=url)]])
-    return await _broadcast_post(update, context, button=button)
+    name = parts[0]
+    username = parts[1].lstrip("@").replace("https://t.me/", "").strip()
+    emoji = parts[2] if len(parts) > 2 and parts[2] else "📡"
 
+    if not username:
+        await update.message.reply_text(
+            "⚠️ Username noto'g'ri. Qaytadan urinib ko'ring yoki /bekor yozing."
+        )
+        return WAITING_FORCE_SUB_CHANNEL
 
-async def cancel_post(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data.pop("post_message", None)
+    db.add_required_channel(name, username, emoji)
+
     await update.message.reply_text(
-        "❌ Post yaratish bekor qilindi.", reply_markup=main_menu_keyboard(True)
+        f"✅ <b>{name}</b> (@{username}) majburiy obuna ro'yxatiga qo'shildi!",
+        parse_mode="HTML",
+        reply_markup=main_menu_keyboard(True),
+    )
+
+    channels = db.get_required_channels()
+    await update.message.reply_text(
+        _force_sub_text(),
+        parse_mode="HTML",
+        reply_markup=force_sub_admin_keyboard(channels),
     )
     return ConversationHandler.END
 
 
-async def _broadcast_post(update: Update, context: ContextTypes.DEFAULT_TYPE, button):
-    original = context.user_data.pop("post_message", None)
-    if original is None:
-        await update.message.reply_text(
-            "⚠️ Xatolik: post matni topilmadi. Qaytadan boshlang.",
-            reply_markup=main_menu_keyboard(True),
-        )
-        return ConversationHandler.END
-
-    user_ids = db.get_all_user_ids()
+async def cancel_force_sub_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        f"⏳ Post {len(user_ids)} foydalanuvchiga yuborilmoqda..."
+        "❌ Bekor qilindi.", reply_markup=main_menu_keyboard(True)
     )
+    return ConversationHandler.END
 
-    sent, failed = 0, 0
-    for uid in user_ids:
-        try:
-            if original.photo:
-                await context.bot.send_photo(
-                    chat_id=uid,
-                    photo=original.photo[-1].file_id,
-                    caption=original.caption or "",
-                    parse_mode="HTML",
-                    reply_markup=button,
-                )
-            else:
-                await context.bot.send_message(
-                    chat_id=uid,
-                    text=original.text or "",
-                    parse_mode="HTML",
-                    reply_markup=button,
-                )
-            sent += 1
-        except TelegramError:
-            failed += 1
-        await asyncio.sleep(0.05)
+
+# ---------- 💎 Almaz yechish minimumi - admin boshqaruvi ----------
+
+async def start_min_withdraw(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not _admin_only(update):
+        return ConversationHandler.END
+    current = db.get_min_withdraw()
+    await update.message.reply_text(
+        "💎 <b>Almaz yechish minimumi</b>\n\n"
+        f"Hozirgi minimal miqdor: <b>{current}</b> dona almaz.\n\n"
+        "Yangi minimal miqdorni raqam bilan yuboring (masalan: 200 yoki 400).\n"
+        "Bekor qilish uchun /bekor.",
+        parse_mode="HTML",
+        reply_markup=ReplyKeyboardRemove(),
+    )
+    return WAITING_MIN_WITHDRAW
+
+
+async def receive_min_withdraw_value(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    raw = (update.message.text or "").strip()
+
+    if not raw.isdigit() or int(raw) <= 0:
+        await update.message.reply_text(
+            "⚠️ Noto'g'ri format. Faqat musbat raqam kiriting (masalan: 200).\n"
+            "Bekor qilish uchun /bekor."
+        )
+        return WAITING_MIN_WITHDRAW
+
+    value = int(raw)
+    db.set_min_withdraw(value)
 
     await update.message.reply_text(
-        f"✅ Post yuborildi!\n\n📨 Muvaffaqiyatli: {sent}\n❌ Xatolik: {failed}",
+        f"✅ Almaz yechish minimumi <b>{value}</b> ga o'zgartirildi!",
+        parse_mode="HTML",
         reply_markup=main_menu_keyboard(True),
+    )
+    return ConversationHandler.END
+
+
+async def cancel_min_withdraw(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "❌ Bekor qilindi.", reply_markup=main_menu_keyboard(True)
     )
     return ConversationHandler.END
 
