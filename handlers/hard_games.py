@@ -59,7 +59,8 @@ INTRO_TEXT = (
     f"bersangiz yoki vaqtida ulgurmasangiz −{PENALTY_AMOUNT} 💎 yechiladi.\n"
     f"⏱ Har bir savolga {GAME_TIME_LIMIT} soniya vaqt beriladi.\n\n"
     "🟢 <b>Oson o'yinlar</b> — 20 ta: tosh-qaychi-qog'oz, tanga, zar 🎲, darts 🎯, futbol ⚽ va savollar\n"
-    "🔥 <b>Qiyin o'yinlar</b> — 10 ta murakkab Free Fire o'yini\n\n"
+    "🔥 <b>Qiyin o'yinlar</b> — 10 ta murakkab Free Fire o'yini\n"
+    "💣 <b>Portlovchi almaz</b> — 4 ta tavakkal o'yini (⚠️ katta stavka: ±180 💎)\n\n"
     "Darajani tanlang 👇"
 )
 
@@ -161,6 +162,8 @@ def _intro_keyboard() -> InlineKeyboardMarkup:
                 InlineKeyboardButton("🟢 Oson o'yinlar", callback_data="eg:list"),
                 InlineKeyboardButton("🔥 Qiyin o'yinlar", callback_data="hg:list"),
             ],
+            # 💣 Portlovchi almaz - tavakkal o'yinlari (handlers/risk_games.py)
+            [InlineKeyboardButton("💣 Portlovchi almaz", callback_data="rg:intro")],
             [InlineKeyboardButton("🔙 Ortga", callback_data=ALMAZ_ISHLASH_CB)],
         ]
     )
