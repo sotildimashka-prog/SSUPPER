@@ -14,7 +14,6 @@ from telegram import (
 
 import database as db
 from config import (
-    REQUIRED_CHANNELS,
     ADMIN_ID,
     WEBSITE_URL,
     WEBAPP_URL,
@@ -174,8 +173,9 @@ BTN_GUIDES = "📚 Qo'llanmalar"
 BTN_FAQ = "📬 Savollar (FAQ)"
 BTN_STATS = "📈 Statistika"
 BTN_BROADCAST = "📣 Xabar yuborish"
-BTN_POST = "🖋️ Post"
 BTN_EDIT_TEXTS = "✏️ Tugmalarni tahrirlash"
+BTN_FORCE_SUB = "📢 Majburiy obuna"
+BTN_MIN_WITHDRAW = "💎 Almaz yechish minimumi"
 
 
 BTN_WITHDRAW = "💎 Almaz yechish"
@@ -254,8 +254,9 @@ def admin_panel_keyboard() -> ReplyKeyboardMarkup:
         [
             [_kb(BTN_STATS), _kb(BTN_ADMIN_CREDIT)],
             [_kb(BTN_BROADCAST), _kb(BTN_GIFT_ALL)],
-            [_kb(BTN_POST), _kb(BTN_EDIT_TEXTS)],
-            [_kb(BTN_NASTROYKA_ADD), _kb(BTN_FF_ADMIN_PANEL)],
+            [_kb(BTN_EDIT_TEXTS), _kb(BTN_FORCE_SUB)],
+            [_kb(BTN_MIN_WITHDRAW), _kb(BTN_NASTROYKA_ADD)],
+            [_kb(BTN_FF_ADMIN_PANEL)],
             [_kb(BTN_DEDUCT_DIAMOND), _kb(BTN_DEDUCT_ALL_DIAMONDS)],
             [_kb(BTN_TOP_REFRESH)],
             [_kb(BTN_BACK)],
@@ -789,12 +790,36 @@ def language_keyboard() -> InlineKeyboardMarkup:
 def subscription_keyboard() -> InlineKeyboardMarkup:
     """Majburiy obuna kanallari - har biri o'z emojisi bilan, alohida
     qatorda (chiroyliroq va o'qish oson bo'lishi uchun), ostida
-    "✅ Obuna bo'ldim" (tekshirish) tugmasi."""
+    "✅ Obuna bo'ldim" (tekshirish) tugmasi. Kanallar ro'yxati endi
+    admin panel orqali (bazadan) boshqariladi."""
+    channels = db.get_required_channels()
     rows = [
         [_ikb(f"{ch.get('emoji', '📡')} {ch['name']}", url=f"https://t.me/{ch['username']}")]
-        for ch in REQUIRED_CHANNELS
+        for ch in channels
     ]
     rows.append([_ikb("✅ Obuna bo'ldim", callback_data="check_sub")])
+    return InlineKeyboardMarkup(rows)
+
+
+# ---------- 📢 Majburiy obuna - admin boshqaruvi ----------
+
+def force_sub_admin_keyboard(channels) -> InlineKeyboardMarkup:
+    """Admin panel ichida: joriy majburiy obuna kanallari ro'yxati, har
+    biri yonida "🗑" (o'chirish) tugmasi bilan, pastida "➕ Kanal
+    qo'shish" va "✖️ Yopish" tugmalari."""
+    rows = []
+    for ch in channels:
+        username = ch.get("username", "")
+        name = ch.get("name", username)
+        emoji = ch.get("emoji", "📡")
+        rows.append(
+            [
+                _ikb(f"{emoji} {name}", url=f"https://t.me/{username}"),
+                _ikb("🗑", callback_data=f"forcesub:remove:{username}"),
+            ]
+        )
+    rows.append([_ikb("➕ Kanal qo'shish", callback_data="forcesub:add")])
+    rows.append([_ikb("✖️ Yopish", callback_data="forcesub:close")])
     return InlineKeyboardMarkup(rows)
 
 
