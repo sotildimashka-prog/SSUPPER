@@ -60,7 +60,7 @@ INTRO_TEXT = (
     f"⏱ Har bir savolga {GAME_TIME_LIMIT} soniya vaqt beriladi.\n\n"
     "🟢 <b>Oson o'yinlar</b> — 20 ta: tosh-qaychi-qog'oz, tanga, zar 🎲, darts 🎯, futbol ⚽ va savollar\n"
     "🔥 <b>Qiyin o'yinlar</b> — 10 ta murakkab Free Fire o'yini\n"
-    "💣 <b>Portlovchi almaz</b> — 4 ta tavakkal o'yini (⚠️ katta stavka: ±180 💎)\n\n"
+    "💣 <b>Portlovchi almaz</b> — 4 ta juda qiyin tavakkal o'yini (⚠️ 70 tadan 1 ta yutuq, yutqazsangiz −180 💎)\n\n"
     "Darajani tanlang 👇"
 )
 
