@@ -33,8 +33,6 @@ from keyboards import (
 WAITING_WITHDRAW_FF_ID = 40
 WAITING_WITHDRAW_AMOUNT = 41
 
-MIN_WITHDRAW = 350
-
 NO_DIAMONDS_TEXT = (
     "💎 <b>Almaz yechish</b>\n\n"
     "Iltimos, botimizdan almaz to'plang 🙂\n"
@@ -52,9 +50,10 @@ def _account_text(amount: int) -> str:
 
 
 def _not_enough_text(amount: int) -> str:
+    min_withdraw = db.get_min_withdraw()
     return (
         "⚠️ <b>Almaz yechib bo'lmaydi</b>\n\n"
-        f"❌ Yechish uchun kamida <b>{MIN_WITHDRAW}</b> ta almaz to'plashingiz kerak.\n"
+        f"❌ Yechish uchun kamida <b>{min_withdraw}</b> ta almaz to'plashingiz kerak.\n"
         f"💎 Sizda hozircha: <b>{amount}</b> ta almaz bor.\n\n"
         "🎯 Ko'proq almaz to'plang va qaytadan urinib ko'ring!"
     )
@@ -107,7 +106,7 @@ async def on_withdraw_start_callback(update: Update, context: ContextTypes.DEFAU
     user_id = query.from_user.id
     amount = db.get_quiz_diamonds(user_id)
 
-    if amount < MIN_WITHDRAW:
+    if amount < db.get_min_withdraw():
         await safe_edit_message(query,
             _not_enough_text(amount),
             parse_mode="HTML",
@@ -138,7 +137,7 @@ async def receive_withdraw_ff_id(update: Update, context: ContextTypes.DEFAULT_T
     amount = db.get_quiz_diamonds(update.effective_user.id)
     await update.message.reply_text(
         "💎 Necha dona almaz yechmoqchisiz?\n\n"
-        f"(Kamida {MIN_WITHDRAW}, hisobingizda {amount} dona bor)\n\n"
+        f"(Kamida {db.get_min_withdraw()}, hisobingizda {amount} dona bor)\n\n"
         "Bekor qilish uchun /bekor yozing yoki pastdagi tugmani bosing.",
         reply_markup=withdraw_cancel_keyboard(),
     )
@@ -159,10 +158,11 @@ async def receive_withdraw_amount(update: Update, context: ContextTypes.DEFAULT_
 
     amount = int(raw)
     current = db.get_quiz_diamonds(user.id)
+    min_withdraw = db.get_min_withdraw()
 
-    if amount < MIN_WITHDRAW:
+    if amount < min_withdraw:
         await update.message.reply_text(
-            f"⚠️ Kamida {MIN_WITHDRAW} dona almaz yechishingiz kerak. Qaytadan kiriting:",
+            f"⚠️ Kamida {min_withdraw} dona almaz yechishingiz kerak. Qaytadan kiriting:",
             reply_markup=withdraw_cancel_keyboard(),
         )
         return WAITING_WITHDRAW_AMOUNT
