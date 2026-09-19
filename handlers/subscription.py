@@ -11,7 +11,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 from telegram.error import TelegramError
 
-from config import REQUIRED_CHANNELS
+import database as db
 
 # Foydalanuvchi "to'liq obuna bo'lgan" deb tasdiqlangandan keyin, shu vaqt
 # davomida (soniyalarda) qayta Telegram API'ga so'rov yubormay, keshdan
@@ -31,6 +31,10 @@ async def get_unsubscribed_channels(user_id: int, context: ContextTypes.DEFAULT_
     tasdiqlangan bo'lsa - keshdan qaytariladi (API so'rovsiz); (2) barcha
     kanallar bir vaqtda (parallel) tekshiriladi, ketma-ket emas.
     """
+    required_channels = db.get_required_channels()
+    if not required_channels:
+        return []
+
     if use_cache:
         cached_until = _subscribed_until.get(user_id)
         if cached_until and cached_until > time.monotonic():
@@ -39,13 +43,13 @@ async def get_unsubscribed_channels(user_id: int, context: ContextTypes.DEFAULT_
     results = await asyncio.gather(
         *(
             context.bot.get_chat_member(chat_id=f"@{ch['username']}", user_id=user_id)
-            for ch in REQUIRED_CHANNELS
+            for ch in required_channels
         ),
         return_exceptions=True,
     )
 
     unsubscribed = []
-    for ch, res in zip(REQUIRED_CHANNELS, results):
+    for ch, res in zip(required_channels, results):
         if isinstance(res, Exception):
             # Bot kanalda admin emas yoki kanal topilmadi - xavfsizlik uchun
             # foydalanuvchini obuna bo'lmagan deb hisoblaymiz.
