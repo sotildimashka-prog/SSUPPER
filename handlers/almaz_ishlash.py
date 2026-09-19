@@ -198,17 +198,17 @@ async def on_almaz_account(update, context: ContextTypes.DEFAULT_TYPE):
 WAITING_ALMAZWD_FF_ID = 210
 WAITING_ALMAZWD_AMOUNT = 211
 
-MIN_ALMAZ_WITHDRAW = 190
 REQUIRED_ALMAZWD_REFERRALS = 7
 
 
 def _not_enough_almazwd_text(diamonds: int) -> str:
-    needed = max(0, MIN_ALMAZ_WITHDRAW - diamonds)
+    min_withdraw = db.get_min_withdraw()
+    needed = max(0, min_withdraw - diamonds)
     return (
         "💎 <b>Almaz yetarli emas</b>\n\n"
         f"Hisobingizda hozircha: <b>{diamonds}</b> 💎\n"
         f"Yechish uchun yana <b>{needed}</b> 💎 kerak.\n\n"
-        f"(Minimal yechish: {MIN_ALMAZ_WITHDRAW} 💎)\n\n"
+        f"(Minimal yechish: {min_withdraw} 💎)\n\n"
         "🎯 Almaz to'plang va qaytadan urinib ko'ring!"
     )
 
@@ -218,7 +218,7 @@ def _almazwd_account_text(diamonds: int, earned_today: int) -> str:
         "💎 <b>Almaz yechish</b>\n\n"
         f"Jami almazlaringiz: <b>{diamonds}</b> 💎\n"
         f"📈 Bugun ishlagan almazim: <b>{earned_today}</b> 💎\n\n"
-        f"Minimal yechish: <b>{MIN_ALMAZ_WITHDRAW}</b> 💎\n\n"
+        f"Minimal yechish: <b>{db.get_min_withdraw()}</b> 💎\n\n"
         "Yechib olish uchun pastdagi tugmani bosing 👇"
     )
 
@@ -274,7 +274,7 @@ async def on_almaz_withdraw_start(update: Update, context: ContextTypes.DEFAULT_
     user_id = query.from_user.id
     diamonds = db.get_quiz_diamonds(user_id)
 
-    if diamonds < MIN_ALMAZ_WITHDRAW:
+    if diamonds < db.get_min_withdraw():
         await safe_edit_message(
             query,
             _not_enough_almazwd_text(diamonds),
@@ -304,7 +304,7 @@ async def on_almaz_withdraw_refcheck(update: Update, context: ContextTypes.DEFAU
     user_id = query.from_user.id
     diamonds = db.get_quiz_diamonds(user_id)
 
-    if diamonds < MIN_ALMAZ_WITHDRAW:
+    if diamonds < db.get_min_withdraw():
         await query.answer()
         await safe_edit_message(
             query,
@@ -357,7 +357,7 @@ async def receive_almazwd_ff_id(update: Update, context: ContextTypes.DEFAULT_TY
     diamonds = db.get_quiz_diamonds(update.effective_user.id)
     await update.message.reply_text(
         "💎 Necha dona almaz yechmoqchisiz?\n\n"
-        f"(Kamida {MIN_ALMAZ_WITHDRAW}, hisobingizda {diamonds} dona bor)\n\n"
+        f"(Kamida {db.get_min_withdraw()}, hisobingizda {diamonds} dona bor)\n\n"
         "Bekor qilish uchun /bekor yozing yoki pastdagi tugmani bosing.",
         reply_markup=almaz_withdraw_cancel_keyboard(),
     )
@@ -377,10 +377,11 @@ async def receive_almazwd_amount(update: Update, context: ContextTypes.DEFAULT_T
 
     amount = int(raw)
     current = db.get_quiz_diamonds(user.id)
+    min_withdraw = db.get_min_withdraw()
 
-    if amount < MIN_ALMAZ_WITHDRAW:
+    if amount < min_withdraw:
         await update.message.reply_text(
-            f"⚠️ Kamida {MIN_ALMAZ_WITHDRAW} dona almaz yechishingiz kerak. Qaytadan kiriting:",
+            f"⚠️ Kamida {min_withdraw} dona almaz yechishingiz kerak. Qaytadan kiriting:",
             reply_markup=almaz_withdraw_cancel_keyboard(),
         )
         return WAITING_ALMAZWD_AMOUNT
