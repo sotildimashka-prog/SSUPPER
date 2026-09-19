@@ -1505,12 +1505,15 @@ def risk_cancel_round(round_id: int, user_id: int) -> bool:
         return cur.rowcount == 1
 
 
-def risk_settle_round(round_id: int, user_id: int, choice: int, won: bool) -> dict:
+def risk_settle_round(round_id: int, user_id: int, choice: int, won: bool,
+                      prize: int | None = None) -> dict:
     """Raundni ATOMAR tarzda yakunlaydi: raund faqat bir marta 'open' holatdan
     chiqadi, shu tranzaksiya ichida almaz qo'shiladi yoki ayriladi.
+    Yutsa `prize` dona (berilmasa - stavka miqdorida) qo'shiladi, yutqazsa
+    raund stavkasi (stake) ayriladi.
 
     Qaytaradi: {"status": ..., ...}
-      status = "won" | "lost"  -> {"stake", "balance"}
+      status = "won" | "lost"  -> {"stake", "prize", "balance"}
       status = "closed"        -> raund allaqachon yakunlangan (qayta bosish)
       status = "expired"       -> tanlov vaqti o'tib ketgan (almaz o'zgarmadi)
       status = "insufficient"  -> balans yetarli emas (almaz o'zgarmadi)
@@ -1548,9 +1551,10 @@ def risk_settle_round(round_id: int, user_id: int, choice: int, won: bool) -> di
             )
             return {"status": "insufficient", "balance": balance, "stake": stake}
 
+        win_amount = int(prize) if prize is not None else stake
         if won:
-            new_balance = balance + stake
-            _record_diamonds_earned(conn, user_id, stake)
+            new_balance = balance + win_amount
+            _record_diamonds_earned(conn, user_id, win_amount)
         else:
             new_balance = balance - stake
             _record_diamonds_lost(conn, user_id, stake)
@@ -1564,7 +1568,12 @@ def risk_settle_round(round_id: int, user_id: int, choice: int, won: bool) -> di
             "UPDATE risk_rounds SET state = ?, choice = ?, settled_at = ? WHERE id = ?",
             ("won" if won else "lost", choice, now, round_id),
         )
-        return {"status": "won" if won else "lost", "stake": stake, "balance": new_balance}
+        return {
+            "status": "won" if won else "lost",
+            "stake": stake,
+            "prize": win_amount,
+            "balance": new_balance,
+        }
 
 
 # ---- Raqamni top o'yini uchun holat ----
