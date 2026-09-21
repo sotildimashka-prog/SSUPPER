@@ -186,6 +186,7 @@ BTN_DEDUCT_DIAMOND = "➖ Almazni ayirish"
 BTN_DEDUCT_ALL_DIAMONDS = "🗑 Hammadan almaz yechish"
 BTN_TOP_REFRESH = "🔄 Top yangilash"
 BTN_FF_ADMIN_PANEL = "🗂 Turnir/Akkaunt boshqaruvi"
+BTN_BLOCKED_USERS = "🚫 Bloklanganlar"
 
 # ---------- 🛒 Free Fire Do'koni / 🎁 Giftlar / 🏆 Yutiqni chiqarish ----------
 BTN_STORE = "🛒 Free Fire Do'koni"
@@ -256,7 +257,7 @@ def admin_panel_keyboard() -> ReplyKeyboardMarkup:
             [_kb(BTN_BROADCAST), _kb(BTN_GIFT_ALL)],
             [_kb(BTN_EDIT_TEXTS), _kb(BTN_FORCE_SUB)],
             [_kb(BTN_MIN_WITHDRAW), _kb(BTN_NASTROYKA_ADD)],
-            [_kb(BTN_FF_ADMIN_PANEL)],
+            [_kb(BTN_FF_ADMIN_PANEL), _kb(BTN_BLOCKED_USERS)],
             [_kb(BTN_DEDUCT_DIAMOND), _kb(BTN_DEDUCT_ALL_DIAMONDS)],
             [_kb(BTN_TOP_REFRESH)],
             [_kb(BTN_BACK)],
@@ -1257,6 +1258,58 @@ def admin_credit_type_keyboard() -> InlineKeyboardMarkup:
             [
                 _ikb("🚫 Foydalanuvchini bloklash", callback_data="credittype:block"),
             ],
+        ]
+    )
+
+
+# ---------- 🚫 Bloklanganlar (admin paneli) ----------
+
+BLOCKED_PAGE_SIZE = 10
+
+
+def blocked_user_display_name(row) -> str:
+    """Bloklangan foydalanuvchi uchun qisqa nom: ism yoki @username yoki ID."""
+    name = (row["first_name"] or "").strip()
+    username = (row["username"] or "").strip()
+    if name:
+        return name[:22]
+    if username:
+        return f"@{username}"[:22]
+    return "Noma'lum"
+
+
+def blocked_users_list_keyboard(rows, page: int, total_pages: int) -> InlineKeyboardMarkup:
+    """Bloklanganlar ro'yxati: har bir foydalanuvchi alohida tugma
+    (🚫 - hozir bloklangan, ✅ - blokdan chiqarilgan), pastda sahifalash."""
+    buttons = []
+    for row in rows:
+        mark = "🚫" if row["is_active"] else "✅"
+        label = f"{mark} {blocked_user_display_name(row)} · {row['user_id']}"
+        buttons.append(
+            [_ikb(label, callback_data=f"blk:view:{row['user_id']}:{page}")]
+        )
+    if total_pages > 1:
+        nav = []
+        if page > 0:
+            nav.append(_ikb("◀️", callback_data=f"blk:list:{page - 1}"))
+        nav.append(_ikb(f"{page + 1}/{total_pages}", callback_data="blk:noop"))
+        if page < total_pages - 1:
+            nav.append(_ikb("▶️", callback_data=f"blk:list:{page + 1}"))
+        buttons.append(nav)
+    buttons.append([_ikb("➕ Yangi bloklash", callback_data="credittype:block")])
+    buttons.append([_ikb("✖️ Yopish", callback_data="blk:close")])
+    return InlineKeyboardMarkup(buttons)
+
+
+def blocked_user_detail_keyboard(user_id: int, is_active: bool, page: int) -> InlineKeyboardMarkup:
+    if is_active:
+        action = _ikb("✅ Blokdan chiqarish", callback_data=f"blk:unblock:{user_id}:{page}")
+    else:
+        action = _ikb("🚫 Qayta bloklash", callback_data=f"blk:block:{user_id}:{page}")
+    return InlineKeyboardMarkup(
+        [
+            [action],
+            [_ikb("⬅️ Ro'yxatga qaytish", callback_data=f"blk:list:{page}")],
         ]
     )
 
