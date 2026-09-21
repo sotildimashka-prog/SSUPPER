@@ -53,6 +53,7 @@ from keyboards import (
     BTN_DEDUCT_DIAMOND,
     BTN_DEDUCT_ALL_DIAMONDS,
     BTN_TOP_REFRESH,
+    BTN_ABOUT_USER,
     BTN_FF2017,
     BTN_MAIN_FF,
     BTN_MAIN_DIAMONDS,
@@ -332,6 +333,10 @@ from handlers.admin import (
     receive_min_withdraw_value,
     cancel_min_withdraw,
     WAITING_MIN_WITHDRAW,
+    on_about_user_button,
+    receive_about_user_id,
+    cancel_about_user,
+    WAITING_ABOUT_USER,
 )
 from handlers.turnirlar import (
     on_turnirlar_button,
@@ -559,7 +564,7 @@ _ALL_MENU_BUTTON_TEXTS = [
     BTN_GUIDES, BTN_FAQ, BTN_STATS, BTN_BROADCAST, BTN_EDIT_TEXTS,
     BTN_FORCE_SUB, BTN_MIN_WITHDRAW, BTN_BLOCKED_USERS,
     BTN_ADMIN_CREDIT, BTN_WITHDRAW, BTN_GIFT_ALL, BTN_DEDUCT_DIAMOND,
-    BTN_DEDUCT_ALL_DIAMONDS, BTN_TOP_REFRESH,
+    BTN_DEDUCT_ALL_DIAMONDS, BTN_TOP_REFRESH, BTN_ABOUT_USER,
     BTN_FF2017, BTN_MAIN_FF, BTN_MAIN_DIAMONDS, BTN_MAIN_SERVICES,
     BTN_MAIN_PROFILE, BTN_M2_DIAMONDS, BTN_M2_SERVICES, BTN_M2_SETTINGS,
     BTN_M2_NICKS, BTN_M2_PAYMENTS, BTN_GIFTS, BTN_MAIN_RASM, BTN_MAIN_VIDEO,
@@ -1218,6 +1223,19 @@ def build_application() -> Application:
     # ---------- 🚫 Bloklanganlar (admin paneli: ro'yxat, blokdan chiqarish, qayta bloklash) ----------
     app.add_handler(MessageHandler(_exact(BTN_BLOCKED_USERS), on_blocked_users_button))
     app.add_handler(CallbackQueryHandler(on_blocked_callback, pattern="^blk:"))
+
+    # ---------- ℹ️ Foydalanuvchi haqida (admin paneli: /start sanasi, almaz, pul va h.k.) ----------
+    about_user_conv = ConversationHandler(
+        entry_points=[MessageHandler(_exact(BTN_ABOUT_USER), on_about_user_button)],
+        states={
+            WAITING_ABOUT_USER: [
+                CommandHandler("bekor", cancel_about_user),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_about_user_id),
+            ],
+        },
+        fallbacks=[CommandHandler("bekor", cancel_about_user)],
+    )
+    app.add_handler(about_user_conv)
 
     admin_credit_flow_conv = ConversationHandler(
         entry_points=[CallbackQueryHandler(on_credit_type_selected, pattern="^credittype:")],
