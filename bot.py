@@ -46,6 +46,7 @@ from keyboards import (
     BTN_EDIT_TEXTS,
     BTN_FORCE_SUB,
     BTN_MIN_WITHDRAW,
+    BTN_BLOCKED_USERS,
     BTN_ADMIN_CREDIT,
     BTN_WITHDRAW,
     BTN_GIFT_ALL,
@@ -336,6 +337,10 @@ from handlers.nimagap import (
     on_nimagap_accounts,
     on_fftour_slot_detail,
 )
+from handlers.blocked_users import (
+    on_blocked_users_button,
+    on_blocked_callback,
+)
 from handlers.admin_credit import (
     on_admin_credit_button,
     on_credit_type_selected,
@@ -544,7 +549,7 @@ _ALL_MENU_BUTTON_TEXTS = [
     BTN_SETTINGS, BTN_TABLET, BTN_NICKS, BTN_HACK, BTN_CUSTOM, BTN_WEBSITE,
     BTN_NEWS, BTN_MUSIC, BTN_QUIZ, BTN_DIAMONDS, BTN_ACCOUNT, BTN_HELP,
     BTN_GUIDES, BTN_FAQ, BTN_STATS, BTN_BROADCAST, BTN_EDIT_TEXTS,
-    BTN_FORCE_SUB, BTN_MIN_WITHDRAW,
+    BTN_FORCE_SUB, BTN_MIN_WITHDRAW, BTN_BLOCKED_USERS,
     BTN_ADMIN_CREDIT, BTN_WITHDRAW, BTN_GIFT_ALL, BTN_DEDUCT_DIAMOND,
     BTN_DEDUCT_ALL_DIAMONDS, BTN_TOP_REFRESH,
     BTN_FF2017, BTN_MAIN_FF, BTN_MAIN_DIAMONDS, BTN_MAIN_SERVICES,
@@ -1186,6 +1191,10 @@ def build_application() -> Application:
 
     # ---------- 🛠 Admin buyrug'i (qo'lda pul/almaz berish, faqat admin) ----------
     app.add_handler(MessageHandler(_exact(BTN_ADMIN_CREDIT), on_admin_credit_button))
+
+    # ---------- 🚫 Bloklanganlar (admin paneli: ro'yxat, blokdan chiqarish, qayta bloklash) ----------
+    app.add_handler(MessageHandler(_exact(BTN_BLOCKED_USERS), on_blocked_users_button))
+    app.add_handler(CallbackQueryHandler(on_blocked_callback, pattern="^blk:"))
 
     admin_credit_flow_conv = ConversationHandler(
         entry_points=[CallbackQueryHandler(on_credit_type_selected, pattern="^credittype:")],
