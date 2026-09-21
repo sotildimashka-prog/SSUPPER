@@ -260,9 +260,17 @@ from handlers.diamonds import (
 from handlers.admin import (
     on_stats_button,
     start_broadcast,
+    on_broadcast_type_chosen,
     send_broadcast,
     cancel_broadcast,
+    receive_broadcast_inline_content,
+    receive_broadcast_button_text,
+    receive_broadcast_button_url,
     WAITING_BROADCAST,
+    WAITING_BROADCAST_CHOICE,
+    WAITING_BROADCAST_INLINE_CONTENT,
+    WAITING_BROADCAST_BTN_TEXT,
+    WAITING_BROADCAST_BTN_URL,
     start_edit_texts,
     choose_text_to_edit,
     receive_new_text,
@@ -1064,10 +1072,25 @@ def build_application() -> Application:
     broadcast_conv = ConversationHandler(
         entry_points=[MessageHandler(_exact(BTN_BROADCAST), start_broadcast)],
         states={
+            WAITING_BROADCAST_CHOICE: [
+                CallbackQueryHandler(on_broadcast_type_chosen, pattern="^broadcast_type:"),
+            ],
             WAITING_BROADCAST: [
                 CommandHandler("bekor", cancel_broadcast),
                 MessageHandler(filters.ALL & ~filters.COMMAND, send_broadcast),
-            ]
+            ],
+            WAITING_BROADCAST_INLINE_CONTENT: [
+                CommandHandler("bekor", cancel_broadcast),
+                MessageHandler(filters.ALL & ~filters.COMMAND, receive_broadcast_inline_content),
+            ],
+            WAITING_BROADCAST_BTN_TEXT: [
+                CommandHandler("bekor", cancel_broadcast),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_broadcast_button_text),
+            ],
+            WAITING_BROADCAST_BTN_URL: [
+                CommandHandler("bekor", cancel_broadcast),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_broadcast_button_url),
+            ],
         },
         fallbacks=[CommandHandler("bekor", cancel_broadcast)],
     )
