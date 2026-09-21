@@ -1154,6 +1154,24 @@ def admin_order_review_keyboard(order_id: int) -> InlineKeyboardMarkup:
     )
 
 
+# ---------- 📣 Xabar yuborish (Broadcast) turi ----------
+
+def broadcast_type_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [_ikb("📝 Oddiy xabar", callback_data="broadcast_type:simple")],
+            [_ikb("🟢 Inline tugmali xabar", style="success", callback_data="broadcast_type:inline")],
+            [_ikb("❌ Bekor qilish", style="danger", callback_data="broadcast_type:cancel")],
+        ]
+    )
+
+
+def broadcast_inline_button(text: str, url: str) -> InlineKeyboardButton:
+    """Xabarga qo'shiladigan inline tugma - admin xohlagan nom va havola
+    (link yoki shaxsiy - 'lichka') bilan, doim YASHIL (success) rangda."""
+    return _ikb(text, style="success", url=url)
+
+
 # ---------- Admin: matnlarni tahrirlash ----------
 
 def edit_texts_keyboard() -> InlineKeyboardMarkup:
