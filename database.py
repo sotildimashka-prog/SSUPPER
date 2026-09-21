@@ -365,6 +365,10 @@ def init_db():
             "ALTER TABLE apples ADD COLUMN penalties INTEGER DEFAULT 0",
             "ALTER TABLE referrals ADD COLUMN credited_at TEXT",
             "ALTER TABLE referrals ADD COLUMN penalty_applied INTEGER DEFAULT 0",
+            # 🚫 Bloklanganlar: blokdan chiqarilgan foydalanuvchi ro'yxatdan
+            # o'chib ketmasligi uchun (admin uni qayta bloklay olsin).
+            "ALTER TABLE blocked_users ADD COLUMN is_active INTEGER DEFAULT 1",
+            "ALTER TABLE blocked_users ADD COLUMN unblocked_at TEXT",
         ):
             try:
                 cur.execute(alter_sql)
@@ -1230,28 +1234,78 @@ def save_hspro_phone_model(order_id: int, user_id: int, phone_model: str):
 
 
 # ---------------- 🚫 Bloklangan foydalanuvchilar ----------------
+# Blokdan chiqarilgan foydalanuvchi jadvaldan O'CHIRILMAYDI, faqat
+# is_active = 0 qilib belgilanadi. Shunda admin panelidagi "Bloklanganlar"
+# ro'yxatida u qoladi va admin uni qayta bloklay oladi.
 
 def block_user(user_id: int):
     now = datetime.utcnow().isoformat()
     with get_conn() as conn:
         conn.execute(
-            "INSERT INTO blocked_users (user_id, blocked_at) VALUES (?, ?) "
-            "ON CONFLICT(user_id) DO UPDATE SET blocked_at = excluded.blocked_at",
+            "INSERT INTO blocked_users (user_id, blocked_at, is_active, unblocked_at) "
+            "VALUES (?, ?, 1, NULL) "
+            "ON CONFLICT(user_id) DO UPDATE SET "
+            "blocked_at = excluded.blocked_at, is_active = 1, unblocked_at = NULL",
             (user_id, now),
         )
 
 
 def unblock_user(user_id: int):
+    now = datetime.utcnow().isoformat()
     with get_conn() as conn:
-        conn.execute("DELETE FROM blocked_users WHERE user_id = ?", (user_id,))
+        conn.execute(
+            "UPDATE blocked_users SET is_active = 0, unblocked_at = ? "
+            "WHERE user_id = ?",
+            (now, user_id),
+        )
 
 
 def is_user_blocked(user_id: int) -> bool:
     with get_conn() as conn:
         cur = conn.execute(
-            "SELECT 1 FROM blocked_users WHERE user_id = ?", (user_id,)
+            "SELECT 1 FROM blocked_users WHERE user_id = ? AND is_active = 1",
+            (user_id,),
         )
         return cur.fetchone() is not None
+
+
+def count_blocked_users() -> tuple[int, int]:
+    """(hozir bloklangan, ro'yxatdagi jami) sonini qaytaradi."""
+    with get_conn() as conn:
+        cur = conn.execute(
+            "SELECT COALESCE(SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END), 0) AS active, "
+            "COUNT(*) AS total FROM blocked_users"
+        )
+        row = cur.fetchone()
+        return int(row["active"]), int(row["total"])
+
+
+def get_blocked_users(limit: int = 10, offset: int = 0) -> list:
+    """Bloklanganlar ro'yxati (avval hozir bloklanganlar, keyin blokdan
+    chiqarilganlar; ichida eng yangisi birinchi). Har bir qatorda:
+    user_id, blocked_at, is_active, unblocked_at, first_name, username."""
+    with get_conn() as conn:
+        cur = conn.execute(
+            "SELECT b.user_id, b.blocked_at, b.is_active, b.unblocked_at, "
+            "u.first_name, u.username "
+            "FROM blocked_users b LEFT JOIN users u ON u.user_id = b.user_id "
+            "ORDER BY b.is_active DESC, b.blocked_at DESC "
+            "LIMIT ? OFFSET ?",
+            (limit, offset),
+        )
+        return cur.fetchall()
+
+
+def get_blocked_user(user_id: int):
+    with get_conn() as conn:
+        cur = conn.execute(
+            "SELECT b.user_id, b.blocked_at, b.is_active, b.unblocked_at, "
+            "u.first_name, u.username "
+            "FROM blocked_users b LEFT JOIN users u ON u.user_id = b.user_id "
+            "WHERE b.user_id = ?",
+            (user_id,),
+        )
+        return cur.fetchone()
 
 
 # ---------------- Almaz buyurtmalari ----------------
