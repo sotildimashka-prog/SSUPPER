@@ -2,6 +2,7 @@
 """📊 Statistika, 📣 Xabar yuborish, 📢 Majburiy obuna, 💎 Almaz yechish minimumi va ✏️ Tugmalarni tahrirlash - faqat admin uchun."""
 
 import asyncio
+import re
 
 from telegram import (
     Update,
@@ -28,11 +29,18 @@ from keyboards import (
     turnirlar_list_keyboard,
     turnirlar_detail_keyboard,
     force_sub_admin_keyboard,
+    broadcast_type_keyboard,
+    broadcast_inline_button,
 )
 from data.settings_data import PHONES
 
 WAITING_BROADCAST = 2
 WAITING_EDIT_TEXT = 5
+
+WAITING_BROADCAST_CHOICE = 112
+WAITING_BROADCAST_INLINE_CONTENT = 113
+WAITING_BROADCAST_BTN_TEXT = 114
+WAITING_BROADCAST_BTN_URL = 115
 
 WAITING_FFTOUR_CONTENT = 100
 WAITING_FFTOUR_CHANNEL = 101
@@ -83,20 +91,68 @@ async def on_stats_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(text, parse_mode="HTML")
 
 
-# ---------- 📣 Oddiy Xabar yuborish (Broadcast) ----------
+# ---------- 📣 Xabar yuborish (Broadcast) ----------
 
 async def start_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not _admin_only(update):
         return ConversationHandler.END
     await update.message.reply_text(
-        "📣 Barcha foydalanuvchilarga yuboriladigan xabar matnini kiriting.\n"
-        "Bekor qilish uchun /bekor.",
-        reply_markup=ReplyKeyboardRemove(),
+        "📣 <b>Xabar yuborish turini tanlang:</b>\n\n"
+        "📝 <b>Oddiy xabar</b> — barcha foydalanuvchilarga oddiy xabar yuboriladi.\n"
+        "🟢 <b>Inline tugmali xabar</b> — xabar ostiga o'zingiz xohlagan nom va "
+        "havolali (kanal/sahifa linki yoki shaxsiy - \"lichka\") yashil tugma "
+        "qo'shib yuboriladi.",
+        parse_mode="HTML",
+        reply_markup=broadcast_type_keyboard(),
     )
-    return WAITING_BROADCAST
+    return WAITING_BROADCAST_CHOICE
+
+
+async def on_broadcast_type_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    if not _admin_only(update):
+        await query.answer("Bu funksiya faqat admin uchun.", show_alert=True)
+        return ConversationHandler.END
+    await query.answer()
+
+    choice = query.data.split(":", 1)[1]
+
+    if choice == "cancel":
+        try:
+            await query.edit_message_text("❌ Bekor qilindi.")
+        except TelegramError:
+            pass
+        await context.bot.send_message(
+            chat_id=query.from_user.id,
+            text="Asosiy menyu:",
+            reply_markup=main_menu_keyboard(True),
+        )
+        return ConversationHandler.END
+
+    if choice == "simple":
+        try:
+            await query.edit_message_text(
+                "📝 Barcha foydalanuvchilarga yuboriladigan xabar matnini "
+                "(yoki rasm/video/faylni) kiriting.\nBekor qilish uchun /bekor."
+            )
+        except TelegramError:
+            pass
+        return WAITING_BROADCAST
+
+    # choice == "inline"
+    try:
+        await query.edit_message_text(
+            "🟢 Inline tugmali xabar uchun matn (yoki rasm/video/fayl) kiriting.\n"
+            "Bekor qilish uchun /bekor."
+        )
+    except TelegramError:
+        pass
+    return WAITING_BROADCAST_INLINE_CONTENT
 
 
 async def cancel_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data.pop("broadcast_inline_message", None)
+    context.user_data.pop("broadcast_btn_text", None)
     await update.message.reply_text(
         "❌ Bekor qilindi.", reply_markup=main_menu_keyboard(True)
     )
@@ -131,6 +187,117 @@ async def send_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"✅ Xabar yuborildi!\n\n📨 Muvaffaqiyatli: {sent}\n❌ Xatolik: {failed}",
         reply_markup=main_menu_keyboard(True),
     )
+    return ConversationHandler.END
+
+
+# ---------- 🟢 Inline tugmali xabar (Broadcast + link tugma) ----------
+
+async def receive_broadcast_inline_content(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not _admin_only(update):
+        return ConversationHandler.END
+
+    context.user_data["broadcast_inline_message"] = update.message
+    await update.message.reply_text(
+        "🔘 Endi tugma nomini kiriting (masalan: Kanalga o'tish, Admin bilan bog'lanish).\n"
+        "Bekor qilish uchun /bekor.",
+        reply_markup=ReplyKeyboardRemove(),
+    )
+    return WAITING_BROADCAST_BTN_TEXT
+
+
+async def receive_broadcast_button_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not _admin_only(update):
+        return ConversationHandler.END
+
+    text = (update.message.text or "").strip()
+    if not text:
+        await update.message.reply_text(
+            "⚠️ Tugma nomi bo'sh bo'lishi mumkin emas. Qaytadan kiriting yoki /bekor."
+        )
+        return WAITING_BROADCAST_BTN_TEXT
+
+    context.user_data["broadcast_btn_text"] = text
+    await update.message.reply_text(
+        "🔗 Endi tugma uchun havolani kiriting:\n\n"
+        "• Kanal/sahifa uchun: https://... yoki t.me/kanal_nomi\n"
+        "• Shaxsiy xabar (lichka) uchun: @username yoki https://t.me/username\n\n"
+        "Bekor qilish uchun /bekor."
+    )
+    return WAITING_BROADCAST_BTN_URL
+
+
+def _normalize_broadcast_url(raw: str) -> str | None:
+    """Foydalanuvchi kiritgan havolani (link yoki @username/lichka) to'g'ri
+    URL formatiga keltiradi. Noto'g'ri bo'lsa None qaytaradi."""
+    raw = (raw or "").strip()
+    if not raw:
+        return None
+    if raw.startswith("http://") or raw.startswith("https://"):
+        return raw
+    if raw.startswith("@"):
+        return f"https://t.me/{raw[1:]}"
+    if raw.startswith("t.me/"):
+        return f"https://{raw}"
+    # Faqat username yozilgan bo'lishi mumkin (lichka), masalan: shu_admin
+    if re.fullmatch(r"[A-Za-z0-9_]{4,}", raw):
+        return f"https://t.me/{raw}"
+    return None
+
+
+async def receive_broadcast_button_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not _admin_only(update):
+        return ConversationHandler.END
+
+    raw = (update.message.text or "").strip()
+    url = _normalize_broadcast_url(raw)
+    if not url:
+        await update.message.reply_text(
+            "⚠️ Havola noto'g'ri. https:// bilan boshlanadigan link, t.me/... "
+            "yoki @username (lichka) ko'rinishida yuboring. Qaytadan urinib "
+            "ko'ring yoki /bekor."
+        )
+        return WAITING_BROADCAST_BTN_URL
+
+    message = context.user_data.get("broadcast_inline_message")
+    btn_text = context.user_data.get("broadcast_btn_text") or "Batafsil"
+
+    if message is None:
+        await update.message.reply_text(
+            "⚠️ Xatolik yuz berdi, qaytadan boshlang.",
+            reply_markup=main_menu_keyboard(True),
+        )
+        context.user_data.pop("broadcast_inline_message", None)
+        context.user_data.pop("broadcast_btn_text", None)
+        return ConversationHandler.END
+
+    keyboard = InlineKeyboardMarkup([[broadcast_inline_button(btn_text, url)]])
+    user_ids = db.get_all_user_ids()
+
+    await update.message.reply_text(
+        f"⏳ Xabar {len(user_ids)} foydalanuvchiga yuborilmoqda..."
+    )
+
+    sent, failed = 0, 0
+    for uid in user_ids:
+        try:
+            await context.bot.copy_message(
+                chat_id=uid,
+                from_chat_id=message.chat_id,
+                message_id=message.message_id,
+                reply_markup=keyboard,
+            )
+            sent += 1
+        except TelegramError:
+            failed += 1
+        await asyncio.sleep(0.05)
+
+    await update.message.reply_text(
+        f"✅ Xabar yuborildi!\n\n📨 Muvaffaqiyatli: {sent}\n❌ Xatolik: {failed}",
+        reply_markup=main_menu_keyboard(True),
+    )
+
+    context.user_data.pop("broadcast_inline_message", None)
+    context.user_data.pop("broadcast_btn_text", None)
     return ConversationHandler.END
 
 
