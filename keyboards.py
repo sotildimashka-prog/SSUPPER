@@ -88,6 +88,15 @@ def _kb(text, style=None, **kwargs):
         kwargs.pop("icon_custom_emoji_id", None)
         return KeyboardButton(text, **kwargs)
 
+
+def _kb_plain(text: str) -> KeyboardButton:
+    """Har doim ODDIY, native emoji bilan tugma - premium custom_emoji_id
+    HECH QACHON qo'llanmaydi (admin premium akkountiga bog'liq bo'lmaydi).
+    Admin panelidagi (admin_panel_keyboard) barcha tugmalar shu ko'rinishda:
+    chiroyli, tekis, yonma-yon (2 tadan qatorda) va bir xil uslubda turishi
+    uchun ishlatiladi."""
+    return KeyboardButton(text)
+
 # ============================================================================
 # 🆘 Har bir INLINE menyuning tagiga avtomatik qo'shiladigan qatorlar:
 #   1) Agar menyuda hech qanday "orqaga/bosh menyu" tugmasi bo'lmasa -
@@ -187,6 +196,7 @@ BTN_DEDUCT_ALL_DIAMONDS = "🗑 Hammadan almaz yechish"
 BTN_TOP_REFRESH = "🔄 Top yangilash"
 BTN_FF_ADMIN_PANEL = "🗂 Turnir/Akkaunt boshqaruvi"
 BTN_BLOCKED_USERS = "🚫 Bloklanganlar"
+BTN_ABOUT_USER = "ℹ️ Foydalanuvchi haqida"
 
 # ---------- 🛒 Free Fire Do'koni / 🎁 Giftlar / 🏆 Yutiqni chiqarish ----------
 BTN_STORE = "🛒 Free Fire Do'koni"
@@ -253,14 +263,14 @@ def back_reply_keyboard() -> ReplyKeyboardMarkup:
 def admin_panel_keyboard() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         [
-            [_kb(BTN_STATS), _kb(BTN_ADMIN_CREDIT)],
-            [_kb(BTN_BROADCAST), _kb(BTN_GIFT_ALL)],
-            [_kb(BTN_EDIT_TEXTS), _kb(BTN_FORCE_SUB)],
-            [_kb(BTN_MIN_WITHDRAW), _kb(BTN_NASTROYKA_ADD)],
-            [_kb(BTN_FF_ADMIN_PANEL), _kb(BTN_BLOCKED_USERS)],
-            [_kb(BTN_DEDUCT_DIAMOND), _kb(BTN_DEDUCT_ALL_DIAMONDS)],
-            [_kb(BTN_TOP_REFRESH)],
-            [_kb(BTN_BACK)],
+            [_kb_plain(BTN_STATS), _kb_plain(BTN_ADMIN_CREDIT)],
+            [_kb_plain(BTN_BROADCAST), _kb_plain(BTN_GIFT_ALL)],
+            [_kb_plain(BTN_EDIT_TEXTS), _kb_plain(BTN_FORCE_SUB)],
+            [_kb_plain(BTN_MIN_WITHDRAW), _kb_plain(BTN_NASTROYKA_ADD)],
+            [_kb_plain(BTN_FF_ADMIN_PANEL), _kb_plain(BTN_BLOCKED_USERS)],
+            [_kb_plain(BTN_DEDUCT_DIAMOND), _kb_plain(BTN_DEDUCT_ALL_DIAMONDS)],
+            [_kb_plain(BTN_TOP_REFRESH), _kb_plain(BTN_ABOUT_USER)],
+            [_kb_plain(BTN_BACK)],
         ],
         resize_keyboard=True,
         is_persistent=True,
@@ -276,7 +286,7 @@ ORDERS_CHANNEL_USERNAME = ORDERS_CHANNEL_ID.lstrip("@")
 # tugmalar oynasi ular botga keyingi safar yozganda YOKI istalgan tugmani
 # (reply yoki inline) bosganda AVTOMATIK yangilanadi — broadcast yuborish
 # shart emas.
-MENU_VERSION = 11
+MENU_VERSION = 12
 
 
 def full_menu_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
