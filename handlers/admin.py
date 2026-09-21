@@ -58,6 +58,8 @@ WAITING_TURNIR_NOTE = 109
 WAITING_FORCE_SUB_CHANNEL = 110
 WAITING_MIN_WITHDRAW = 111
 
+WAITING_ABOUT_USER = 120
+
 TEXT_LABELS = {
     "help_text": "🎧 Yordam matni",
     "cheat_text": "🛠️ Cheat matni",
@@ -1197,6 +1199,83 @@ async def receive_nastroyka_content(update: Update, context: ContextTypes.DEFAUL
 
 async def cancel_nastroyka(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.pop("nastroyka_type", None)
+    await update.message.reply_text(
+        "❌ Bekor qilindi.", reply_markup=main_menu_keyboard(True)
+    )
+    return ConversationHandler.END
+
+
+# ---------- ℹ️ Foydalanuvchi haqida (admin xohlagan foydalanuvchining
+# to'liq ma'lumotini: /start bosgan sanasi, almazi, puli va h.k. ko'rish) ----------
+
+async def on_about_user_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not _admin_only(update):
+        return ConversationHandler.END
+    await update.message.reply_text(
+        "ℹ️ <b>Foydalanuvchi haqida ma'lumot</b>\n\n"
+        "Foydalanuvchining USER (username) yoki Telegram ID sini yuboring:\n\n"
+        "Masalan: <code>@ali_ff</code> yoki <code>123456789</code>\n\n"
+        "Bekor qilish uchun /bekor.",
+        parse_mode="HTML",
+    )
+    return WAITING_ABOUT_USER
+
+
+async def receive_about_user_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not _admin_only(update):
+        return ConversationHandler.END
+
+    raw = (update.message.text or "").strip()
+    row = db.resolve_user(raw)
+
+    if row:
+        target_id = row["user_id"]
+        first_name = row["first_name"]
+        username = row["username"]
+        joined = row["joined_at"]
+    else:
+        uid = db.parse_user_id(raw)
+        if not uid:
+            await update.message.reply_text(
+                "⚠️ Bunday foydalanuvchi topilmadi. Username (masalan "
+                "<code>@ali_ff</code>) yoki Telegram ID (masalan "
+                "<code>123456789</code>) yuboring.",
+                parse_mode="HTML",
+            )
+            return WAITING_ABOUT_USER
+        target_id, first_name, username, joined = uid, None, None, None
+
+    balance = db.get_balance(target_id)
+    diamonds = db.get_quiz_diamonds(target_id)
+    ref_count = db.count_referrals(target_id)
+    ref_links = db.count_referral_links(target_id)
+    blocked_row = db.get_blocked_user(target_id)
+    is_blocked = bool(blocked_row and blocked_row["is_active"])
+
+    joined_text = joined[:10] if joined else "— (hali /start bosmagan)"
+    username_text = f"@{username}" if username else "—"
+    status_text = "🚫 Bloklangan" if is_blocked else "✅ Faol"
+
+    text = (
+        "ℹ️ <b>Foydalanuvchi haqida</b>\n\n"
+        f"👤 Ism: {first_name or '—'}\n"
+        f"🔗 Username: {username_text}\n"
+        f"🆔 Telegram ID: <code>{target_id}</code>\n"
+        f"📅 /start bosgan sana: {joined_text}\n"
+        f"📌 Holati: {status_text}\n\n"
+        f"💎 Almaz: {diamonds:,} dona\n"
+        f"💰 Balans: {balance:,} so'm\n\n"
+        f"👥 Tasdiqlangan referallar: {ref_count}\n"
+        f"🔗 Jami referal havolalar: {ref_links}"
+    ).replace(",", ".")
+
+    await update.message.reply_text(
+        text, parse_mode="HTML", reply_markup=main_menu_keyboard(True)
+    )
+    return ConversationHandler.END
+
+
+async def cancel_about_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "❌ Bekor qilindi.", reply_markup=main_menu_keyboard(True)
     )
